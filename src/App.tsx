@@ -272,6 +272,61 @@ const demoThisMonthTotal = 13450;
 const demoThisMonthJobs = 11;
 const demoForecastText = "Demand is expected to rise 32% this week (monsoon season). Consider extending your available hours.";
 
+// Demo profile/verification data for the worker dashboard's Profile tab —
+// stands in for a real cooperative-society verification record.
+const demoWorkerRating = 4.8;
+const demoWorkerJobsDone = 217;
+const demoWorkerExperienceYears = 6;
+const demoWorkerSkills = ["Plumbing"];
+const demoWorkerSociety = "Jaipur Labour Cooperative Society #JLC-0412";
+const demoWorkerCertifications = [
+  { name: "ITI Trade Certificate", status: "Verified" },
+  { name: "Police Verification", status: "Verified" },
+  { name: "Society Membership", status: "Active" },
+];
+
+// Demo incoming requests so the Jobs tab isn't empty by default — stands in
+// until real customer bookings start coming through.
+const demoInitialWorkerRequests: WorkerRequest[] = [
+  {
+    id: "demo-req-1",
+    customerName: "Anita Sharma",
+    workerName: "You",
+    service: "Leak Repair",
+    category: "plumbing",
+    date: "Today",
+    time: "3:00 PM",
+    address: "C-42, Lajpat Nagar, Delhi",
+    rate: "420",
+    status: "pending",
+  },
+  {
+    id: "demo-req-2",
+    customerName: "Vikram Singh",
+    workerName: "You",
+    service: "Bathroom Fitting",
+    category: "plumbing",
+    date: "Tomorrow",
+    time: "11:00 AM",
+    address: "B-7, Patel Nagar, Delhi",
+    rate: "390",
+    status: "pending",
+  },
+  {
+    id: "demo-req-3",
+    customerName: "Fatima Khan",
+    workerName: "You",
+    service: "Water Heater Repair",
+    category: "plumbing",
+    date: "Aug 27",
+    time: "5:00 PM",
+    address: "F-19, Janakpuri, Delhi",
+    rate: "350",
+    status: "accepted",
+    etaMinutes: 25,
+  },
+];
+
 type Worker = Omit<(typeof workers)[number], "id"> & { id: number | string; verified?: boolean };
 
 // Builds a searchable Worker profile out of a name/category/experience —
@@ -761,7 +816,7 @@ export default function App() {
   // client-side since this app has no backend to push real-time events —
   // any signed-in worker sees all incoming requests, standing in for "the"
   // cooperative worker in this demo.
-  const [workerRequests, setWorkerRequests] = useState<WorkerRequest[]>([]);
+  const [workerRequests, setWorkerRequests] = useState<WorkerRequest[]>(demoInitialWorkerRequests);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [seenNotifIds, setSeenNotifIds] = useState<Set<string>>(new Set());
 
@@ -769,6 +824,8 @@ export default function App() {
   // to bank" flow — no real payments backend, just a demo confirmation.
   const [workerTab, setWorkerTab] = useState<"jobs" | "earnings" | "profile">("jobs");
   const [withdrawStatus, setWithdrawStatus] = useState<string | null>(null);
+  const [hoveredIncomeIdx, setHoveredIncomeIdx] = useState<number | null>(null);
+  const [hoveredPayoutIdx, setHoveredPayoutIdx] = useState<number | null>(null);
   function handleWithdraw() {
     setWithdrawStatus("Processing withdrawal…");
     setTimeout(() => {
@@ -2156,17 +2213,56 @@ export default function App() {
                   <div>
                     <div className="text-xs font-semibold uppercase tracking-widest text-[#7A7469] mb-2">Monthly income trend</div>
                     <div className="bg-white border border-[#D8D2C5] rounded-2xl p-5">
-                      <svg viewBox="0 0 300 100" className="w-full h-28">
-                        <polyline
-                          fill="none"
-                          stroke="#1B6B5E"
-                          strokeWidth="2"
-                          points={demoMonthlyIncomeTrend.map((d, i) => `${(i / (demoMonthlyIncomeTrend.length - 1)) * 300},${100 - (d.amount / maxIncome) * 90}`).join(" ")}
-                        />
-                        {demoMonthlyIncomeTrend.map((d, i) => (
-                          <circle key={d.month} cx={(i / (demoMonthlyIncomeTrend.length - 1)) * 300} cy={100 - (d.amount / maxIncome) * 90} r="3" fill="#1B6B5E" />
-                        ))}
-                      </svg>
+                      <div className="relative h-28" onMouseLeave={() => setHoveredIncomeIdx(null)}>
+                        <svg viewBox="0 0 300 100" className="w-full h-full" preserveAspectRatio="none">
+                          <polyline
+                            fill="none"
+                            stroke="#1B6B5E"
+                            strokeWidth="2"
+                            points={demoMonthlyIncomeTrend.map((d, i) => `${(i / (demoMonthlyIncomeTrend.length - 1)) * 300},${100 - (d.amount / maxIncome) * 90}`).join(" ")}
+                          />
+                          {hoveredIncomeIdx !== null && (
+                            <line
+                              x1={(hoveredIncomeIdx / (demoMonthlyIncomeTrend.length - 1)) * 300}
+                              x2={(hoveredIncomeIdx / (demoMonthlyIncomeTrend.length - 1)) * 300}
+                              y1="0" y2="100"
+                              stroke="#D8D2C5" strokeWidth="1" strokeDasharray="3,3"
+                            />
+                          )}
+                          {demoMonthlyIncomeTrend.map((d, i) => (
+                            <circle
+                              key={d.month}
+                              cx={(i / (demoMonthlyIncomeTrend.length - 1)) * 300}
+                              cy={100 - (d.amount / maxIncome) * 90}
+                              r={hoveredIncomeIdx === i ? 5 : 3}
+                              fill="#1B6B5E"
+                            />
+                          ))}
+                        </svg>
+                        {/* Invisible hover columns — one per data point, for easy mouse targeting */}
+                        <div className="absolute inset-0 flex">
+                          {demoMonthlyIncomeTrend.map((d, i) => (
+                            <div
+                              key={d.month}
+                              className="flex-1 h-full cursor-pointer"
+                              onMouseEnter={() => setHoveredIncomeIdx(i)}
+                            />
+                          ))}
+                        </div>
+                        {hoveredIncomeIdx !== null && (
+                          <div
+                            className="absolute bg-white border border-[#D8D2C5] rounded-lg px-3 py-1.5 shadow-md text-xs whitespace-nowrap pointer-events-none"
+                            style={{
+                              left: `${(hoveredIncomeIdx / (demoMonthlyIncomeTrend.length - 1)) * 100}%`,
+                              top: `${100 - (demoMonthlyIncomeTrend[hoveredIncomeIdx].amount / maxIncome) * 90}%`,
+                              transform: "translate(-50%, -125%)",
+                            }}
+                          >
+                            <div className="font-semibold uppercase text-[10px] text-[#7A7469]">{demoMonthlyIncomeTrend[hoveredIncomeIdx].month}</div>
+                            <div className="font-semibold text-[#1C1A16]">₹{demoMonthlyIncomeTrend[hoveredIncomeIdx].amount.toLocaleString("en-IN")}</div>
+                          </div>
+                        )}
+                      </div>
                       <div className="flex justify-between text-xs text-[#7A7469] mt-1">
                         {demoMonthlyIncomeTrend.map((d) => (
                           <span key={d.month}>{d.month}</span>
@@ -2179,16 +2275,33 @@ export default function App() {
                   <div>
                     <div className="text-xs font-semibold uppercase tracking-widest text-[#7A7469] mb-2">Payout history</div>
                     <div className="bg-white border border-[#D8D2C5] rounded-2xl p-5">
-                      <div className="flex items-end justify-between gap-3 h-32">
-                        {demoPayoutHistory.map((p, i) => (
-                          <div key={p.label} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                      <div className="flex items-end justify-between gap-3 h-32" onMouseLeave={() => setHoveredPayoutIdx(null)}>
+                        {demoPayoutHistory.map((p, i) => {
+                          const isHovered = hoveredPayoutIdx === i;
+                          const isDefaultHighlight = i === 0 && hoveredPayoutIdx === null;
+                          return (
                             <div
-                              className={`w-full rounded-t-md ${i === 0 ? "bg-[#D97840]" : "bg-[#E8E3D8]"}`}
-                              style={{ height: `${(p.amount / maxPayout) * 100}%` }}
-                            />
-                            <span className="text-[10px] text-[#7A7469]">{p.label}</span>
-                          </div>
-                        ))}
+                              key={p.label}
+                              className="relative flex-1 flex flex-col items-center gap-2 h-full justify-end cursor-pointer"
+                              onMouseEnter={() => setHoveredPayoutIdx(i)}
+                            >
+                              {isHovered && (
+                                <div className="absolute inset-x-0 top-0 bottom-6 bg-[#FCEBDA] rounded-md -z-0" />
+                              )}
+                              {isHovered && (
+                                <div className="absolute -top-2 -translate-y-full bg-white border border-[#D8D2C5] rounded-lg px-3 py-1.5 shadow-md text-xs whitespace-nowrap z-10">
+                                  <div className="font-semibold uppercase text-[10px] text-[#7A7469]">{p.label}</div>
+                                  <div className="font-semibold text-[#1C1A16]">₹{p.amount.toLocaleString("en-IN")}</div>
+                                </div>
+                              )}
+                              <div
+                                className={`relative w-full rounded-t-md z-[1] ${isHovered || isDefaultHighlight ? "bg-[#D97840]" : "bg-[#E8E3D8]"}`}
+                                style={{ height: `${(p.amount / maxPayout) * 100}%` }}
+                              />
+                              <span className="relative text-[10px] text-[#7A7469] z-[1]">{p.label}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                       <p className="text-xs text-[#7A7469] mt-3">Most recent week highlighted · settled to society account.</p>
                     </div>
@@ -2224,15 +2337,63 @@ export default function App() {
                     onError={(e) => handleImgError(e, personImgFallback(currentUser?.name || "Worker", "1B6B5E"))}
                   />
                   <div>
-                    <div className="font-semibold text-lg">{currentUser?.name}</div>
-                    <div className="text-sm text-[#7A7469]">{currentUser?.email}</div>
+                    <div className="font-semibold text-lg flex items-center gap-1.5 justify-center">
+                      {currentUser?.name}
+                      <span className="text-[#D97840]" title="Federation verified">✓</span>
+                    </div>
+                    <div className="text-sm text-[#7A7469]">{demoWorkerSociety}</div>
                   </div>
                 </div>
+
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
+                    <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{demoWorkerRating}</div>
+                    <div className="text-xs text-[#7A7469] mt-0.5">Rating</div>
+                  </div>
+                  <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
+                    <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{demoWorkerJobsDone}</div>
+                    <div className="text-xs text-[#7A7469] mt-0.5">Jobs done</div>
+                  </div>
+                  <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
+                    <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{demoWorkerExperienceYears} yr</div>
+                    <div className="text-xs text-[#7A7469] mt-0.5">Experience</div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-widest text-[#7A7469] mb-2">Skills</div>
+                  <div className="flex flex-wrap gap-2">
+                    {demoWorkerSkills.map((skill) => (
+                      <span key={skill} className="bg-[#F7F2E9] border border-[#D8D2C5] text-sm px-3 py-1.5 rounded-full">{skill}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-widest text-[#7A7469] mb-2">Certifications</div>
+                  <div className="bg-white border border-[#D8D2C5] rounded-2xl divide-y divide-[#EDE8DF]">
+                    {demoWorkerCertifications.map((cert) => (
+                      <div key={cert.name} className="flex justify-between items-center px-5 py-4 text-sm">
+                        <span className="text-[#1C1A16]">{cert.name}</span>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${cert.status === "Active" ? "bg-[#FEF3EB] text-[#D97840]" : "bg-[#E8F4F1] text-[#1B6B5E]"}`}>
+                          {cert.status.toUpperCase()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="bg-white border border-[#D8D2C5] rounded-2xl divide-y divide-[#EDE8DF] text-sm">
-                  <div className="flex justify-between px-5 py-3"><span className="text-[#7A7469]">Role</span><span className="font-medium">Cooperative Worker</span></div>
+                  <div className="flex justify-between px-5 py-3"><span className="text-[#7A7469]">Email</span><span className="font-medium">{currentUser?.email}</span></div>
                   <div className="flex justify-between px-5 py-3"><span className="text-[#7A7469]">Jobs completed</span><span className="font-medium">{acceptedJobs.length}</span></div>
                   <div className="flex justify-between px-5 py-3"><span className="text-[#7A7469]">This month earnings</span><span className="font-medium">₹{demoThisMonthTotal.toLocaleString("en-IN")}</span></div>
                 </div>
+
+                <div className="bg-[#E8F4F1] border border-[#1B6B5E]/20 rounded-xl p-4 flex items-start gap-3">
+                  <span className="text-lg">🛡️</span>
+                  <p className="text-sm text-[#1C1A16]">Federation-verified worker. Your profile carries the cooperative trust seal shown to customers.</p>
+                </div>
+
                 <button onClick={handleSignOut} className="border border-red-200 text-red-600 font-semibold py-3 rounded-xl hover:bg-red-50 transition-colors">
                   {t("signOut")}
                 </button>
