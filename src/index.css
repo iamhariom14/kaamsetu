@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import 'tailwindcss';
+
+@theme inline {
+  --color-background: #F7F2E9;
+  --color-foreground: #1C1A16;
+  --color-card: #FDFAF4;
+  --color-card-foreground: #1C1A16;
+  --color-primary: #1B6B5E;
+  --color-primary-foreground: #FDFAF4;
+  --color-secondary: #EDE8DF;
+  --color-secondary-foreground: #3D3A33;
+  --color-muted: #E8E3D8;
+  --color-muted-foreground: #7A7469;
+  --color-accent: #D97840;
+  --color-accent-foreground: #FDFAF4;
+  --color-border: #D8D2C5;
+  --color-ring: #1B6B5E;
+  --radius: 0.75rem;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: #F7F2E9;
+  color: #1C1A16;
+  font-family: 'Outfit', sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: 'Fraunces', serif;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*:hover {
+  scrollbar-color: #D8D2C5 transparent;
+}

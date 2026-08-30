@@ -1,0 +1,10 @@
+{
+  "description": "This web application generates tailored UI designs based on specific problem statements, streamlining the design process for developers and designers.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
