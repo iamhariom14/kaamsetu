@@ -3,20 +3,20 @@
 @import 'tailwindcss';
 
 @theme inline {
-  --color-background: #F7F2E9;
-  --color-foreground: #1C1A16;
-  --color-card: #FDFAF4;
-  --color-card-foreground: #1C1A16;
-  --color-primary: #1B6B5E;
-  --color-primary-foreground: #FDFAF4;
-  --color-secondary: #EDE8DF;
-  --color-secondary-foreground: #3D3A33;
-  --color-muted: #E8E3D8;
-  --color-muted-foreground: #7A7469;
-  --color-accent: #D97840;
-  --color-accent-foreground: #FDFAF4;
-  --color-border: #D8D2C5;
-  --color-ring: #1B6B5E;
+  --color-background: #F3F7FE;
+  --color-foreground: #0F1E3D;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #0F1E3D;
+  --color-primary: #1D4ED8;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #E6EEFB;
+  --color-secondary-foreground: #1E293B;
+  --color-muted: #DCE7F8;
+  --color-muted-foreground: #64748B;
+  --color-accent: #0EA5E9;
+  --color-accent-foreground: #FFFFFF;
+  --color-border: #CBD9EE;
+  --color-ring: #1D4ED8;
   --radius: 0.75rem;
 }
 
@@ -25,8 +25,8 @@ html, body, #root {
 }
 
 body {
-  background-color: #F7F2E9;
-  color: #1C1A16;
+  background-color: #F3F7FE;
+  color: #0F1E3D;
   font-family: 'Outfit', sans-serif;
 }
 
@@ -39,5 +39,5 @@ h1, h2, h3, .font-display {
   scrollbar-color: transparent transparent;
 }
 *:hover {
-  scrollbar-color: #D8D2C5 transparent;
+  scrollbar-color: #CBD9EE transparent;
 }
