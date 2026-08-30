@@ -245,6 +245,33 @@ const howItWorks = [
 
 const timeSlots = ["9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM"];
 
+// Demo earnings & welfare data for the worker dashboard's Earnings tab —
+// stands in for real payout history until it's wired to a payments backend.
+const demoMonthlyIncomeTrend = [
+  { month: "Mar", amount: 4200 },
+  { month: "Apr", amount: 5100 },
+  { month: "May", amount: 3800 },
+  { month: "Jun", amount: 5600 },
+  { month: "Jul", amount: 6200 },
+  { month: "Aug", amount: 4700 },
+];
+const demoPayoutHistory = [
+  { label: "Aug 24", jobs: 6, amount: 4220 },
+  { label: "Aug 17", jobs: 5, amount: 3640 },
+  { label: "Aug 10", jobs: 7, amount: 4980 },
+  { label: "Aug 03", jobs: 4, amount: 2810 },
+];
+const demoRecentCompletedJobs = [
+  { customer: "Demo Account", amount: 250 },
+  { customer: "Demo Account", amount: 350 },
+  { customer: "Ashish Nehra", amount: 250 },
+  { customer: "Demo Account", amount: 250 },
+  { customer: "Demo Account", amount: 250 },
+];
+const demoThisMonthTotal = 13450;
+const demoThisMonthJobs = 11;
+const demoForecastText = "Demand is expected to rise 32% this week (monsoon season). Consider extending your available hours.";
+
 type Worker = Omit<(typeof workers)[number], "id"> & { id: number | string; verified?: boolean };
 
 // Builds a searchable Worker profile out of a name/category/experience —
@@ -737,6 +764,17 @@ export default function App() {
   const [workerRequests, setWorkerRequests] = useState<WorkerRequest[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [seenNotifIds, setSeenNotifIds] = useState<Set<string>>(new Set());
+
+  // Worker dashboard bottom tabs (Jobs / Earnings / Profile) + mock "withdraw
+  // to bank" flow — no real payments backend, just a demo confirmation.
+  const [workerTab, setWorkerTab] = useState<"jobs" | "earnings" | "profile">("jobs");
+  const [withdrawStatus, setWithdrawStatus] = useState<string | null>(null);
+  function handleWithdraw() {
+    setWithdrawStatus("Processing withdrawal…");
+    setTimeout(() => {
+      setWithdrawStatus(`₹${demoThisMonthTotal.toLocaleString("en-IN")} withdrawal initiated to your linked bank account. It typically settles within 1–2 business days.`);
+    }, 900);
+  }
 
   function pushNotification(forRole: "customer" | "worker", text: string) {
     setNotifications((prev) => [
@@ -1985,8 +2023,8 @@ export default function App() {
 
       {/* ── WORKER DASHBOARD PAGE ── */}
       {page === "workerDashboard" && (
-        <section className="py-14 md:py-20">
-          <div className="max-w-5xl mx-auto px-5 md:px-10">
+        <section className="pb-24 md:pb-28">
+          <div className="max-w-5xl mx-auto px-5 md:px-10 py-14 md:py-20">
             <button onClick={goHome} className="text-sm text-[#7A7469] hover:text-[#1C1A16] mb-6 flex items-center gap-1">← Back to home</button>
 
             <div className="flex items-center gap-4 mb-8">
@@ -2002,61 +2040,231 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-10">
-              <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
-                <div className="text-2xl font-semibold text-[#1B6B5E]" style={{ fontFamily: "'Fraunces', serif" }}>{acceptedJobs.length}</div>
-                <div className="text-xs text-[#7A7469]">{t("jobsCompleted")}</div>
-              </div>
-              <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
-                <div className="text-2xl font-semibold text-[#1B6B5E]" style={{ fontFamily: "'Fraunces', serif" }}>₹{totalEarnings}</div>
-                <div className="text-xs text-[#7A7469]">{t("totalEarnings")}</div>
-              </div>
-              <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
-                <div className="text-2xl font-semibold text-[#D97840]" style={{ fontFamily: "'Fraunces', serif" }}>{pendingRequestsCount}</div>
-                <div className="text-xs text-[#7A7469]">Pending requests</div>
-              </div>
-            </div>
-
-            <h3 className="font-semibold text-xl mb-4" style={{ fontFamily: "'Fraunces', serif" }}>{t("incomingRequests")}</h3>
-            {workerRequests.length === 0 ? (
-              <div className="text-center py-12 text-[#7A7469] bg-white border border-[#D8D2C5] rounded-xl">No booking requests yet.</div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {workerRequests.map((req) => (
-                  <div key={req.id} className="bg-white border border-[#D8D2C5] rounded-xl p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-semibold text-[#1C1A16]">{req.customerName}</div>
-                        <div className="text-sm text-[#7A7469]">{req.service}</div>
-                        <div className="text-xs text-[#7A7469] mt-1">{req.date} · {req.time}</div>
-                        <div className="text-xs text-[#7A7469]">{req.address}</div>
-                        <div className="text-xs font-semibold text-[#1B6B5E] mt-1">₹{req.rate}/hr</div>
-                      </div>
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
-                        req.status === "pending" ? "bg-[#FEF3EB] text-[#D97840]" :
-                        req.status === "accepted" ? "bg-[#E8F4F1] text-[#1B6B5E]" :
-                        "bg-red-50 text-red-600"
-                      }`}>
-                        {req.status === "pending" ? t("pending") : req.status === "accepted" ? t("accepted") : t("rejected")}
-                      </span>
-                    </div>
-                    {req.status === "pending" && (
-                      <div className="flex gap-3 mt-4">
-                        <button onClick={() => rejectRequest(req.id)} className="flex-1 border border-[#D8D2C5] text-[#1C1A16] font-medium py-2 rounded-lg hover:bg-[#EDE8DF] transition-colors">
-                          {t("reject")}
-                        </button>
-                        <button onClick={() => acceptRequest(req.id)} className="flex-1 bg-[#1B6B5E] text-white font-semibold py-2 rounded-lg hover:bg-[#155750] transition-colors">
-                          {t("accept")}
-                        </button>
-                      </div>
-                    )}
-                    {req.status === "accepted" && req.etaMinutes != null && (
-                      <div className="mt-3 text-sm text-[#1B6B5E] font-medium">Arriving in ~{req.etaMinutes} minutes</div>
-                    )}
+            {/* ── JOBS TAB ── */}
+            {workerTab === "jobs" && (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+                  <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
+                    <div className="text-2xl font-semibold text-[#1B6B5E]" style={{ fontFamily: "'Fraunces', serif" }}>{acceptedJobs.length}</div>
+                    <div className="text-xs text-[#7A7469]">{t("jobsCompleted")}</div>
                   </div>
-                ))}
+                  <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
+                    <div className="text-2xl font-semibold text-[#1B6B5E]" style={{ fontFamily: "'Fraunces', serif" }}>₹{totalEarnings}</div>
+                    <div className="text-xs text-[#7A7469]">{t("totalEarnings")}</div>
+                  </div>
+                  <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
+                    <div className="text-2xl font-semibold text-[#D97840]" style={{ fontFamily: "'Fraunces', serif" }}>{pendingRequestsCount}</div>
+                    <div className="text-xs text-[#7A7469]">Pending requests</div>
+                  </div>
+                </div>
+
+                <h3 className="font-semibold text-xl mb-4" style={{ fontFamily: "'Fraunces', serif" }}>{t("incomingRequests")}</h3>
+                {workerRequests.length === 0 ? (
+                  <div className="text-center py-12 text-[#7A7469] bg-white border border-[#D8D2C5] rounded-xl">
+                    <div className="text-3xl mb-2">✓</div>
+                    No new requests
+                    <p className="text-xs text-[#7A7469] mt-1">When a customer books you, the request appears here for a one-tap accept.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {workerRequests.map((req) => (
+                      <div key={req.id} className="bg-white border border-[#D8D2C5] rounded-xl p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="font-semibold text-[#1C1A16]">{req.customerName}</div>
+                            <div className="text-sm text-[#7A7469]">{req.service}</div>
+                            <div className="text-xs text-[#7A7469] mt-1">{req.date} · {req.time}</div>
+                            <div className="text-xs text-[#7A7469]">{req.address}</div>
+                            <div className="text-xs font-semibold text-[#1B6B5E] mt-1">₹{req.rate}/hr</div>
+                          </div>
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
+                            req.status === "pending" ? "bg-[#FEF3EB] text-[#D97840]" :
+                            req.status === "accepted" ? "bg-[#E8F4F1] text-[#1B6B5E]" :
+                            "bg-red-50 text-red-600"
+                          }`}>
+                            {req.status === "pending" ? t("pending") : req.status === "accepted" ? t("accepted") : t("rejected")}
+                          </span>
+                        </div>
+                        {req.status === "pending" && (
+                          <div className="flex gap-3 mt-4">
+                            <button onClick={() => rejectRequest(req.id)} className="flex-1 border border-[#D8D2C5] text-[#1C1A16] font-medium py-2 rounded-lg hover:bg-[#EDE8DF] transition-colors">
+                              {t("reject")}
+                            </button>
+                            <button onClick={() => acceptRequest(req.id)} className="flex-1 bg-[#1B6B5E] text-white font-semibold py-2 rounded-lg hover:bg-[#155750] transition-colors">
+                              {t("accept")}
+                            </button>
+                          </div>
+                        )}
+                        {req.status === "accepted" && req.etaMinutes != null && (
+                          <div className="mt-3 text-sm text-[#1B6B5E] font-medium">Arriving in ~{req.etaMinutes} minutes</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <h3 className="font-semibold text-sm uppercase tracking-widest text-[#7A7469] mt-10 mb-3">Forecast for your ward</h3>
+                <div className="bg-[#E8F4F1] border border-[#1B6B5E]/20 rounded-xl p-4 flex items-start gap-3 mb-10">
+                  <span className="text-lg">📈</span>
+                  <p className="text-sm text-[#1C1A16]">{demoForecastText}</p>
+                </div>
+
+                <h3 className="font-semibold text-sm uppercase tracking-widest text-[#7A7469] mb-3">Recent completed</h3>
+                <div className="bg-white border border-[#D8D2C5] rounded-xl divide-y divide-[#EDE8DF]">
+                  {demoRecentCompletedJobs.map((job, i) => (
+                    <div key={i} className="flex items-center justify-between px-5 py-3 text-sm">
+                      <span className="text-[#1C1A16]">Job · {job.customer}</span>
+                      <span className="font-semibold text-[#1B6B5E]">₹{job.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ── EARNINGS TAB ── */}
+            {workerTab === "earnings" && (() => {
+              const maxIncome = Math.max(...demoMonthlyIncomeTrend.map((d) => d.amount));
+              const maxPayout = Math.max(...demoPayoutHistory.map((p) => p.amount));
+              return (
+                <div className="flex flex-col gap-6">
+                  <h3 className="font-semibold text-2xl" style={{ fontFamily: "'Fraunces', serif" }}>Earnings & Welfare</h3>
+
+                  <div className="bg-white border border-[#D8D2C5] rounded-2xl p-6">
+                    <div className="text-xs text-[#7A7469] mb-1">This month</div>
+                    <div className="text-4xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>₹{demoThisMonthTotal.toLocaleString("en-IN")}</div>
+                    <div className="text-xs text-[#7A7469] mt-1">from {demoThisMonthJobs} completed jobs</div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-[#7A7469] mb-2">Welfare status</div>
+                    <div className="bg-white border border-[#D8D2C5] rounded-2xl divide-y divide-[#EDE8DF]">
+                      <div className="flex justify-between items-center px-5 py-4">
+                        <span className="text-sm text-[#1C1A16]">Health insurance (PMJAY-linked)</span>
+                        <span className="text-xs font-semibold bg-[#E8F4F1] text-[#1B6B5E] px-2 py-1 rounded-full">ACTIVE</span>
+                      </div>
+                      <div className="flex justify-between items-center px-5 py-4">
+                        <span className="text-sm text-[#1C1A16]">Cooperative welfare fund</span>
+                        <span className="text-xs font-semibold text-[#1C1A16]">₹2,100 saved</span>
+                      </div>
+                      <div className="flex justify-between items-center px-5 py-4">
+                        <span className="text-sm text-[#1C1A16]">Accident cover</span>
+                        <span className="text-xs font-semibold bg-[#E8F4F1] text-[#1B6B5E] px-2 py-1 rounded-full">ACTIVE</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-[#7A7469] mb-2">Monthly income trend</div>
+                    <div className="bg-white border border-[#D8D2C5] rounded-2xl p-5">
+                      <svg viewBox="0 0 300 100" className="w-full h-28">
+                        <polyline
+                          fill="none"
+                          stroke="#1B6B5E"
+                          strokeWidth="2"
+                          points={demoMonthlyIncomeTrend.map((d, i) => `${(i / (demoMonthlyIncomeTrend.length - 1)) * 300},${100 - (d.amount / maxIncome) * 90}`).join(" ")}
+                        />
+                        {demoMonthlyIncomeTrend.map((d, i) => (
+                          <circle key={d.month} cx={(i / (demoMonthlyIncomeTrend.length - 1)) * 300} cy={100 - (d.amount / maxIncome) * 90} r="3" fill="#1B6B5E" />
+                        ))}
+                      </svg>
+                      <div className="flex justify-between text-xs text-[#7A7469] mt-1">
+                        {demoMonthlyIncomeTrend.map((d) => (
+                          <span key={d.month}>{d.month}</span>
+                        ))}
+                      </div>
+                      <p className="text-xs text-[#7A7469] mt-3">Last 6 months · visit fee + parts, net of society fee.</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-[#7A7469] mb-2">Payout history</div>
+                    <div className="bg-white border border-[#D8D2C5] rounded-2xl p-5">
+                      <div className="flex items-end justify-between gap-3 h-32">
+                        {demoPayoutHistory.map((p, i) => (
+                          <div key={p.label} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                            <div
+                              className={`w-full rounded-t-md ${i === 0 ? "bg-[#D97840]" : "bg-[#E8E3D8]"}`}
+                              style={{ height: `${(p.amount / maxPayout) * 100}%` }}
+                            />
+                            <span className="text-[10px] text-[#7A7469]">{p.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-[#7A7469] mt-3">Most recent week highlighted · settled to society account.</p>
+                    </div>
+                    <div className="bg-white border border-[#D8D2C5] rounded-2xl divide-y divide-[#EDE8DF] mt-3">
+                      {demoPayoutHistory.map((p) => (
+                        <div key={p.label} className="flex justify-between items-center px-5 py-4 text-sm">
+                          <span className="text-[#1C1A16]">{p.label} · {p.jobs} jobs</span>
+                          <span className="font-semibold text-[#1B6B5E]">₹{p.amount.toLocaleString("en-IN")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button onClick={handleWithdraw} className="border border-[#1B6B5E] text-[#1B6B5E] font-semibold py-3 rounded-xl hover:bg-[#E8F4F1] transition-colors flex items-center justify-center gap-2">
+                    🏦 Withdraw to bank
+                  </button>
+                  {withdrawStatus && (
+                    <p className="text-xs text-[#1B6B5E] text-center -mt-3">{withdrawStatus}</p>
+                  )}
+                  <p className="text-xs text-[#7A7469] text-center -mt-3">Settlements are processed via the cooperative society account.</p>
+                </div>
+              );
+            })()}
+
+            {/* ── PROFILE TAB ── */}
+            {workerTab === "profile" && (
+              <div className="flex flex-col gap-6 max-w-md">
+                <div className="bg-white border border-[#D8D2C5] rounded-2xl p-6 flex flex-col items-center text-center gap-3">
+                  <img
+                    src={currentUser?.photoURL || personImgFallback(currentUser?.name || "Worker", "1B6B5E")}
+                    alt={currentUser?.name || "Worker"}
+                    className="w-20 h-20 rounded-full object-cover"
+                    onError={(e) => handleImgError(e, personImgFallback(currentUser?.name || "Worker", "1B6B5E"))}
+                  />
+                  <div>
+                    <div className="font-semibold text-lg">{currentUser?.name}</div>
+                    <div className="text-sm text-[#7A7469]">{currentUser?.email}</div>
+                  </div>
+                </div>
+                <div className="bg-white border border-[#D8D2C5] rounded-2xl divide-y divide-[#EDE8DF] text-sm">
+                  <div className="flex justify-between px-5 py-3"><span className="text-[#7A7469]">Role</span><span className="font-medium">Cooperative Worker</span></div>
+                  <div className="flex justify-between px-5 py-3"><span className="text-[#7A7469]">Jobs completed</span><span className="font-medium">{acceptedJobs.length}</span></div>
+                  <div className="flex justify-between px-5 py-3"><span className="text-[#7A7469]">This month earnings</span><span className="font-medium">₹{demoThisMonthTotal.toLocaleString("en-IN")}</span></div>
+                </div>
+                <button onClick={handleSignOut} className="border border-red-200 text-red-600 font-semibold py-3 rounded-xl hover:bg-red-50 transition-colors">
+                  {t("signOut")}
+                </button>
               </div>
             )}
+          </div>
+
+          {/* Bottom tab bar */}
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#D8D2C5] z-40">
+            <div className="max-w-5xl mx-auto grid grid-cols-3 text-center">
+              <button
+                onClick={() => setWorkerTab("jobs")}
+                className={`py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${workerTab === "jobs" ? "text-[#1B6B5E]" : "text-[#7A7469]"}`}
+              >
+                <span className="text-lg leading-none">💼</span>
+                Jobs
+              </button>
+              <button
+                onClick={() => setWorkerTab("earnings")}
+                className={`py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${workerTab === "earnings" ? "text-[#1B6B5E]" : "text-[#7A7469]"}`}
+              >
+                <span className="text-lg leading-none">💳</span>
+                Earnings
+              </button>
+              <button
+                onClick={() => setWorkerTab("profile")}
+                className={`py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${workerTab === "profile" ? "text-[#1B6B5E]" : "text-[#7A7469]"}`}
+              >
+                <span className="text-lg leading-none">👤</span>
+                Profile
+              </button>
+            </div>
           </div>
         </section>
       )}
