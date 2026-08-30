@@ -248,6 +248,12 @@ const howItWorks = [
 
 const timeSlots = ["9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM"];
 
+// The Federation Admin portal (cross-cooperative oversight, worker
+// verification, platform financials) is restricted to this one account —
+// nobody else can see the "Federation" tab or open the admin page, even by
+// navigating there directly.
+const FEDERATION_ADMIN_EMAIL = "hariomprajapati6393@gmail.com";
+
 // Demo earnings & welfare data for the worker dashboard's Earnings tab —
 // stands in for real payout history until it's wired to a payments backend.
 const demoMonthlyIncomeTrend = [
@@ -766,6 +772,7 @@ export default function App() {
   // Cooperative Federation Administration Dashboard
   const [adminView, setAdminView] = useState<"overview" | "verification" | "bookings">("overview");
   function goToAdmin() {
+    if (currentUser?.email !== FEDERATION_ADMIN_EMAIL) return;
     setPage("admin");
     setAdminView("overview");
     setMobileMenuOpen(false);
@@ -773,6 +780,7 @@ export default function App() {
   }
   function adminApproveWorker(id: string | number) {
     setCommunityWorkers((prev) => prev.map((w) => (w.id === id ? { ...w, verified: true } : w)));
+    updateDoc(doc(db, "workers", String(id)), { verified: true }).catch((err) => console.error("Failed to save verification:", err));
   }
   function adminRejectWorker(id: string | number) {
     setCommunityWorkers((prev) => prev.filter((w) => w.id !== id));
@@ -1544,10 +1552,6 @@ export default function App() {
     const address = joinForm.address.trim();
     const certificateNote = joinForm.certificateNote.trim();
     const phone = joinForm.phone.trim();
-    // AI-assisted verification check: enough experience, a valid phone, and
-    // an uploaded certificate is enough to auto-verify in this demo — a
-    // real deployment would route this to human cooperative reviewers too.
-    const passesAutoCheck = experience >= 1 && phone.length >= 10 && joinCertificateName.length > 0;
     setJoinRefId(refId);
     setJoinStep(2);
     try {
@@ -1566,16 +1570,10 @@ export default function App() {
         verified: false,
         createdAt: serverTimestamp(),
       });
+      // Every new worker lands in the Federation Admin's "Verifications"
+      // queue and stays unverified until a real human reviewer there
+      // approves or rejects them — no auto-approval.
       setCommunityWorkers((prev) => [buildCommunityWorker(docRef.id, name, category, experience, false, email, certificateNote), ...prev]);
-      // Simulate the verification check completing a couple of seconds later.
-      setTimeout(async () => {
-        try {
-          await updateDoc(doc(db, "workers", docRef.id), { verified: passesAutoCheck });
-          setCommunityWorkers((prev) => prev.map((w) => (w.id === docRef.id ? { ...w, verified: passesAutoCheck } : w)));
-        } catch (err) {
-          console.error("Failed to update verification status:", err);
-        }
-      }, 2500);
     } catch (err) {
       console.error("Failed to save worker profile:", err);
     }
@@ -1651,9 +1649,11 @@ export default function App() {
                   </button>
                 </>
               )}
-              <button onClick={() => switchMode("federation")} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B] hover:text-[#0F1E3D]"}`}>
-                {t("federationTab")}
-              </button>
+              {currentUser?.email === FEDERATION_ADMIN_EMAIL && (
+                <button onClick={() => switchMode("federation")} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B] hover:text-[#0F1E3D]"}`}>
+                  {t("federationTab")}
+                </button>
+              )}
             </div>
             <div className="flex items-center gap-1 mr-1" role="group" aria-label={t("language")}>
               <button onClick={() => setLang("en")} className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${lang === "en" ? "bg-[#1D4ED8] text-white border-[#1D4ED8]" : "border-[#CBD9EE] text-[#64748B] hover:text-[#0F1E3D]"}`}>EN</button>
@@ -1751,9 +1751,11 @@ export default function App() {
                   </button>
                 </>
               )}
-              <button onClick={() => switchMode("federation")} className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}>
-                {t("federationTab")}
-              </button>
+              {currentUser?.email === FEDERATION_ADMIN_EMAIL && (
+                <button onClick={() => switchMode("federation")} className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}>
+                  {t("federationTab")}
+                </button>
+              )}
             </div>
             <div className="flex items-center gap-1 self-end -mt-1 mb-1" role="group" aria-label={t("language")}>
               <button onClick={() => setLang("en")} className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${lang === "en" ? "bg-[#1D4ED8] text-white border-[#1D4ED8]" : "border-[#CBD9EE] text-[#64748B]"}`}>EN</button>
@@ -2948,7 +2950,7 @@ export default function App() {
         </section>
       )}
 
-      {page === "admin" && (() => {
+      {page === "admin" && currentUser?.email === FEDERATION_ADMIN_EMAIL && (() => {
         const totalMembers = federationBranches.reduce((s, b) => s + b.members, 0);
         const totalActive = federationBranches.reduce((s, b) => s + b.activeMembers, 0);
         const totalRevenue = federationBranches.reduce((s, b) => s + b.monthlyRevenue, 0);
