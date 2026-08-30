@@ -1490,6 +1490,23 @@ export default function App() {
   const [fedPassword, setFedPassword] = useState("");
   const [fedError, setFedError] = useState("");
   const [fedLoading, setFedLoading] = useState(false);
+  const [fedGoogleLoading, setFedGoogleLoading] = useState(false);
+  async function submitFederationGoogleLogin() {
+    if (fedGoogleLoading) return;
+    setFedError("");
+    setFedGoogleLoading(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      setCurrentUser({ name: user.displayName || "Member", email: user.email || "", photoURL: user.photoURL });
+      setIsSignedIn(true);
+    } catch (err) {
+      console.error(err);
+      setFedError("Couldn't sign in with Google. Please try again.");
+    } finally {
+      setFedGoogleLoading(false);
+    }
+  }
   async function submitFederationLogin() {
     if (fedLoading) return;
     if (!fedEmail.trim() || fedPassword.trim().length < 6) return;
@@ -3077,6 +3094,16 @@ export default function App() {
               {fedError && (
                 <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{fedError}</div>
               )}
+              <button
+                onClick={submitFederationGoogleLogin}
+                disabled={fedGoogleLoading}
+                className="w-full flex items-center justify-center gap-2 border border-[#CBD9EE] bg-white text-[#0F1E3D] font-semibold py-3 rounded-xl hover:bg-[#E6EEFB] transition-colors disabled:opacity-50 mb-4"
+              >
+                <span className="text-base font-bold" style={{ color: "#4285F4" }}>G</span> {fedGoogleLoading ? "Please wait…" : "Continue with Google"}
+              </button>
+              <div className="flex items-center gap-3 text-xs text-[#64748B] mb-4">
+                <div className="flex-1 h-px bg-[#CBD9EE]" /> or use email <div className="flex-1 h-px bg-[#CBD9EE]" />
+              </div>
               <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Email address</label>
               <input
                 type="email"
