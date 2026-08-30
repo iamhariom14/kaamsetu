@@ -343,7 +343,7 @@ type Worker = Omit<(typeof workers)[number], "id"> & { id: number | string; veri
 // (their full profile lives in Firestore; this is just enough to list them
 // in search results and worker cards). `email` lets a booking made against
 // this worker be routed to them live if they're signed in with that email.
-function buildCommunityWorker(id: number | string, name: string, categoryId: string, experience: number, verified = true, email = "", certificateNote = ""): Worker {
+function buildCommunityWorker(id: number | string, name: string, categoryId: string, experience: number, verified = true, email = "", certificateNote = "", hourlyRate = 0): Worker {
   const cat = serviceCategories.find((c) => c.id === categoryId);
   return {
     id,
@@ -353,7 +353,7 @@ function buildCommunityWorker(id: number | string, name: string, categoryId: str
     rating: 0,
     reviews: 0,
     experience: experience || 0,
-    hourlyRate: 0,
+    hourlyRate,
     location: "",
     tags: ["New member"],
     image: personImgFallback(name || "Worker", "1B6B5E"),
@@ -1012,6 +1012,7 @@ export default function App() {
     category: serviceCategories[0].id, // primary skill / service offered
     age: "",
     experience: "",
+    hourlyRate: "",
     address: "",
     certificateNote: "",
   });
@@ -1116,8 +1117,8 @@ export default function App() {
       try {
         const snap = await getDocs(collection(db, "workers"));
         const loaded = snap.docs.map((d) => {
-          const data = d.data() as { name?: string; category?: string; experience?: number | string; verified?: boolean; email?: string; certificateNote?: string };
-          return buildCommunityWorker(d.id, data.name || "", data.category || "", Number(data.experience) || 0, data.verified !== false, data.email || "", data.certificateNote || "");
+          const data = d.data() as { name?: string; category?: string; experience?: number | string; verified?: boolean; email?: string; certificateNote?: string; hourlyRate?: number | string };
+          return buildCommunityWorker(d.id, data.name || "", data.category || "", Number(data.experience) || 0, data.verified !== false, data.email || "", data.certificateNote || "", Number(data.hourlyRate) || 0);
         });
         setCommunityWorkers(loaded);
       } catch (err) {
@@ -1534,7 +1535,7 @@ export default function App() {
   function openJoinWorker() {
     setShowJoinWorker(true);
     setJoinStep(1);
-    setJoinForm({ name: "", email: "", phone: "", category: serviceCategories[0].id, age: "", experience: "", address: "", certificateNote: "" });
+    setJoinForm({ name: "", email: "", phone: "", category: serviceCategories[0].id, age: "", experience: "", hourlyRate: "", address: "", certificateNote: "" });
     setJoinPhotoPreview("");
     setJoinPhotoName("");
     setJoinCertificateName("");
@@ -1549,6 +1550,7 @@ export default function App() {
     const category = joinForm.category;
     const age = Number(joinForm.age) || 0;
     const experience = Number(joinForm.experience) || 0;
+    const hourlyRate = Number(joinForm.hourlyRate) || 0;
     const address = joinForm.address.trim();
     const certificateNote = joinForm.certificateNote.trim();
     const phone = joinForm.phone.trim();
@@ -1562,6 +1564,7 @@ export default function App() {
         category,
         age,
         experience,
+        hourlyRate,
         address,
         certificateNote,
         photoFileName: joinPhotoName,
@@ -1573,7 +1576,7 @@ export default function App() {
       // Every new worker lands in the Federation Admin's "Verifications"
       // queue and stays unverified until a real human reviewer there
       // approves or rejects them — no auto-approval.
-      setCommunityWorkers((prev) => [buildCommunityWorker(docRef.id, name, category, experience, false, email, certificateNote), ...prev]);
+      setCommunityWorkers((prev) => [buildCommunityWorker(docRef.id, name, category, experience, false, email, certificateNote, hourlyRate), ...prev]);
     } catch (err) {
       console.error("Failed to save worker profile:", err);
     }
@@ -3615,6 +3618,18 @@ export default function App() {
                     />
                   </div>
                   <div>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Your rate (₹ per hour)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={joinForm.hourlyRate}
+                      onChange={(e) => setJoinForm({ ...joinForm, hourlyRate: e.target.value })}
+                      placeholder="e.g. 300"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                    />
+                    <p className="text-xs text-[#64748B] mt-1">This is what customers will see and pay you directly — no middleman commission. You can change it later.</p>
+                  </div>
+                  <div>
                     <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Address</label>
                     <textarea
                       value={joinForm.address}
@@ -3646,7 +3661,7 @@ export default function App() {
                   </div>
 
                   <button
-                    disabled={!joinForm.name || joinForm.phone.trim().length < 10}
+                    disabled={!joinForm.name || joinForm.phone.trim().length < 10 || !joinForm.hourlyRate || Number(joinForm.hourlyRate) <= 0}
                     onClick={submitJoinWorker}
                     className="mt-1 bg-[#0EA5E9] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0284C7] transition-colors"
                   >
