@@ -484,7 +484,7 @@ type WorkerRequest = {
 // `recipientEmail` routes a notification to one signed-in person live via
 // Firestore; `forRole` is kept as a fallback for the shared demo roster
 // (static/seed workers who have no real account to route to).
-type AppNotification = { id: string; text: string; time: string; forRole: "customer" | "worker"; recipientEmail?: string };
+type AppNotification = { id: string; text: string; time: string; forRole: "customer" | "worker"; recipientEmail?: string; bookingId?: string };
 
 type Lang = "en" | "hi";
 
@@ -1046,7 +1046,7 @@ export default function App() {
   // kept for display purposes; `recipientEmail` is what actually routes it.
   // Static/seed demo workers have no real account/email, so notifications
   // aimed at them are skipped — there's no one signed in to receive them.
-  async function pushNotification(forRole: "customer" | "worker", text: string, recipientEmail?: string) {
+  async function pushNotification(forRole: "customer" | "worker", text: string, recipientEmail?: string, bookingId?: string) {
     if (!recipientEmail) return;
     try {
       await addDoc(collection(db, "notifications"), {
@@ -1054,6 +1054,7 @@ export default function App() {
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         forRole,
         recipientEmail,
+        ...(bookingId ? { bookingId } : {}),
         createdAt: serverTimestamp(),
       });
     } catch (err) {
@@ -1074,12 +1075,14 @@ export default function App() {
     hourlyRate: "",
     address: "",
     certificateNote: "",
+    password: "",
   });
   const [joinPhotoPreview, setJoinPhotoPreview] = useState(""); // data URL, local preview only
   const [joinPhotoName, setJoinPhotoName] = useState("");
   const [joinCertificateName, setJoinCertificateName] = useState("");
   const [joinCertificateDataUrl, setJoinCertificateDataUrl] = useState(""); // data URL of the actual uploaded file
   const [joinCertificateError, setJoinCertificateError] = useState("");
+  const [joinAuthError, setJoinAuthError] = useState("");
   const [joinRefId, setJoinRefId] = useState("");
 
   function readFileAsDataUrl(file: File): Promise<string> {
@@ -1325,7 +1328,8 @@ export default function App() {
         bookingForm.urgent
           ? `🔴 URGENT: ${customerName} needs a ${bookingWorker.role.toLowerCase()} right now! Address: ${fullAddress}`
           : `New booking request from ${customerName} for ${newBooking.date} at ${newBooking.time}.`,
-        workerEmail
+        workerEmail,
+        id
       );
     }
   }
@@ -1675,12 +1679,13 @@ export default function App() {
   function openJoinWorker() {
     setShowJoinWorker(true);
     setJoinStep(1);
-    setJoinForm({ name: "", email: "", phone: "", category: serviceCategories[0].id, age: "", experience: "", hourlyRate: "", address: "", certificateNote: "" });
+    setJoinForm({ name: "", email: "", phone: "", category: serviceCategories[0].id, age: "", experience: "", hourlyRate: "", address: "", certificateNote: "", password: "" });
     setJoinPhotoPreview("");
     setJoinPhotoName("");
     setJoinCertificateName("");
     setJoinCertificateDataUrl("");
     setJoinCertificateError("");
+    setJoinAuthError("");
   }
   function closeJoinWorker() {
     setShowJoinWorker(false);
@@ -1696,10 +1701,40 @@ export default function App() {
     const address = joinForm.address.trim();
     const certificateNote = joinForm.certificateNote.trim();
     const phone = joinForm.phone.trim();
+    setJoinAuthError("");
+
+    // If the person got here without already being signed in for real
+    // (e.g. clicked "Join as Worker" straight from the navbar instead of
+    // Sign Up), this form doubles as their account creation — a real
+    // Firebase account is made here so they can actually log back into
+    // this exact profile later. If they're already signed in (came here
+    // via the Sign Up → onboarding redirect), we just reuse that account.
+    let uid = auth.currentUser?.uid;
+    if (!uid) {
+      if (joinForm.password.trim().length < 6) {
+        setJoinAuthError("Please set a password (at least 6 characters) so you can sign back into this profile later.");
+        return;
+      }
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, joinForm.password.trim());
+        if (name) await updateProfile(cred.user, { displayName: name });
+        uid = cred.user.uid;
+      } catch (err: unknown) {
+        console.error("Failed to create worker account:", err);
+        const code = (err as { code?: string })?.code || "";
+        if (code.includes("email-already-in-use")) setJoinAuthError("An account already exists with this email. Please sign in instead, then apply from your dashboard.");
+        else if (code.includes("weak-password")) setJoinAuthError("Password should be at least 6 characters.");
+        else if (code.includes("invalid-email")) setJoinAuthError("Please enter a valid email address.");
+        else setJoinAuthError("Something went wrong creating your account. Please try again.");
+        return;
+      }
+    }
+
     setJoinRefId(refId);
     setJoinStep(2);
     try {
-      const docRef = await addDoc(collection(db, "workers"), {
+      await setDoc(doc(db, "workers", uid), {
+        uid,
         name,
         email,
         phone,
@@ -1715,14 +1750,17 @@ export default function App() {
         refId,
         verified: false,
         createdAt: serverTimestamp(),
-      });
+      }, { merge: true });
       // Every new worker lands in the Federation Admin's "Verifications"
       // queue and stays unverified until a real human reviewer there
       // approves or rejects them — no auto-approval.
-      setCommunityWorkers((prev) => [
-        buildCommunityWorker(docRef.id, name, category, experience, false, email, certificateNote, hourlyRate, phone, age, address, joinCertificateName, joinCertificateDataUrl),
-        ...prev,
-      ]);
+      setCommunityWorkers((prev) => {
+        const withoutOld = prev.filter((w) => w.id !== uid);
+        return [
+          buildCommunityWorker(uid, name, category, experience, false, email, certificateNote, hourlyRate, phone, age, address, joinCertificateName, joinCertificateDataUrl),
+          ...withoutOld,
+        ];
+      });
     } catch (err) {
       console.error("Failed to save worker profile:", err);
     }
@@ -1826,12 +1864,32 @@ export default function App() {
                       {myNotifications.length === 0 ? (
                         <div className="px-4 py-6 text-sm text-[#64748B] text-center">{t("noNotifications")}</div>
                       ) : (
-                        myNotifications.map((n) => (
-                          <div key={n.id} className="px-4 py-3 border-b border-[#E6EEFB] last:border-0 text-sm">
-                            <p className="text-[#0F1E3D]">{n.text}</p>
-                            <p className="text-xs text-[#64748B] mt-1">{n.time}</p>
-                          </div>
-                        ))
+                        myNotifications.map((n) => {
+                          const linkedReq = n.bookingId ? allRequests.find((r) => r.id === n.bookingId) : undefined;
+                          const showActions = n.forRole === "worker" && linkedReq && linkedReq.status === "pending";
+                          return (
+                            <div key={n.id} className="px-4 py-3 border-b border-[#E6EEFB] last:border-0 text-sm">
+                              <p className="text-[#0F1E3D]">{n.text}</p>
+                              <p className="text-xs text-[#64748B] mt-1">{n.time}</p>
+                              {showActions && (
+                                <div className="flex gap-2 mt-2.5">
+                                  <button
+                                    onClick={() => { rejectRequest(linkedReq!.id); setNotifPanelOpen(false); }}
+                                    className="flex-1 text-xs font-semibold border border-[#CBD9EE] text-[#0F1E3D] py-1.5 rounded-lg hover:bg-[#F3F7FE] transition-colors"
+                                  >
+                                    Reject
+                                  </button>
+                                  <button
+                                    onClick={() => { acceptRequest(linkedReq!.id); setNotifPanelOpen(false); }}
+                                    className="flex-1 text-xs font-semibold bg-[#1D4ED8] text-white py-1.5 rounded-lg hover:bg-[#1E3A8A] transition-colors"
+                                  >
+                                    Accept
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   )}
@@ -3844,6 +3902,22 @@ export default function App() {
                       className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                     />
                   </div>
+                  {!auth.currentUser && (
+                    <div>
+                      <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Set a password</label>
+                      <input
+                        type="password"
+                        value={joinForm.password}
+                        onChange={(e) => setJoinForm({ ...joinForm, password: e.target.value })}
+                        placeholder="At least 6 characters"
+                        className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                      />
+                      <p className="text-xs text-[#64748B] mt-1">So you can sign back into this exact profile after logging out.</p>
+                    </div>
+                  )}
+                  {joinAuthError && (
+                    <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{joinAuthError}</div>
+                  )}
                   <div>
                     <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Mobile number</label>
                     <input
@@ -3940,7 +4014,7 @@ export default function App() {
                   </div>
 
                   <button
-                    disabled={!joinForm.name || joinForm.phone.trim().length < 10 || !joinForm.hourlyRate || Number(joinForm.hourlyRate) <= 0}
+                    disabled={!joinForm.name || !joinForm.email.trim() || joinForm.phone.trim().length < 10 || !joinForm.hourlyRate || Number(joinForm.hourlyRate) <= 0 || (!auth.currentUser && joinForm.password.trim().length < 6)}
                     onClick={submitJoinWorker}
                     className="mt-1 bg-[#0EA5E9] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0284C7] transition-colors"
                   >
