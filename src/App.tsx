@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   signOut,
+  onAuthStateChanged,
 } from "firebase/auth";
 import {
   collection,
@@ -574,7 +575,7 @@ export default function App() {
   const workersRef = useRef<HTMLElement>(null);
 
   // Page navigation (home → services list → service detail)
-  const [page, setPage] = useState<"home" | "services" | "serviceDetail" | "workerDashboard" | "workHistory" | "admin">("home");
+  const [page, setPage] = useState<"home" | "services" | "serviceDetail" | "workerDashboard" | "workHistory" | "admin" | "login">("login");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   function goToServicesPage() {
@@ -707,6 +708,19 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; photoURL: string | null } | null>(null);
   const [userRole, setUserRole] = useState<"customer" | "worker" | null>(null);
+
+  // If the browser still has a valid Firebase session (returning visitor),
+  // skip straight past the login page instead of showing it every time.
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser({ name: user.displayName || user.email?.split("@")[0] || "Member", email: user.email || "", photoURL: user.photoURL });
+        setIsSignedIn(true);
+        setPage((prev) => (prev === "login" ? "home" : prev));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Account/hamburger menu, notifications panel, and UI language
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -896,8 +910,10 @@ export default function App() {
     setUserRole(role);
     if (role === "worker") {
       setPage("workerDashboard");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      setPage("home");
     }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // Saves/updates a worker's profile in Firestore (keyed by their auth uid,
@@ -1091,6 +1107,7 @@ export default function App() {
     <div className="min-h-full bg-[#F7F2E9] text-[#1C1A16]" style={{ fontFamily: "'Outfit', sans-serif" }}>
 
       {/* ── NAV ── */}
+      {page !== "login" && (
       <nav className="sticky top-0 z-50 bg-[#F7F2E9]/95 backdrop-blur border-b border-[#D8D2C5]">
         <div className="max-w-7xl mx-auto px-5 md:px-10 flex items-center justify-between h-16">
           <div className="flex items-center gap-2 cursor-pointer" onClick={goHome}>
@@ -1271,6 +1288,114 @@ export default function App() {
           </div>
         )}
       </nav>
+      )}
+
+      {/* ── LOGIN PAGE (shown first, before the rest of the app) ── */}
+      {page === "login" && (
+        <section className="min-h-screen flex items-center justify-center px-5 py-16 bg-[#F7F2E9]">
+          <div className="w-full max-w-sm">
+            <div className="flex flex-col items-center text-center mb-8">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-8 h-8 rounded-full bg-[#1B6B5E] flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">KS</span>
+                </div>
+                <span className="font-semibold text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Kaamsetu</span>
+              </div>
+              <div className="w-14 h-14 rounded-2xl bg-[#1B6B5E] flex items-center justify-center text-white text-2xl mb-5 shadow-md">
+                →]
+              </div>
+              <h1 className="text-3xl font-semibold mb-1" style={{ fontFamily: "'Fraunces', serif" }}>
+                {authMode === "signup" ? t("welcomeExclaim") : t("welcomeBack")}
+              </h1>
+              <p className="text-sm text-[#7A7469]">
+                {authMode === "signup" ? t("createCustomerAccount") : t("logInToAccount")}
+              </p>
+            </div>
+
+            <div className="bg-white border border-[#D8D2C5] rounded-3xl p-6 shadow-sm">
+              {authError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{authError}</div>
+              )}
+
+              <button
+                onClick={signInWithGoogle}
+                disabled={authLoading}
+                className="w-full flex items-center justify-center gap-2 border border-[#D8D2C5] bg-white text-[#1C1A16] font-semibold py-3 rounded-xl hover:bg-[#EDE8DF] transition-colors disabled:opacity-50 mb-4"
+              >
+                <span className="text-base font-bold" style={{ color: "#4285F4" }}>G</span> {t("continueWithGoogle")}
+              </button>
+
+              <div className="flex items-center gap-3 text-xs text-[#7A7469] mb-4">
+                <div className="flex-1 h-px bg-[#D8D2C5]" /> {t("orEmail")} <div className="flex-1 h-px bg-[#D8D2C5]" />
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {authMode === "signup" && (
+                  <div>
+                    <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">{t("fullName")}</label>
+                    <input
+                      type="text"
+                      value={signInName}
+                      onChange={(e) => setSignInName(e.target.value)}
+                      placeholder="Your full name"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">{t("email")}</label>
+                  <input
+                    type="email"
+                    value={signInEmail}
+                    onChange={(e) => setSignInEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-sm font-semibold text-[#1C1A16]">{t("password")}</label>
+                    {authMode === "signin" && (
+                      <button type="button" onClick={() => setAuthError(t("forgotPasswordHint"))} className="text-xs font-semibold text-[#1B6B5E] hover:underline">
+                        {t("forgotPassword")}
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="password"
+                    value={signInPassword}
+                    onChange={(e) => setSignInPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                  />
+                </div>
+                <button
+                  disabled={authLoading || !signInEmail.trim() || signInPassword.trim().length < 6 || (authMode === "signup" && !signInName.trim())}
+                  onClick={submitEmailAuth}
+                  className="bg-[#1B6B5E] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#155750] transition-colors"
+                >
+                  {authLoading ? "Please wait…" : authMode === "signup" ? t("signUpBtn") : t("signInBtn")}
+                </button>
+              </div>
+            </div>
+
+            <div className="text-center mt-6">
+              <button
+                onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setAuthError(""); }}
+                className="text-sm text-[#1B6B5E] font-semibold hover:underline"
+              >
+                {authMode === "signup" ? t("alreadyHaveAccount") : t("needAccount")}
+              </button>
+            </div>
+
+            <div className="text-center mt-4">
+              <button onClick={goHome} className="text-xs text-[#7A7469] hover:text-[#1C1A16] underline underline-offset-2">
+                Continue browsing without an account →
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {page === "home" && (
       <>
