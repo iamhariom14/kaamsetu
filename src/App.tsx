@@ -13,7 +13,6 @@ import {
   doc,
   setDoc,
   updateDoc,
-  getDocs,
   onSnapshot,
   query,
   where,
@@ -830,7 +829,6 @@ export default function App() {
   // Cooperative Federation Administration Dashboard
   const [adminView, setAdminView] = useState<"overview" | "verification" | "bookings">("overview");
   function goToAdmin() {
-    if (currentUser?.email !== FEDERATION_ADMIN_EMAIL) return;
     setPage("admin");
     setAdminView("overview");
     setMobileMenuOpen(false);
@@ -1171,9 +1169,9 @@ export default function App() {
   const [communityWorkers, setCommunityWorkers] = useState<Worker[]>([]);
 
   useEffect(() => {
-    async function loadCommunityWorkers() {
-      try {
-        const snap = await getDocs(collection(db, "workers"));
+    const unsub = onSnapshot(
+      collection(db, "workers"),
+      (snap) => {
         const loaded = snap.docs.map((d) => {
           const data = d.data() as {
             name?: string; category?: string; experience?: number | string; verified?: boolean; email?: string;
@@ -1196,11 +1194,10 @@ export default function App() {
           );
         });
         setCommunityWorkers(loaded);
-      } catch (err) {
-        console.error("Failed to load worker profiles:", err);
-      }
-    }
-    loadCommunityWorkers();
+      },
+      (err) => console.error("Failed to load worker profiles:", err)
+    );
+    return () => unsub();
   }, []);
 
   const allWorkers: Worker[] = [...workers, ...communityWorkers];
@@ -1486,6 +1483,34 @@ export default function App() {
     }
   }
 
+  // Federation page has its own lightweight email/password login, separate
+  // from the Customer/Worker sign-in above — anyone can use it to check the
+  // live member count; only FEDERATION_ADMIN_EMAIL unlocks the admin panel.
+  const [fedEmail, setFedEmail] = useState("");
+  const [fedPassword, setFedPassword] = useState("");
+  const [fedError, setFedError] = useState("");
+  const [fedLoading, setFedLoading] = useState(false);
+  async function submitFederationLogin() {
+    if (fedLoading) return;
+    if (!fedEmail.trim() || fedPassword.trim().length < 6) return;
+    setFedError("");
+    setFedLoading(true);
+    try {
+      const cred = await signInWithEmailAndPassword(auth, fedEmail.trim(), fedPassword);
+      setCurrentUser({ name: cred.user.displayName || cred.user.email?.split("@")[0] || "Member", email: cred.user.email || "", photoURL: cred.user.photoURL });
+      setIsSignedIn(true);
+      setFedPassword("");
+    } catch (err: unknown) {
+      console.error(err);
+      const code = (err as { code?: string })?.code || "";
+      if (code.includes("wrong-password") || code.includes("invalid-credential")) setFedError("Incorrect email or password.");
+      else if (code.includes("user-not-found")) setFedError("No account found with this email.");
+      else setFedError("Something went wrong. Please try again.");
+    } finally {
+      setFedLoading(false);
+    }
+  }
+
   async function handleSignOut() {
     try {
       await signOut(auth);
@@ -1730,11 +1755,9 @@ export default function App() {
                   </button>
                 </>
               )}
-              {currentUser?.email === FEDERATION_ADMIN_EMAIL && (
-                <button onClick={() => switchMode("federation")} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B] hover:text-[#0F1E3D]"}`}>
-                  {t("federationTab")}
-                </button>
-              )}
+              <button onClick={() => switchMode("federation")} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B] hover:text-[#0F1E3D]"}`}>
+                {t("federationTab")}
+              </button>
             </div>
             <div className="flex items-center gap-1 mr-1" role="group" aria-label={t("language")}>
               <button onClick={() => setLang("en")} className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${lang === "en" ? "bg-[#1D4ED8] text-white border-[#1D4ED8]" : "border-[#CBD9EE] text-[#64748B] hover:text-[#0F1E3D]"}`}>EN</button>
@@ -1832,11 +1855,9 @@ export default function App() {
                   </button>
                 </>
               )}
-              {currentUser?.email === FEDERATION_ADMIN_EMAIL && (
-                <button onClick={() => switchMode("federation")} className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}>
-                  {t("federationTab")}
-                </button>
-              )}
+              <button onClick={() => switchMode("federation")} className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}>
+                {t("federationTab")}
+              </button>
             </div>
             <div className="flex items-center gap-1 self-end -mt-1 mb-1" role="group" aria-label={t("language")}>
               <button onClick={() => setLang("en")} className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${lang === "en" ? "bg-[#1D4ED8] text-white border-[#1D4ED8]" : "border-[#CBD9EE] text-[#64748B]"}`}>EN</button>
@@ -3038,6 +3059,59 @@ export default function App() {
                 ))}
               </div>
             )}
+          </div>
+        </section>
+      )}
+
+      {page === "admin" && !isSignedIn && (
+        <section className="py-14 md:py-20 min-h-[60vh] bg-[#F3F7FE]">
+          <div className="max-w-4xl mx-auto px-5 md:px-10">
+            <button onClick={goHome} className="text-sm text-[#64748B] hover:text-[#0F1E3D] mb-6 flex items-center gap-1">← {t("exitAdminPortal")}</button>
+            <h2 className="text-3xl md:text-4xl font-semibold leading-tight mb-2" style={{ fontFamily: "'Fraunces', serif" }}>
+              {t("federationTab")}
+            </h2>
+            <p className="text-[#64748B] mb-8 max-w-lg">
+              Cooperative membership verification. Sign in with your account email to continue.
+            </p>
+            <div className="max-w-sm bg-white border border-[#CBD9EE] rounded-2xl p-6">
+              {fedError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{fedError}</div>
+              )}
+              <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Email address</label>
+              <input
+                type="email"
+                value={fedEmail}
+                onChange={(e) => setFedEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+              />
+              <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Password</label>
+              <input
+                type="password"
+                value={fedPassword}
+                onChange={(e) => setFedPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                onKeyDown={(e) => { if (e.key === "Enter") submitFederationLogin(); }}
+              />
+              <button
+                disabled={fedLoading || !fedEmail.trim() || fedPassword.trim().length < 6}
+                onClick={submitFederationLogin}
+                className="w-full bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1E3A8A] transition-colors"
+              >
+                {fedLoading ? "Please wait…" : "Sign In"}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {page === "admin" && isSignedIn && currentUser?.email !== FEDERATION_ADMIN_EMAIL && (
+        <section className="py-14 md:py-20 min-h-[60vh] bg-[#F3F7FE] flex items-center justify-center">
+          <div className="max-w-sm bg-white border border-[#CBD9EE] rounded-2xl p-8 text-center">
+            <div className="text-4xl mb-3">🤝</div>
+            <div className="text-3xl font-semibold text-[#1D4ED8] mb-1" style={{ fontFamily: "'Fraunces', serif" }}>{communityWorkers.length}</div>
+            <p className="text-sm text-[#64748B]">members have joined the cooperative so far. This number updates in real time.</p>
           </div>
         </section>
       )}
