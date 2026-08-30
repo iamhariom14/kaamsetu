@@ -412,6 +412,7 @@ const translations: Record<Lang, Record<string, string>> = {
     workers: "Workers",
     stories: "Stories",
     joinAsWorker: "Join as Worker",
+    joinAsCustomer: "Join as Customer",
     signIn: "Sign In",
     signInCustomerNav: "Sign in as Customer",
     signOut: "Sign Out",
@@ -519,6 +520,7 @@ const translations: Record<Lang, Record<string, string>> = {
     workers: "कामगार",
     stories: "कहानियां",
     joinAsWorker: "कामगार के रूप में जुड़ें",
+    joinAsCustomer: "ग्राहक के रूप में जुड़ें",
     signIn: "साइन इन करें",
     signInCustomerNav: "ग्राहक के रूप में साइन इन करें",
     signOut: "साइन आउट करें",
@@ -622,10 +624,39 @@ const translations: Record<Lang, Record<string, string>> = {
   },
 };
 
-const chatQuickReplies = ["Track my booking", "File a complaint", "Give feedback", "Payment issue", "Talk to a human"];
+type ChatLang = "en" | "hi";
 
-function getBotReply(message: string): string {
+const chatQuickRepliesByLang: Record<ChatLang, string[]> = {
+  en: ["Track my booking", "File a complaint", "Give feedback", "Payment issue", "Talk to a human"],
+  hi: ["मेरी बुकिंग ट्रैक करें", "शिकायत दर्ज करें", "फीडबैक दें", "भुगतान समस्या", "किसी व्यक्ति से बात करें"],
+};
+
+function getBotReply(message: string, chatLang: ChatLang = "en"): string {
   const m = message.toLowerCase();
+  if (chatLang === "hi") {
+    if (m.includes("track") || m.includes("status") || m.includes("ट्रैक") || m.includes("स्टेटस")) {
+      return "आप अपनी बुकिंग की स्थिति 'My Bookings' से कभी भी ट्रैक कर सकते हैं। आपका कामगार आने से पहले आपको संदेश भी भेजेगा। 📍";
+    }
+    if ((m.includes("complaint") || m.includes("problem") || m.includes("issue") || m.includes("शिकायत") || m.includes("समस्या")) && !m.includes("payment") && !m.includes("भुगतान")) {
+      return "यह सुनकर खेद है। कृपया कुछ शब्दों में बताएं कि क्या हुआ — हमारी सहकारी सहायता टीम हर शिकायत की समीक्षा 24 घंटों के भीतर करती है, और सुरक्षा से जुड़ी चिंताओं को तुरंत आगे बढ़ाया जाता है।";
+    }
+    if (m.includes("feedback") || m.includes("review") || m.includes("suggest") || m.includes("फीडबैक") || m.includes("सुझाव")) {
+      return "साझा करने के लिए धन्यवाद! ऐसी प्रतिक्रिया हमारे कामगार-सदस्यों को बेहतर बनाने में मदद करती है। आप हर पूरी हुई बुकिंग के बाद स्टार रेटिंग भी दे सकते हैं। ⭐";
+    }
+    if (m.includes("payment") || m.includes("refund") || m.includes("charge") || m.includes("money") || m.includes("भुगतान") || m.includes("पैसे") || m.includes("रिफंड")) {
+      return "भुगतान या रिफंड से जुड़ी समस्याओं के लिए कृपया अपनी बुकिंग आईडी साझा करें, हम 2 कार्य दिवसों के भीतर इसे हल कर देंगे। काम पूरा होने की पुष्टि करने के बाद ही कामगार को भुगतान किया जाता है।";
+    }
+    if (m.includes("human") || m.includes("agent") || m.includes("call") || m.includes("support") || m.includes("व्यक्ति") || m.includes("सहायता") || m.includes("बात")) {
+      return "अभी आपको हमारी सहायता टीम से जोड़ रहे हैं — एक सहकारी सदस्य आपके पंजीकृत नंबर पर 30 मिनट के भीतर कॉल करेगा। 📞";
+    }
+    if (m.includes("price") || m.includes("rate") || m.includes("cost") || m.includes("कीमत") || m.includes("दर") || m.includes("रेट")) {
+      return "हर कामगार अपनी उचित दर खुद तय करता है। बुकिंग करते समय आप अपनी दर भी प्रस्तावित कर सकते हैं और कामगार उसे स्वीकार या काउंटर कर सकता है।";
+    }
+    if (m.includes("hi") || m.includes("hello") || m.includes("hey") || m.includes("नमस्ते") || m.includes("हैलो")) {
+      return "नमस्ते! 👋 मैं कामसेतु का सहायक हूं। मैं बुकिंग, शिकायत, भुगतान या फीडबैक में मदद कर सकता हूं। आपको किस चीज़ में मदद चाहिए?";
+    }
+    return "समझ गया, मैंने इसे नोट कर लिया है। अगर इसे तुरंत ध्यान देने की जरूरत है, तो 'किसी व्यक्ति से बात करें' पर टैप करें और हमारी टीम जल्द ही आपसे संपर्क करेगी।";
+  }
   if (m.includes("track") || m.includes("status")) {
     return "You can track your booking status anytime from 'My Bookings'. Your worker will also message you before arrival. 📍";
   }
@@ -730,23 +761,15 @@ export default function App() {
     setCommunityWorkers((prev) => prev.filter((w) => w.id !== id));
   }
 
-  // Customer / Worker / Federation tri-toggle in the nav — lets anyone jump
-  // straight into whichever "portal" of the cooperative they need.
-  const activeMode: "customer" | "worker" | "federation" =
-    page === "admin" ? "federation" : page === "workerDashboard" ? "worker" : "customer";
-  function switchMode(mode: "customer" | "worker" | "federation") {
+  // Federation tab in the nav — jumps straight into the cross-cooperative
+  // admin portal. Before signing in, this sits alongside "Join as Worker" /
+  // "Join as Customer"; once signed in, those two join actions are disabled
+  // and only Federation remains, since the person now has their own profile.
+  const activeMode: "federation" | "other" = page === "admin" ? "federation" : "other";
+  function switchMode(mode: "federation") {
     setMobileMenuOpen(false);
     if (mode === "federation") {
       goToAdmin();
-    } else if (mode === "worker") {
-      if (isSignedIn && userRole === "worker") {
-        setPage("workerDashboard");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } else {
-        openSignIn("worker");
-      }
-    } else {
-      goHome();
     }
   }
 
@@ -776,6 +799,7 @@ export default function App() {
   ]);
   const [chatInput, setChatInput] = useState("");
   const [chatTyping, setChatTyping] = useState(false);
+  const [chatLang, setChatLang] = useState<ChatLang>("en");
 
   // Sign in (email/password or Google) with a Customer / Worker role tab
   const [showSignIn, setShowSignIn] = useState(false);
@@ -880,6 +904,68 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file) return;
     setJoinCertificateName(file.name);
+  }
+
+  // Join as customer
+  const [showJoinCustomer, setShowJoinCustomer] = useState(false);
+  const [joinCustomerStep, setJoinCustomerStep] = useState(1);
+  const [joinCustomerForm, setJoinCustomerForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+  });
+  const [joinCustomerPhotoPreview, setJoinCustomerPhotoPreview] = useState("");
+  const [joinCustomerPhotoName, setJoinCustomerPhotoName] = useState("");
+  const [joinCustomerRefId, setJoinCustomerRefId] = useState("");
+
+  function openJoinCustomer() {
+    setShowJoinCustomer(true);
+    setJoinCustomerStep(1);
+    setJoinCustomerForm({ name: "", email: "", phone: "", address: "" });
+    setJoinCustomerPhotoPreview("");
+    setJoinCustomerPhotoName("");
+  }
+  function closeJoinCustomer() {
+    setShowJoinCustomer(false);
+  }
+  async function handleJoinCustomerPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setJoinCustomerPhotoName(file.name);
+    try {
+      setJoinCustomerPhotoPreview(await readFileAsDataUrl(file));
+    } catch (err) {
+      console.error("Failed to read profile photo:", err);
+    }
+  }
+  // Registers a new customer, saves their profile to Firestore ("customers"
+  // collection), then signs them straight in so their profile is what they
+  // land on next — matching the flow for "Join as Worker".
+  async function submitJoinCustomer() {
+    const refId = "CUST-" + Math.floor(100000 + Math.random() * 900000);
+    const name = joinCustomerForm.name.trim();
+    const email = joinCustomerForm.email.trim();
+    const phone = joinCustomerForm.phone.trim();
+    const address = joinCustomerForm.address.trim();
+    setJoinCustomerRefId(refId);
+    setJoinCustomerStep(2);
+    try {
+      await addDoc(collection(db, "customers"), {
+        name,
+        email,
+        phone,
+        address,
+        photoFileName: joinCustomerPhotoName,
+        refId,
+        createdAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error("Failed to save customer profile:", err);
+    }
+    setCurrentUser({ name: name || "Member", email, photoURL: joinCustomerPhotoPreview || null });
+    setUserRole("customer");
+    setIsSignedIn(true);
   }
 
   // Workers who registered via "Join as Worker" or worker sign-up, persisted
@@ -1018,9 +1104,21 @@ export default function App() {
     setChatInput("");
     setChatTyping(true);
     setTimeout(() => {
-      setChatMessages((prev) => [...prev, { sender: "bot", text: getBotReply(message) }]);
+      setChatMessages((prev) => [...prev, { sender: "bot", text: getBotReply(message, chatLang) }]);
       setChatTyping(false);
     }, 600);
+  }
+
+  function switchChatLang(next: ChatLang) {
+    if (next === chatLang) return;
+    setChatLang(next);
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        sender: "bot",
+        text: next === "hi" ? "ठीक है, अब मैं हिंदी में जवाब दूंगा। 🙂" : "Sure, I'll reply in English from now on.",
+      },
+    ]);
   }
 
   function openSignIn(role: "customer" | "worker" = "customer") {
@@ -1223,6 +1321,11 @@ export default function App() {
     } catch (err) {
       console.error("Failed to save worker profile:", err);
     }
+    // Sign the new worker straight in so their profile is what they land on
+    // next, same as the "Join as Customer" flow.
+    setCurrentUser({ name: name || "Member", email, photoURL: joinPhotoPreview || null });
+    setUserRole("worker");
+    setIsSignedIn(true);
   }
 
   const myNotifications = notifications.filter((n) => n.forRole === userRole);
@@ -1266,12 +1369,16 @@ export default function App() {
           </div>
           <div className="hidden md:flex items-center gap-3">
             <div className="flex items-center gap-1 bg-[#E6EEFB] rounded-full p-1 mr-1" role="group" aria-label="Portal">
-              <button onClick={() => switchMode("customer")} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "customer" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B] hover:text-[#0F1E3D]"}`}>
-                {t("customerTab")}
-              </button>
-              <button onClick={() => switchMode("worker")} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "worker" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B] hover:text-[#0F1E3D]"}`}>
-                {t("workerTab")}
-              </button>
+              {!isSignedIn && (
+                <>
+                  <button onClick={openJoinWorker} className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors text-[#64748B] hover:text-[#0F1E3D] hover:bg-white">
+                    {t("joinAsWorker")}
+                  </button>
+                  <button onClick={openJoinCustomer} className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors text-[#64748B] hover:text-[#0F1E3D] hover:bg-white">
+                    {t("joinAsCustomer")}
+                  </button>
+                </>
+              )}
               <button onClick={() => switchMode("federation")} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B] hover:text-[#0F1E3D]"}`}>
                 {t("federationTab")}
               </button>
@@ -1356,9 +1463,6 @@ export default function App() {
                 {t("signInCustomerNav")}
               </button>
             )}
-            {!isSignedIn && (
-              <button onClick={openJoinWorker} className="text-sm font-medium text-[#0F1E3D] px-4 py-2 rounded-lg border border-[#CBD9EE] hover:bg-[#E6EEFB] transition-colors">{t("joinAsWorker")}</button>
-            )}
           </div>
           <button className="md:hidden p-2 rounded-md hover:bg-[#E6EEFB]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             <div className="w-5 h-0.5 bg-[#0F1E3D] mb-1" />
@@ -1369,12 +1473,16 @@ export default function App() {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-[#CBD9EE] bg-[#FFFFFF] px-5 py-4 flex flex-col gap-3 text-sm">
             <div className="flex items-center gap-1 bg-[#E6EEFB] rounded-full p-1 self-stretch" role="group" aria-label="Portal">
-              <button onClick={() => switchMode("customer")} className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "customer" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}>
-                {t("customerTab")}
-              </button>
-              <button onClick={() => switchMode("worker")} className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "worker" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}>
-                {t("workerTab")}
-              </button>
+              {!isSignedIn && (
+                <>
+                  <button onClick={() => { setMobileMenuOpen(false); openJoinWorker(); }} className="flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors text-[#64748B]">
+                    {t("joinAsWorker")}
+                  </button>
+                  <button onClick={() => { setMobileMenuOpen(false); openJoinCustomer(); }} className="flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors text-[#64748B]">
+                    {t("joinAsCustomer")}
+                  </button>
+                </>
+              )}
               <button onClick={() => switchMode("federation")} className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}>
                 {t("federationTab")}
               </button>
@@ -1423,10 +1531,6 @@ export default function App() {
                 <button onClick={() => { setMobileMenuOpen(false); openSignIn("customer"); }} className="text-left w-full bg-[#1D4ED8] text-white font-semibold py-2.5 rounded-lg text-center">{t("signInCustomerNav")}</button>
               )}
             </div>
-
-            {!isSignedIn && (
-              <button onClick={() => { setMobileMenuOpen(false); openJoinWorker(); }} className="mt-1 w-full border border-[#CBD9EE] text-[#0F1E3D] font-semibold py-2.5 rounded-lg">{t("joinAsWorker")}</button>
-            )}
           </div>
         )}
       </nav>
@@ -3190,7 +3294,123 @@ export default function App() {
                     Welcome to the process, {joinForm.name.split(" ")[0]}! Our digital verification is running now — you're listed as searchable already, and a "Verified" badge appears on your profile within moments.
                   </p>
                   <div className="bg-[#F3F7FE] border border-[#CBD9EE] rounded-lg px-4 py-2 font-mono text-sm font-semibold">{joinRefId}</div>
-                  <button onClick={closeJoinWorker} className="mt-3 w-full bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl hover:bg-[#1E3A8A] transition-colors">
+                  <button
+                    onClick={() => {
+                      closeJoinWorker();
+                      setWorkerTab("profile");
+                      setPage("workerDashboard");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="mt-3 w-full bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl hover:bg-[#1E3A8A] transition-colors"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── JOIN AS CUSTOMER MODAL ── */}
+      {showJoinCustomer && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={closeJoinCustomer}>
+          <div className="bg-[#FFFFFF] rounded-3xl max-w-md w-full border border-[#CBD9EE] shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#CBD9EE]">
+              <h3 className="font-semibold text-lg" style={{ fontFamily: "'Fraunces', serif" }}>Create your customer account</h3>
+              <button onClick={closeJoinCustomer} className="text-[#64748B] hover:text-[#0F1E3D] text-lg leading-none">✕</button>
+            </div>
+            <div className="p-6">
+              {joinCustomerStep === 1 && (
+                <div className="flex flex-col gap-4">
+                  <p className="text-sm text-[#64748B]">Tell us a bit about yourself so workers know who they're helping.</p>
+
+                  {/* Profile photo upload */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 rounded-full border-2 border-dashed border-[#CBD9EE] bg-[#F3F7FE] flex items-center justify-center overflow-hidden shrink-0">
+                      {joinCustomerPhotoPreview ? (
+                        <img src={joinCustomerPhotoPreview} alt="Profile preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-2xl text-[#64748B]">👤</span>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Profile photo</label>
+                      <label className="inline-block cursor-pointer text-xs font-semibold bg-[#E4EEFC] text-[#1D4ED8] px-3 py-2 rounded-lg hover:bg-[#DCE7F8] transition-colors">
+                        {joinCustomerPhotoName ? "Change photo" : "Upload photo"}
+                        <input type="file" accept="image/*" onChange={handleJoinCustomerPhotoChange} className="hidden" />
+                      </label>
+                      {joinCustomerPhotoName && <p className="text-xs text-[#64748B] mt-1 truncate max-w-[10rem]">{joinCustomerPhotoName}</p>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Full name</label>
+                    <input
+                      type="text"
+                      value={joinCustomerForm.name}
+                      onChange={(e) => setJoinCustomerForm({ ...joinCustomerForm, name: e.target.value })}
+                      placeholder="Your full name"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Email address</label>
+                    <input
+                      type="email"
+                      value={joinCustomerForm.email}
+                      onChange={(e) => setJoinCustomerForm({ ...joinCustomerForm, email: e.target.value })}
+                      placeholder="you@example.com"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Mobile number</label>
+                    <input
+                      type="tel"
+                      value={joinCustomerForm.phone}
+                      onChange={(e) => setJoinCustomerForm({ ...joinCustomerForm, phone: e.target.value })}
+                      placeholder="10-digit mobile number"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Address</label>
+                    <textarea
+                      value={joinCustomerForm.address}
+                      onChange={(e) => setJoinCustomerForm({ ...joinCustomerForm, address: e.target.value })}
+                      placeholder="House no., street, area, city, PIN code"
+                      rows={2}
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30 resize-none"
+                    />
+                  </div>
+                  <p className="text-xs text-[#64748B]">This address is saved as your default booking address — you can change it any time you book a worker.</p>
+
+                  <button
+                    disabled={!joinCustomerForm.name || joinCustomerForm.phone.trim().length < 10}
+                    onClick={submitJoinCustomer}
+                    className="mt-1 bg-[#0EA5E9] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0284C7] transition-colors"
+                  >
+                    Create Account
+                  </button>
+                </div>
+              )}
+              {joinCustomerStep === 2 && (
+                <div className="flex flex-col items-center text-center gap-3 py-4">
+                  <div className="w-16 h-16 rounded-full bg-[#E4EEFC] text-[#1D4ED8] flex items-center justify-center text-3xl">✓</div>
+                  <h3 className="font-semibold text-xl" style={{ fontFamily: "'Fraunces', serif" }}>Welcome to Kaamsetu!</h3>
+                  <p className="text-sm text-[#64748B] max-w-xs">
+                    You're all set, {joinCustomerForm.name.split(" ")[0]}! Your customer account is ready — start browsing verified local workers whenever you need one.
+                  </p>
+                  <div className="bg-[#F3F7FE] border border-[#CBD9EE] rounded-lg px-4 py-2 font-mono text-sm font-semibold">{joinCustomerRefId}</div>
+                  <button
+                    onClick={() => {
+                      closeJoinCustomer();
+                      setPage("workHistory");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="mt-3 w-full bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl hover:bg-[#1E3A8A] transition-colors"
+                  >
                     Done
                   </button>
                 </div>
@@ -3213,9 +3433,23 @@ export default function App() {
         <div className="fixed bottom-24 right-5 z-[90] w-[90vw] max-w-sm h-[28rem] bg-[#FFFFFF] border border-[#CBD9EE] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
           <div className="bg-[#1D4ED8] text-white px-4 py-3 flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm">KS</div>
-            <div>
+            <div className="flex-1 min-w-0">
               <div className="font-semibold text-sm">Kaamsetu Assistant</div>
               <div className="text-xs text-[#BFDBFE]">Usually replies instantly</div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0" role="group" aria-label="Chat language">
+              <button
+                onClick={() => switchChatLang("en")}
+                className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${chatLang === "en" ? "bg-white text-[#1D4ED8] border-white" : "border-white/50 text-white/80 hover:text-white"}`}
+              >
+                EN
+              </button>
+              <button
+                onClick={() => switchChatLang("hi")}
+                className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${chatLang === "hi" ? "bg-white text-[#1D4ED8] border-white" : "border-white/50 text-white/80 hover:text-white"}`}
+              >
+                हिं
+              </button>
             </div>
           </div>
 
@@ -3230,12 +3464,12 @@ export default function App() {
               </div>
             ))}
             {chatTyping && (
-              <div className="bg-white border border-[#CBD9EE] self-start rounded-2xl rounded-bl-sm px-3 py-2 text-sm text-[#64748B]">typing...</div>
+              <div className="bg-white border border-[#CBD9EE] self-start rounded-2xl rounded-bl-sm px-3 py-2 text-sm text-[#64748B]">{chatLang === "hi" ? "टाइप कर रहा है..." : "typing..."}</div>
             )}
           </div>
 
           <div className="px-4 pb-2 flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-            {chatQuickReplies.map((q) => (
+            {chatQuickRepliesByLang[chatLang].map((q) => (
               <button
                 key={q}
                 onClick={() => sendChatMessage(q)}
@@ -3254,11 +3488,11 @@ export default function App() {
               type="text"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Type a message..."
+              placeholder={chatLang === "hi" ? "संदेश लिखें..." : "Type a message..."}
               className="flex-1 px-3 py-2 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
             />
             <button type="submit" className="bg-[#1D4ED8] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#1E3A8A] transition-colors">
-              Send
+              {chatLang === "hi" ? "भेजें" : "Send"}
             </button>
           </form>
         </div>
