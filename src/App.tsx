@@ -14,6 +14,9 @@ import {
   setDoc,
   updateDoc,
   getDocs,
+  onSnapshot,
+  query,
+  where,
   serverTimestamp,
 } from "firebase/firestore";
 import { auth, googleProvider, db } from "./firebase";
@@ -36,16 +39,16 @@ function handleImgError(
 }
 
 const serviceCategories = [
-  { id: "cleaning",        label: "Cleaning",         icon: "🧹", count: 412, color: "#E4EEFC", photo: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=450&fit=crop&auto=format" },
-  { id: "plumbing",        label: "Plumbing",          icon: "🔧", count: 187, color: "#EAF2FE", photo: "https://images.unsplash.com/photo-1607472829760-9a3494b8e59d?w=600&h=450&fit=crop&auto=format" },
-  { id: "carpentry",       label: "Carpentry",         icon: "🪚", count: 134, color: "#E0EAFC", photo: "https://images.unsplash.com/photo-1601058268499-e52e2e2a8e77?w=600&h=450&fit=crop&auto=format" },
-  { id: "painting",        label: "Painting",          icon: "🖌️", count: 156, color: "#E8EEFE", photo: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=600&h=450&fit=crop&auto=format" },
-  { id: "domestic",        label: "Domestic Help",     icon: "🏠", count: 321, color: "#E4EEFC", photo: "https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&h=450&fit=crop&auto=format" },
-  { id: "caregiver",       label: "Caregiver",         icon: "🤝", count: 198, color: "#EAF2FE", photo: "https://images.unsplash.com/photo-1576765607924-3f7b1e1b3d0f?w=600&h=450&fit=crop&auto=format" },
-  { id: "driver",          label: "Driver",            icon: "🚗", count: 267, color: "#E0EAFC", photo: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=600&h=450&fit=crop&auto=format" },
-  { id: "gardening",       label: "Gardening",         icon: "🌿", count: 143, color: "#E4EEFC", photo: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=450&fit=crop&auto=format" },
-  { id: "electrician",     label: "Electrician",       icon: "⚡", count: 176, color: "#EFF6FE", photo: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&h=450&fit=crop&auto=format" },
-  { id: "technician",      label: "Technician",        icon: "🔩", count: 211, color: "#E8EEFE", photo: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&h=450&fit=crop&auto=format" },
+  { id: "cleaning",        label: "Cleaning",         icon: "🧹", count: 5, color: "#E4EEFC", photo: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=450&fit=crop&auto=format" },
+  { id: "plumbing",        label: "Plumbing",          icon: "🔧", count: 4, color: "#EAF2FE", photo: "https://images.unsplash.com/photo-1607472829760-9a3494b8e59d?w=600&h=450&fit=crop&auto=format" },
+  { id: "carpentry",       label: "Carpentry",         icon: "🪚", count: 4, color: "#E0EAFC", photo: "https://images.unsplash.com/photo-1601058268499-e52e2e2a8e77?w=600&h=450&fit=crop&auto=format" },
+  { id: "painting",        label: "Painting",          icon: "🖌️", count: 5, color: "#E8EEFE", photo: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=600&h=450&fit=crop&auto=format" },
+  { id: "domestic",        label: "Domestic Help",     icon: "🏠", count: 5, color: "#E4EEFC", photo: "https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&h=450&fit=crop&auto=format" },
+  { id: "caregiver",       label: "Caregiver",         icon: "🤝", count: 4, color: "#EAF2FE", photo: "https://images.unsplash.com/photo-1576765607924-3f7b1e1b3d0f?w=600&h=450&fit=crop&auto=format" },
+  { id: "driver",          label: "Driver",            icon: "🚗", count: 5, color: "#E0EAFC", photo: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=600&h=450&fit=crop&auto=format" },
+  { id: "gardening",       label: "Gardening",         icon: "🌿", count: 4, color: "#E4EEFC", photo: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=450&fit=crop&auto=format" },
+  { id: "electrician",     label: "Electrician",       icon: "⚡", count: 5, color: "#EFF6FE", photo: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&h=450&fit=crop&auto=format" },
+  { id: "technician",      label: "Technician",        icon: "🔩", count: 4, color: "#E8EEFE", photo: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&h=450&fit=crop&auto=format" },
 ];
 
 const filterCategories = [
@@ -327,13 +330,14 @@ const demoInitialWorkerRequests: WorkerRequest[] = [
   },
 ];
 
-type Worker = Omit<(typeof workers)[number], "id"> & { id: number | string; verified?: boolean };
+type Worker = Omit<(typeof workers)[number], "id"> & { id: number | string; verified?: boolean; email?: string };
 
 // Builds a searchable Worker profile out of a name/category/experience —
 // used for workers who register through "Join as Worker" or worker sign-up
 // (their full profile lives in Firestore; this is just enough to list them
-// in search results and worker cards).
-function buildCommunityWorker(id: number | string, name: string, categoryId: string, experience: number, verified = true): Worker {
+// in search results and worker cards). `email` lets a booking made against
+// this worker be routed to them live if they're signed in with that email.
+function buildCommunityWorker(id: number | string, name: string, categoryId: string, experience: number, verified = true, email = ""): Worker {
   const cat = serviceCategories.find((c) => c.id === categoryId);
   return {
     id,
@@ -350,6 +354,7 @@ function buildCommunityWorker(id: number | string, name: string, categoryId: str
     available: true,
     cooperative: true,
     verified,
+    email,
   };
 }
 
@@ -389,19 +394,30 @@ type ChatMessage = { sender: "bot" | "user"; text: string };
 type WorkerRequest = {
   id: string;
   customerName: string;
+  customerEmail?: string;
   workerName: string;
+  workerEmail?: string;
   service: string;
   category: string;
   date: string;
   time: string;
   address: string;
+  lat?: number;
+  lng?: number;
   rate: string;
-  status: "pending" | "accepted" | "rejected";
+  urgent?: boolean;
+  status: "pending" | "accepted" | "completed" | "rejected";
   etaMinutes?: number;
   paymentMethod?: string;
   customerRating?: number;
+  customerFeedback?: string;
+  workerRating?: number;
+  workerFeedback?: string;
 };
-type AppNotification = { id: string; text: string; time: string; forRole: "customer" | "worker" };
+// `recipientEmail` routes a notification to one signed-in person live via
+// Firestore; `forRole` is kept as a fallback for the shared demo roster
+// (static/seed workers who have no real account to route to).
+type AppNotification = { id: string; text: string; time: string; forRole: "customer" | "worker"; recipientEmail?: string };
 
 type Lang = "en" | "hi";
 
@@ -784,11 +800,55 @@ export default function App() {
     date: "",
     time: "",
     address: "",
+    pincode: "",
+    lat: undefined as number | undefined,
+    lng: undefined as number | undefined,
+    urgent: false,
     notes: "",
     useCustomRate: false,
     proposedRate: "",
     paymentMethod: "upi" as "upi" | "card" | "cash",
   });
+  const [locatingMe, setLocatingMe] = useState(false);
+  const [locateError, setLocateError] = useState("");
+  // Uses the browser's GPS + a map reverse-geocoding lookup to fill the
+  // address and pincode automatically, so the customer doesn't have to type
+  // their location by hand — same idea as "use current location" on Google Maps.
+  // The raw coordinates are kept too, so the worker gets a real "open in
+  // Google Maps" link to navigate to, not just typed-out text.
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      setLocateError("Location isn't supported on this device.");
+      return;
+    }
+    setLocatingMe(true);
+    setLocateError("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+          );
+          const data = await res.json();
+          const addr = data?.address || {};
+          const pincode = addr.postcode || "";
+          const readable = data?.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+          setBookingForm((prev) => ({ ...prev, address: readable, pincode, lat: latitude, lng: longitude }));
+        } catch (err) {
+          console.error("Reverse geocoding failed:", err);
+          setBookingForm((prev) => ({ ...prev, address: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`, lat: latitude, lng: longitude }));
+          setLocateError("Couldn't fetch the exact address, but we've saved your coordinates.");
+        } finally {
+          setLocatingMe(false);
+        }
+      },
+      () => {
+        setLocatingMe(false);
+        setLocateError("Couldn't access your location. Please allow location access or enter it manually.");
+      }
+    );
+  }
   const [bookingId, setBookingId] = useState("");
   const [lastInvoice, setLastInvoice] = useState<{ id: string; workerName: string; service: string; date: string; time: string; address: string; rate: string; paymentMethod: string } | null>(null);
 
@@ -840,9 +900,48 @@ export default function App() {
   // client-side since this app has no backend to push real-time events —
   // any signed-in worker sees all incoming requests, standing in for "the"
   // cooperative worker in this demo.
+  //
+  // `workerRequests` holds the local demo/seed bookings (interacted with
+  // purely in local state, as before). `liveBookings` mirrors the Firestore
+  // "bookings" collection in real time via onSnapshot — so a booking made in
+  // one browser/account shows up instantly in another signed-in session
+  // (e.g. a worker account in one tab, a customer account in another).
+  // The two lists are combined for display; a booking's id tells the
+  // mutation functions below which store to write to.
   const [workerRequests, setWorkerRequests] = useState<WorkerRequest[]>(demoInitialWorkerRequests);
+  const [liveBookings, setLiveBookings] = useState<WorkerRequest[]>([]);
+  const liveBookingIds = new Set(liveBookings.map((b) => b.id));
+  const allRequests = [...liveBookings, ...workerRequests];
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "bookings"), (snap) => {
+      const loaded = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<WorkerRequest, "id">) }));
+      loaded.sort((a, b) => (a.id < b.id ? 1 : -1));
+      setLiveBookings(loaded);
+    }, (err) => console.error("Failed to sync live bookings:", err));
+    return () => unsub();
+  }, []);
+
+  // `notifications` is fully Firestore-backed and scoped to whoever is
+  // currently signed in (matched on email), so accept/complete/feedback
+  // messages actually reach the other person's account in real time —
+  // not just the same browser tab.
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [seenNotifIds, setSeenNotifIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!isSignedIn || !currentUser?.email) {
+      setNotifications([]);
+      return;
+    }
+    const q = query(collection(db, "notifications"), where("recipientEmail", "==", currentUser.email));
+    const unsub = onSnapshot(q, (snap) => {
+      const loaded = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<AppNotification, "id">) }));
+      loaded.sort((a, b) => (a.id < b.id ? 1 : -1));
+      setNotifications(loaded);
+    }, (err) => console.error("Failed to sync notifications:", err));
+    return () => unsub();
+  }, [isSignedIn, currentUser?.email]);
 
   // Worker dashboard bottom tabs (Jobs / Earnings / Profile) + mock "withdraw
   // to bank" flow — no real payments backend, just a demo confirmation.
@@ -857,11 +956,24 @@ export default function App() {
     }, 900);
   }
 
-  function pushNotification(forRole: "customer" | "worker", text: string) {
-    setNotifications((prev) => [
-      { id: Math.random().toString(36).slice(2), text, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), forRole },
-      ...prev,
-    ]);
+  // Writes a notification to Firestore so it reaches the recipient's own
+  // signed-in session live (see the onSnapshot listener above). `forRole` is
+  // kept for display purposes; `recipientEmail` is what actually routes it.
+  // Static/seed demo workers have no real account/email, so notifications
+  // aimed at them are skipped — there's no one signed in to receive them.
+  async function pushNotification(forRole: "customer" | "worker", text: string, recipientEmail?: string) {
+    if (!recipientEmail) return;
+    try {
+      await addDoc(collection(db, "notifications"), {
+        text,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        forRole,
+        recipientEmail,
+        createdAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error("Failed to send notification:", err);
+    }
   }
 
   // Join as worker
@@ -978,8 +1090,8 @@ export default function App() {
       try {
         const snap = await getDocs(collection(db, "workers"));
         const loaded = snap.docs.map((d) => {
-          const data = d.data() as { name?: string; category?: string; experience?: number | string; verified?: boolean };
-          return buildCommunityWorker(d.id, data.name || "", data.category || "", Number(data.experience) || 0, data.verified !== false);
+          const data = d.data() as { name?: string; category?: string; experience?: number | string; verified?: boolean; email?: string };
+          return buildCommunityWorker(d.id, data.name || "", data.category || "", Number(data.experience) || 0, data.verified !== false, data.email || "");
         });
         setCommunityWorkers(loaded);
       } catch (err) {
@@ -1024,7 +1136,8 @@ export default function App() {
   function openBooking(worker: Worker) {
     setBookingWorker(worker);
     setBookingStep(1);
-    setBookingForm({ date: "", time: "", address: "", notes: "", useCustomRate: false, proposedRate: String(worker.hourlyRate), paymentMethod: "upi" });
+    setBookingForm({ date: "", time: "", address: "", pincode: "", lat: undefined, lng: undefined, urgent: false, notes: "", useCustomRate: false, proposedRate: String(worker.hourlyRate), paymentMethod: "upi" });
+    setLocateError("");
   }
 
   function closeBooking() {
@@ -1035,40 +1148,64 @@ export default function App() {
   // Smart Booking & Service Management — confirms the booking, records it
   // for the worker's dashboard, and generates a downloadable invoice once
   // payment (mock) has gone through.
-  function confirmBooking() {
+  async function confirmBooking() {
     if (!bookingWorker) return;
     const id = "KS-" + Math.floor(100000 + Math.random() * 900000);
     const rate = bookingForm.useCustomRate ? bookingForm.proposedRate : String(bookingWorker.hourlyRate);
+    const fullAddress = bookingForm.pincode ? `${bookingForm.address} - ${bookingForm.pincode}` : bookingForm.address;
     setBookingId(id);
     setBookingStep(5);
     const customerName = currentUser?.name || "A customer";
-    setWorkerRequests((prev) => [
-      {
-        id,
-        customerName,
-        workerName: bookingWorker.name,
-        service: bookingWorker.role,
-        category: bookingWorker.category,
-        date: bookingForm.date,
-        time: bookingForm.time,
-        address: bookingForm.address,
-        rate,
-        status: "pending",
-        paymentMethod: bookingForm.paymentMethod,
-      },
-      ...prev,
-    ]);
+    const customerEmail = currentUser?.email || "";
+    const workerEmail = bookingWorker.email || "";
+    const newBooking: WorkerRequest = {
+      id,
+      customerName,
+      customerEmail,
+      workerName: bookingWorker.name,
+      workerEmail,
+      service: bookingWorker.role,
+      category: bookingWorker.category,
+      date: bookingForm.urgent ? "Today" : bookingForm.date,
+      time: bookingForm.urgent ? "ASAP — right now" : bookingForm.time,
+      address: fullAddress,
+      lat: bookingForm.lat,
+      lng: bookingForm.lng,
+      rate,
+      urgent: bookingForm.urgent,
+      status: "pending",
+      paymentMethod: bookingForm.paymentMethod,
+    };
+    // Real bookings are written to Firestore (not local state) so the
+    // request reaches the worker's own signed-in session live, wherever
+    // they are — this is what lets two separate accounts (customer in one
+    // login, worker in another) actually notify each other in real time.
+    try {
+      await setDoc(doc(db, "bookings", id), newBooking);
+    } catch (err) {
+      console.error("Failed to save booking:", err);
+      // fall back to local-only so the demo flow still completes
+      setWorkerRequests((prev) => [newBooking, ...prev]);
+    }
     setLastInvoice({
       id,
       workerName: bookingWorker.name,
       service: bookingWorker.role,
-      date: bookingForm.date,
-      time: bookingForm.time,
-      address: bookingForm.address,
+      date: newBooking.date,
+      time: newBooking.time,
+      address: fullAddress,
       rate,
       paymentMethod: bookingForm.paymentMethod,
     });
-    pushNotification("worker", `New booking request from ${customerName} for ${bookingForm.date} at ${bookingForm.time}.`);
+    if (workerEmail) {
+      pushNotification(
+        "worker",
+        bookingForm.urgent
+          ? `🔴 URGENT: ${customerName} needs a ${bookingWorker.role.toLowerCase()} right now! Address: ${fullAddress}`
+          : `New booking request from ${customerName} for ${newBooking.date} at ${newBooking.time}.`,
+        workerEmail
+      );
+    }
   }
 
   function downloadInvoice() {
@@ -1236,21 +1373,100 @@ export default function App() {
     if (page === "workerDashboard" || page === "workHistory") goHome();
   }
 
-  function acceptRequest(id: string) {
+  async function acceptRequest(id: string) {
     const eta = 15 + Math.floor(Math.random() * 30); // 15–45 minutes
-    const req = workerRequests.find((r) => r.id === id);
-    setWorkerRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "accepted", etaMinutes: eta } : r)));
-    pushNotification("customer", `${req?.workerName ?? "Your worker"} accepted your booking! Arriving in about ${eta} minutes.`);
+    const req = allRequests.find((r) => r.id === id);
+    if (liveBookingIds.has(id)) {
+      try {
+        await updateDoc(doc(db, "bookings", id), { status: "accepted", etaMinutes: eta });
+      } catch (err) {
+        console.error("Failed to accept booking:", err);
+      }
+    } else {
+      setWorkerRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "accepted", etaMinutes: eta } : r)));
+    }
+    pushNotification("customer", `${req?.workerName ?? "Your worker"} accepted your booking! Arriving in about ${eta} minutes.`, req?.customerEmail);
   }
-  function rejectRequest(id: string) {
-    const req = workerRequests.find((r) => r.id === id);
-    setWorkerRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "rejected" } : r)));
-    pushNotification("customer", `${req?.workerName ?? "The worker"} isn't available for your requested slot. Please try another worker.`);
+  async function rejectRequest(id: string) {
+    const req = allRequests.find((r) => r.id === id);
+    if (liveBookingIds.has(id)) {
+      try {
+        await updateDoc(doc(db, "bookings", id), { status: "rejected" });
+      } catch (err) {
+        console.error("Failed to reject booking:", err);
+      }
+    } else {
+      setWorkerRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "rejected" } : r)));
+    }
+    pushNotification("customer", `${req?.workerName ?? "The worker"} isn't available for your requested slot. Please try another worker.`, req?.customerEmail);
   }
   // Lets a customer rate a worker after an accepted/completed job — part of
   // Smart Booking & Service Management's rating step.
   function rateBooking(id: string, stars: number) {
-    setWorkerRequests((prev) => prev.map((r) => (r.id === id ? { ...r, customerRating: stars } : r)));
+    if (liveBookingIds.has(id)) {
+      updateDoc(doc(db, "bookings", id), { customerRating: stars }).catch((err) => console.error("Failed to save rating:", err));
+    } else {
+      setWorkerRequests((prev) => prev.map((r) => (r.id === id ? { ...r, customerRating: stars } : r)));
+    }
+  }
+
+  // Worker marks a job done once the work is actually finished. This is what
+  // unlocks the feedback form on both sides (customer's Work History and the
+  // worker's Jobs tab).
+  async function completeJob(id: string) {
+    const req = allRequests.find((r) => r.id === id);
+    if (liveBookingIds.has(id)) {
+      try {
+        await updateDoc(doc(db, "bookings", id), { status: "completed" });
+      } catch (err) {
+        console.error("Failed to complete job:", err);
+      }
+    } else {
+      setWorkerRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "completed" } : r)));
+    }
+    pushNotification("customer", `Your ${req?.service ?? "job"} with ${req?.workerName ?? "your worker"} is marked complete. Please leave feedback!`, req?.customerEmail);
+  }
+
+  // Shared feedback form — same component/shape for both the customer
+  // (rating + note about the worker) and the worker (rating + note about the
+  // customer), opened from either side once a job's status is "completed".
+  const [feedbackTarget, setFeedbackTarget] = useState<{ bookingId: string; role: "customer" | "worker" } | null>(null);
+  const [feedbackStars, setFeedbackStars] = useState(0);
+  const [feedbackText, setFeedbackText] = useState("");
+
+  function openFeedback(bookingId: string, role: "customer" | "worker") {
+    const req = allRequests.find((r) => r.id === bookingId);
+    setFeedbackTarget({ bookingId, role });
+    setFeedbackStars((role === "customer" ? req?.customerRating : req?.workerRating) ?? 0);
+    setFeedbackText((role === "customer" ? req?.customerFeedback : req?.workerFeedback) ?? "");
+  }
+  function closeFeedback() {
+    setFeedbackTarget(null);
+    setFeedbackStars(0);
+    setFeedbackText("");
+  }
+  async function submitFeedback() {
+    if (!feedbackTarget) return;
+    const { bookingId, role } = feedbackTarget;
+    const patch = role === "customer"
+      ? { customerRating: feedbackStars, customerFeedback: feedbackText.trim() }
+      : { workerRating: feedbackStars, workerFeedback: feedbackText.trim() };
+    if (liveBookingIds.has(bookingId)) {
+      try {
+        await updateDoc(doc(db, "bookings", bookingId), patch);
+      } catch (err) {
+        console.error("Failed to save feedback:", err);
+      }
+    } else {
+      setWorkerRequests((prev) => prev.map((r) => (r.id === bookingId ? { ...r, ...patch } : r)));
+    }
+    const req = allRequests.find((r) => r.id === bookingId);
+    if (role === "customer") {
+      pushNotification("worker", `${req?.customerName ?? "A customer"} left you a ${feedbackStars}★ review.`, req?.workerEmail);
+    } else {
+      pushNotification("customer", `${req?.workerName ?? "Your worker"} left feedback on your booking.`, req?.customerEmail);
+    }
+    closeFeedback();
   }
 
   function openNotifPanel() {
@@ -1259,7 +1475,7 @@ export default function App() {
     if (next) {
       setSeenNotifIds((prev) => {
         const updated = new Set(prev);
-        notifications.filter((n) => n.forRole === userRole).forEach((n) => updated.add(n.id));
+        notifications.forEach((n) => updated.add(n.id));
         return updated;
       });
     }
@@ -1308,7 +1524,7 @@ export default function App() {
         verified: false,
         createdAt: serverTimestamp(),
       });
-      setCommunityWorkers((prev) => [buildCommunityWorker(docRef.id, name, category, experience, false), ...prev]);
+      setCommunityWorkers((prev) => [buildCommunityWorker(docRef.id, name, category, experience, false, email), ...prev]);
       // Simulate the verification check completing a couple of seconds later.
       setTimeout(async () => {
         try {
@@ -1328,19 +1544,28 @@ export default function App() {
     setIsSignedIn(true);
   }
 
-  const myNotifications = notifications.filter((n) => n.forRole === userRole);
+  const myNotifications = notifications;
   const myNotifCount = myNotifications.filter((n) => !seenNotifIds.has(n.id)).length;
-  const acceptedJobs = workerRequests.filter((r) => r.status === "accepted");
+
+  // Requests routed to the signed-in worker specifically (matched by email,
+  // for bookings made against a real joined worker account). Bookings made
+  // against a static/seed demo worker (no account/email) fall back to the
+  // shared pool, same as before. Urgent ("right now") requests float to the
+  // top so a worker can't miss them.
+  const myIncomingRequests = allRequests
+    .filter((r) => (currentUser?.email && r.workerEmail ? r.workerEmail === currentUser.email : true))
+    .sort((a, b) => Number(!!b.urgent) - Number(!!a.urgent));
+  const acceptedJobs = myIncomingRequests.filter((r) => r.status === "accepted");
   const totalEarnings = acceptedJobs.reduce((sum, r) => sum + (Number(r.rate) || 0), 0);
-  const pendingRequestsCount = workerRequests.filter((r) => r.status === "pending").length;
-  const myBookings = workerRequests.filter((r) => r.customerName === currentUser?.name);
+  const pendingRequestsCount = myIncomingRequests.filter((r) => r.status === "pending").length;
+  const myBookings = allRequests.filter((r) => (currentUser?.email && r.customerEmail ? r.customerEmail === currentUser.email : r.customerName === currentUser?.name));
 
   // AI Workforce Intelligence — forecasts demand per service category from
   // live booking activity and recommends where the cooperative should
   // allocate/onboard more workers.
   const demandByCategory = serviceCategories
     .map((cat) => {
-      const catRequests = workerRequests.filter((r) => r.category === cat.id).length;
+      const catRequests = allRequests.filter((r) => r.category === cat.id).length;
       const catWorkerCount = allWorkers.filter((w) => w.category === cat.id).length;
       const ratio = catWorkerCount ? catRequests / catWorkerCount : catRequests;
       const level: "Low" | "Moderate" | "High" = ratio > 1.5 ? "High" : ratio > 0.5 ? "Moderate" : "Low";
@@ -1371,10 +1596,10 @@ export default function App() {
             <div className="flex items-center gap-1 bg-[#E6EEFB] rounded-full p-1 mr-1" role="group" aria-label="Portal">
               {!isSignedIn && (
                 <>
-                  <button onClick={openJoinWorker} className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors text-[#64748B] hover:text-[#0F1E3D] hover:bg-white">
+                  <button onClick={openJoinWorker} className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors bg-[#1D4ED8] text-white hover:bg-[#1E3A8A]">
                     {t("joinAsWorker")}
                   </button>
-                  <button onClick={openJoinCustomer} className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors text-[#64748B] hover:text-[#0F1E3D] hover:bg-white">
+                  <button onClick={openJoinCustomer} className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors bg-[#1D4ED8] text-white hover:bg-[#1E3A8A]">
                     {t("joinAsCustomer")}
                   </button>
                 </>
@@ -1458,11 +1683,7 @@ export default function App() {
                   )}
                 </div>
               </div>
-            ) : (
-              <button onClick={() => openSignIn("customer")} className="text-sm font-semibold bg-[#1D4ED8] text-white px-5 py-2 rounded-lg hover:bg-[#1E3A8A] transition-colors">
-                {t("signInCustomerNav")}
-              </button>
-            )}
+            ) : null}
           </div>
           <button className="md:hidden p-2 rounded-md hover:bg-[#E6EEFB]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             <div className="w-5 h-0.5 bg-[#0F1E3D] mb-1" />
@@ -1475,10 +1696,10 @@ export default function App() {
             <div className="flex items-center gap-1 bg-[#E6EEFB] rounded-full p-1 self-stretch" role="group" aria-label="Portal">
               {!isSignedIn && (
                 <>
-                  <button onClick={() => { setMobileMenuOpen(false); openJoinWorker(); }} className="flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors text-[#64748B]">
+                  <button onClick={() => { setMobileMenuOpen(false); openJoinWorker(); }} className="flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors bg-[#1D4ED8] text-white">
                     {t("joinAsWorker")}
                   </button>
-                  <button onClick={() => { setMobileMenuOpen(false); openJoinCustomer(); }} className="flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors text-[#64748B]">
+                  <button onClick={() => { setMobileMenuOpen(false); openJoinCustomer(); }} className="flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors bg-[#1D4ED8] text-white">
                     {t("joinAsCustomer")}
                   </button>
                 </>
@@ -1527,9 +1748,7 @@ export default function App() {
                   </button>
                   <button onClick={handleSignOut} className="text-left font-medium text-red-600 py-1">{t("signOut")}</button>
                 </>
-              ) : (
-                <button onClick={() => { setMobileMenuOpen(false); openSignIn("customer"); }} className="text-left w-full bg-[#1D4ED8] text-white font-semibold py-2.5 rounded-lg text-center">{t("signInCustomerNav")}</button>
-              )}
+              ) : null}
             </div>
           </div>
         )}
@@ -2267,7 +2486,7 @@ export default function App() {
                 </div>
 
                 <h3 className="font-semibold text-xl mb-4" style={{ fontFamily: "'Fraunces', serif" }}>{t("incomingRequests")}</h3>
-                {workerRequests.length === 0 ? (
+                {myIncomingRequests.length === 0 ? (
                   <div className="text-center py-12 text-[#64748B] bg-white border border-[#CBD9EE] rounded-xl">
                     <div className="text-3xl mb-2">✓</div>
                     No new requests
@@ -2275,22 +2494,36 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-4">
-                    {workerRequests.map((req) => (
-                      <div key={req.id} className="bg-white border border-[#CBD9EE] rounded-xl p-5">
+                    {myIncomingRequests.map((req) => (
+                      <div key={req.id} className={`bg-white border rounded-xl p-5 ${req.urgent && req.status === "pending" ? "border-red-400 ring-1 ring-red-200" : "border-[#CBD9EE]"}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div>
+                            {req.urgent && (
+                              <span className="inline-block mb-1 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-50 px-2 py-0.5 rounded-full">🔴 Urgent — needed now</span>
+                            )}
                             <div className="font-semibold text-[#0F1E3D]">{req.customerName}</div>
                             <div className="text-sm text-[#64748B]">{req.service}</div>
                             <div className="text-xs text-[#64748B] mt-1">{req.date} · {req.time}</div>
                             <div className="text-xs text-[#64748B]">{req.address}</div>
+                            {req.lat != null && req.lng != null && (
+                              <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${req.lat},${req.lng}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs font-semibold text-[#1D4ED8] hover:underline"
+                              >
+                                📍 Open in Google Maps
+                              </a>
+                            )}
                             <div className="text-xs font-semibold text-[#1D4ED8] mt-1">₹{req.rate}/hr</div>
                           </div>
                           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
                             req.status === "pending" ? "bg-[#EAF2FE] text-[#0EA5E9]" :
                             req.status === "accepted" ? "bg-[#E4EEFC] text-[#1D4ED8]" :
+                            req.status === "completed" ? "bg-green-50 text-green-700" :
                             "bg-red-50 text-red-600"
                           }`}>
-                            {req.status === "pending" ? t("pending") : req.status === "accepted" ? t("accepted") : t("rejected")}
+                            {req.status === "pending" ? t("pending") : req.status === "accepted" ? t("accepted") : req.status === "completed" ? "Completed" : t("rejected")}
                           </span>
                         </div>
                         {req.status === "pending" && (
@@ -2305,6 +2538,16 @@ export default function App() {
                         )}
                         {req.status === "accepted" && req.etaMinutes != null && (
                           <div className="mt-3 text-sm text-[#1D4ED8] font-medium">Arriving in ~{req.etaMinutes} minutes</div>
+                        )}
+                        {req.status === "accepted" && (
+                          <button onClick={() => completeJob(req.id)} className="mt-3 w-full bg-green-600 text-white font-semibold py-2 rounded-lg hover:bg-green-700 transition-colors">
+                            ✓ Mark job complete
+                          </button>
+                        )}
+                        {req.status === "completed" && (
+                          <button onClick={() => openFeedback(req.id, "worker")} className="mt-3 w-full border border-[#CBD9EE] text-[#0F1E3D] font-medium py-2 rounded-lg hover:bg-[#E6EEFB] transition-colors">
+                            {req.workerRating ? `⭐ Your feedback: ${req.workerRating}/5` : "⭐ Rate customer & give feedback"}
+                          </button>
                         )}
                       </div>
                     ))}
@@ -2606,9 +2849,22 @@ export default function App() {
                   <div key={b.id} className="bg-white border border-[#CBD9EE] rounded-xl p-5 flex flex-col gap-3">
                     <div className="flex items-center justify-between gap-3">
                       <div>
+                        {b.urgent && (
+                          <span className="inline-block mb-1 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-50 px-2 py-0.5 rounded-full">🔴 Urgent</span>
+                        )}
                         <div className="font-semibold text-[#0F1E3D]">{b.workerName} · {b.service}</div>
                         <div className="text-xs text-[#64748B] mt-1">{b.date} · {b.time}</div>
                         <div className="text-xs text-[#64748B]">{b.address}</div>
+                        {b.lat != null && b.lng != null && (
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${b.lat},${b.lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-semibold text-[#1D4ED8] hover:underline"
+                          >
+                            📍 View on map
+                          </a>
+                        )}
                         {b.status === "accepted" && b.etaMinutes != null && (
                           <div className="text-xs font-semibold text-[#1D4ED8] mt-1">Arriving in ~{b.etaMinutes} minutes</div>
                         )}
@@ -2616,26 +2872,17 @@ export default function App() {
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
                         b.status === "pending" ? "bg-[#EAF2FE] text-[#0EA5E9]" :
                         b.status === "accepted" ? "bg-[#E4EEFC] text-[#1D4ED8]" :
+                        b.status === "completed" ? "bg-green-50 text-green-700" :
                         "bg-red-50 text-red-600"
                       }`}>
-                        {b.status === "pending" ? t("pending") : b.status === "accepted" ? t("accepted") : t("rejected")}
+                        {b.status === "pending" ? t("pending") : b.status === "accepted" ? t("accepted") : b.status === "completed" ? "Completed" : t("rejected")}
                       </span>
                     </div>
-                    {b.status === "accepted" && (
-                      <div className="border-t border-[#E6EEFB] pt-3 flex items-center gap-2">
-                        <span className="text-xs text-[#64748B]">{b.customerRating ? "Your rating:" : "Rate this job:"}</span>
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              onClick={() => rateBooking(b.id, star)}
-                              className={`text-lg leading-none ${(b.customerRating ?? 0) >= star ? "text-[#0EA5E9]" : "text-[#CBD9EE]"}`}
-                              aria-label={`Rate ${star} star`}
-                            >
-                              ★
-                            </button>
-                          ))}
-                        </div>
+                    {b.status === "completed" && (
+                      <div className="border-t border-[#E6EEFB] pt-3">
+                        <button onClick={() => openFeedback(b.id, "customer")} className="w-full border border-[#CBD9EE] text-[#0F1E3D] font-medium py-2 rounded-lg hover:bg-[#E6EEFB] transition-colors text-sm">
+                          {b.customerRating ? `⭐ Your feedback: ${b.customerRating}/5 — tap to edit` : "⭐ Leave feedback for this job"}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -2651,7 +2898,7 @@ export default function App() {
         const totalActive = federationBranches.reduce((s, b) => s + b.activeMembers, 0);
         const totalRevenue = federationBranches.reduce((s, b) => s + b.monthlyRevenue, 0);
         const pendingWorkers = communityWorkers.filter((w) => !w.verified);
-        const platformRevenue = workerRequests.reduce((s, r) => s + (Number(r.rate) || 0), 0);
+        const platformRevenue = allRequests.reduce((s, r) => s + (Number(r.rate) || 0), 0);
         return (
           <section className="py-14 md:py-20 bg-[#0F1E3D] text-white min-h-screen">
             <div className="max-w-6xl mx-auto px-5 md:px-10">
@@ -2737,7 +2984,7 @@ export default function App() {
               {adminView === "bookings" && (
                 <>
                   <div className="grid sm:grid-cols-2 gap-4 mb-8">
-                    <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{workerRequests.length}</div><div className="text-xs text-white/60 mt-1">{t("totalPlatformBookings")}</div></div>
+                    <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{allRequests.length}</div><div className="text-xs text-white/60 mt-1">{t("totalPlatformBookings")}</div></div>
                     <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>₹{platformRevenue.toLocaleString("en-IN")}</div><div className="text-xs text-white/60 mt-1">{t("grossBookingValue")}</div></div>
                   </div>
                   <h3 className="font-semibold text-lg mb-3">⚡ {t("demandForecastTitle")}</h3>
@@ -2849,33 +3096,56 @@ export default function App() {
               {/* Step 1: Schedule */}
               {bookingStep === 1 && (
                 <div className="flex flex-col gap-4">
-                  <div>
-                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Pick a date</label>
-                    <input
-                      type="date"
-                      value={bookingForm.date}
-                      onChange={(e) => setBookingForm({ ...bookingForm, date: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
-                    />
+                  <div className="grid grid-cols-2 gap-2 bg-[#F3F7FE] rounded-xl p-1">
+                    <button
+                      onClick={() => setBookingForm({ ...bookingForm, urgent: false })}
+                      className={`text-sm font-semibold py-2.5 rounded-lg transition-colors ${!bookingForm.urgent ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}
+                    >
+                      🗓️ Schedule for later
+                    </button>
+                    <button
+                      onClick={() => setBookingForm({ ...bookingForm, urgent: true, date: "Today", time: "ASAP" })}
+                      className={`text-sm font-semibold py-2.5 rounded-lg transition-colors ${bookingForm.urgent ? "bg-red-600 text-white shadow-sm" : "text-[#64748B]"}`}
+                    >
+                      🔴 Need it right now
+                    </button>
                   </div>
-                  <div>
-                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Pick a time slot</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {timeSlots.map((slot) => (
-                        <button
-                          key={slot}
-                          onClick={() => setBookingForm({ ...bookingForm, time: slot })}
-                          className={`text-xs sm:text-sm font-medium px-2 py-2 rounded-lg border transition-colors ${
-                            bookingForm.time === slot
-                              ? "bg-[#1D4ED8] text-white border-[#1D4ED8]"
-                              : "bg-white text-[#1E293B] border-[#CBD9EE] hover:border-[#1D4ED8]"
-                          }`}
-                        >
-                          {slot}
-                        </button>
-                      ))}
+
+                  {bookingForm.urgent ? (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+                      Your request will be sent as an <strong>urgent, right-now</strong> booking. The worker sees it flagged at the top of their list and, once they accept, you'll get an ETA for arrival.
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Pick a date</label>
+                        <input
+                          type="date"
+                          value={bookingForm.date}
+                          onChange={(e) => setBookingForm({ ...bookingForm, date: e.target.value })}
+                          className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Pick a time slot</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {timeSlots.map((slot) => (
+                            <button
+                              key={slot}
+                              onClick={() => setBookingForm({ ...bookingForm, time: slot })}
+                              className={`text-xs sm:text-sm font-medium px-2 py-2 rounded-lg border transition-colors ${
+                                bookingForm.time === slot
+                                  ? "bg-[#1D4ED8] text-white border-[#1D4ED8]"
+                                  : "bg-white text-[#1E293B] border-[#CBD9EE] hover:border-[#1D4ED8]"
+                              }`}
+                            >
+                              {slot}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                   <button
                     disabled={!bookingForm.date || !bookingForm.time}
                     onClick={() => setBookingStep(2)}
@@ -2890,12 +3160,35 @@ export default function App() {
               {bookingStep === 2 && (
                 <div className="flex flex-col gap-4">
                   <div>
-                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Service address</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-sm font-semibold text-[#0F1E3D] block">Service address</label>
+                      <button
+                        type="button"
+                        onClick={useCurrentLocation}
+                        disabled={locatingMe}
+                        className="text-xs font-semibold text-[#1D4ED8] hover:underline disabled:opacity-50 flex items-center gap-1"
+                      >
+                        📍 {locatingMe ? "Locating…" : "Use my current location"}
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={bookingForm.address}
                       onChange={(e) => setBookingForm({ ...bookingForm, address: e.target.value })}
                       placeholder="House no., street, area, city"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                    />
+                    {locateError && <p className="text-xs text-red-600 mt-1">{locateError}</p>}
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Pincode</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={bookingForm.pincode}
+                      onChange={(e) => setBookingForm({ ...bookingForm, pincode: e.target.value.replace(/[^0-9]/g, "") })}
+                      placeholder="e.g. 273001"
                       className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                     />
                   </div>
@@ -3284,6 +3577,13 @@ export default function App() {
                   >
                     Submit Application
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => { closeJoinWorker(); openSignIn("customer"); }}
+                    className="text-sm text-[#64748B] hover:text-[#1D4ED8] text-center"
+                  >
+                    Already a member? <span className="font-semibold">Sign in</span>
+                  </button>
                 </div>
               )}
               {joinStep === 2 && (
@@ -3393,6 +3693,13 @@ export default function App() {
                   >
                     Create Account
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => { closeJoinCustomer(); openSignIn("customer"); }}
+                    className="text-sm text-[#64748B] hover:text-[#1D4ED8] text-center"
+                  >
+                    Already a member? <span className="font-semibold">Sign in</span>
+                  </button>
                 </div>
               )}
               {joinCustomerStep === 2 && (
@@ -3415,6 +3722,59 @@ export default function App() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── FEEDBACK MODAL — same form for customer and worker, shown once a
+           job's status is "completed" ── */}
+      {feedbackTarget && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={closeFeedback}>
+          <div className="bg-white rounded-3xl max-w-md w-full border border-[#CBD9EE] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#CBD9EE]">
+              <h3 className="font-semibold text-lg" style={{ fontFamily: "'Fraunces', serif" }}>
+                {feedbackTarget.role === "customer" ? "Rate your worker" : "Rate your customer"}
+              </h3>
+              <button onClick={closeFeedback} className="text-[#64748B] hover:text-[#0F1E3D] text-xl leading-none">✕</button>
+            </div>
+            <div className="px-6 py-6 flex flex-col gap-4">
+              <p className="text-sm text-[#64748B]">
+                {feedbackTarget.role === "customer"
+                  ? "How was the job? Your feedback helps other members choose trusted workers."
+                  : "How was this customer to work with? Your feedback stays on their booking record."}
+              </p>
+              <div className="flex justify-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setFeedbackStars(star)}
+                    className={`text-3xl leading-none ${feedbackStars >= star ? "text-[#0EA5E9]" : "text-[#CBD9EE]"}`}
+                    aria-label={`Rate ${star} star`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">
+                  {feedbackTarget.role === "customer" ? "Comments about the worker (optional)" : "Comments about the customer (optional)"}
+                </label>
+                <textarea
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  rows={4}
+                  placeholder="Tell us more about your experience..."
+                  className="w-full border border-[#CBD9EE] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30 resize-none"
+                />
+              </div>
+              <button
+                onClick={submitFeedback}
+                disabled={feedbackStars === 0}
+                className="w-full bg-[#1D4ED8] text-white font-semibold py-2.5 rounded-lg hover:bg-[#1E3A8A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Submit feedback
+              </button>
             </div>
           </div>
         </div>
