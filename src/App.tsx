@@ -330,14 +330,14 @@ const demoInitialWorkerRequests: WorkerRequest[] = [
   },
 ];
 
-type Worker = Omit<(typeof workers)[number], "id"> & { id: number | string; verified?: boolean; email?: string };
+type Worker = Omit<(typeof workers)[number], "id"> & { id: number | string; verified?: boolean; email?: string; certificateNote?: string };
 
 // Builds a searchable Worker profile out of a name/category/experience —
 // used for workers who register through "Join as Worker" or worker sign-up
 // (their full profile lives in Firestore; this is just enough to list them
 // in search results and worker cards). `email` lets a booking made against
 // this worker be routed to them live if they're signed in with that email.
-function buildCommunityWorker(id: number | string, name: string, categoryId: string, experience: number, verified = true, email = ""): Worker {
+function buildCommunityWorker(id: number | string, name: string, categoryId: string, experience: number, verified = true, email = "", certificateNote = ""): Worker {
   const cat = serviceCategories.find((c) => c.id === categoryId);
   return {
     id,
@@ -355,6 +355,7 @@ function buildCommunityWorker(id: number | string, name: string, categoryId: str
     cooperative: true,
     verified,
     email,
+    certificateNote,
   };
 }
 
@@ -891,6 +892,23 @@ export default function App() {
   // Account/hamburger menu, notifications panel, and UI language
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [notifPanelOpen, setNotifPanelOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
+  const notifPanelRef = useRef<HTMLDivElement | null>(null);
+  // Clicking anywhere outside an open dropdown (account menu or
+  // notifications panel) closes it — instead of it staying open until the
+  // same button is tapped again.
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (accountMenuOpen && accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+      if (notifPanelOpen && notifPanelRef.current && !notifPanelRef.current.contains(e.target as Node)) {
+        setNotifPanelOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [accountMenuOpen, notifPanelOpen]);
   const [lang, setLang] = useState<Lang>("en");
   function t(key: string) {
     return translations[lang][key] ?? key;
@@ -1090,8 +1108,8 @@ export default function App() {
       try {
         const snap = await getDocs(collection(db, "workers"));
         const loaded = snap.docs.map((d) => {
-          const data = d.data() as { name?: string; category?: string; experience?: number | string; verified?: boolean; email?: string };
-          return buildCommunityWorker(d.id, data.name || "", data.category || "", Number(data.experience) || 0, data.verified !== false, data.email || "");
+          const data = d.data() as { name?: string; category?: string; experience?: number | string; verified?: boolean; email?: string; certificateNote?: string };
+          return buildCommunityWorker(d.id, data.name || "", data.category || "", Number(data.experience) || 0, data.verified !== false, data.email || "", data.certificateNote || "");
         });
         setCommunityWorkers(loaded);
       } catch (err) {
@@ -1101,7 +1119,7 @@ export default function App() {
     loadCommunityWorkers();
   }, []);
 
-  const allWorkers = [...workers, ...communityWorkers];
+  const allWorkers: Worker[] = [...workers, ...communityWorkers];
 
   // AI-Powered Fair Match — how the worker grid is sorted.
   const [sortMode, setSortMode] = useState<"ai" | "rating" | "price">("ai");
@@ -1297,6 +1315,18 @@ export default function App() {
     }
   }
 
+  // When someone signs up as a worker straight from the Sign In popup
+  // (rather than the dedicated "Join as Worker" button), send them into the
+  // exact same full onboarding form — pre-filled with the name/email they
+  // just used — instead of a bare "signed in" screen with no skills/photo/
+  // certificate on file.
+  function redirectToWorkerOnboarding(name: string, email: string) {
+    setJoinForm((prev) => ({ ...prev, name, email }));
+    setJoinStep(1);
+    setShowSignIn(false);
+    setShowJoinWorker(true);
+  }
+
   async function signInWithGoogle() {
     if (authLoading) return;
     setAuthError("");
@@ -1304,11 +1334,17 @@ export default function App() {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      setCurrentUser({ name: user.displayName || "Member", email: user.email || "", photoURL: user.photoURL });
+      const name = user.displayName || "Member";
+      const email = user.email || "";
+      setCurrentUser({ name, email, photoURL: user.photoURL });
       setIsSignedIn(true);
       applyUserRole(authRole);
+      if (authMode === "signup" && authRole === "worker") {
+        redirectToWorkerOnboarding(name, email);
+        return;
+      }
       if (authRole === "worker") {
-        saveWorkerAuthProfile(user.uid, user.displayName || "Member", user.email || "");
+        saveWorkerAuthProfile(user.uid, name, email);
       }
       setSignInStep(2);
       setTimeout(() => setShowSignIn(false), 1000);
@@ -1339,6 +1375,12 @@ export default function App() {
       }
       setIsSignedIn(true);
       applyUserRole(authRole);
+      if (authMode === "signup" && authRole === "worker") {
+        const name = auth.currentUser?.displayName || signInName.trim() || signInEmail.split("@")[0] || "Member";
+        const email = auth.currentUser?.email || signInEmail.trim();
+        redirectToWorkerOnboarding(name, email);
+        return;
+      }
       if (authRole === "worker") {
         const uid = auth.currentUser?.uid;
         const name = auth.currentUser?.displayName || signInName.trim() || signInEmail.split("@")[0] || "Member";
@@ -1524,7 +1566,7 @@ export default function App() {
         verified: false,
         createdAt: serverTimestamp(),
       });
-      setCommunityWorkers((prev) => [buildCommunityWorker(docRef.id, name, category, experience, false, email), ...prev]);
+      setCommunityWorkers((prev) => [buildCommunityWorker(docRef.id, name, category, experience, false, email, certificateNote), ...prev]);
       // Simulate the verification check completing a couple of seconds later.
       setTimeout(async () => {
         try {
@@ -1556,6 +1598,11 @@ export default function App() {
     .filter((r) => (currentUser?.email && r.workerEmail ? r.workerEmail === currentUser.email : true))
     .sort((a, b) => Number(!!b.urgent) - Number(!!a.urgent));
   const acceptedJobs = myIncomingRequests.filter((r) => r.status === "accepted");
+  // The signed-in worker's own profile — matched by the email they signed
+  // up/joined with — used to show their real skill/experience/certificate
+  // instead of generic placeholder profile content.
+  const myWorkerProfile = currentUser?.email ? allWorkers.find((w) => w.email && w.email === currentUser.email) : undefined;
+  const myCompletedJobsCount = myIncomingRequests.filter((r) => r.status === "completed").length;
   const totalEarnings = acceptedJobs.reduce((sum, r) => sum + (Number(r.rate) || 0), 0);
   const pendingRequestsCount = myIncomingRequests.filter((r) => r.status === "pending").length;
   const myBookings = allRequests.filter((r) => (currentUser?.email && r.customerEmail ? r.customerEmail === currentUser.email : r.customerName === currentUser?.name));
@@ -1619,7 +1666,7 @@ export default function App() {
                     {t("dashboard")}
                   </button>
                 )}
-                <div className="relative">
+                <div className="relative" ref={notifPanelRef}>
                   <button onClick={openNotifPanel} className="relative p-2 rounded-lg hover:bg-[#E6EEFB]" aria-label="Notifications">
                     <span className="text-lg leading-none">🔔</span>
                     {myNotifCount > 0 && (
@@ -1642,7 +1689,7 @@ export default function App() {
                     </div>
                   )}
                 </div>
-                <div className="relative">
+                <div className="relative" ref={accountMenuRef}>
                   <button onClick={() => setAccountMenuOpen(!accountMenuOpen)} className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-[#E6EEFB] transition-colors">
                     <img
                       src={currentUser?.photoURL || personImgFallback(currentUser?.name || "U", "1B6B5E")}
@@ -2733,23 +2780,25 @@ export default function App() {
                   <div>
                     <div className="font-semibold text-lg flex items-center gap-1.5 justify-center">
                       {currentUser?.name}
-                      <span className="text-[#0EA5E9]" title="Federation verified">✓</span>
+                      {myWorkerProfile?.verified !== false && (
+                        <span className="text-[#0EA5E9]" title="Federation verified">✓</span>
+                      )}
                     </div>
-                    <div className="text-sm text-[#64748B]">{demoWorkerSociety}</div>
+                    <div className="text-sm text-[#64748B]">{myWorkerProfile ? myWorkerProfile.role : demoWorkerSociety}</div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
-                    <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{demoWorkerRating}</div>
+                    <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{myWorkerProfile && myWorkerProfile.rating > 0 ? myWorkerProfile.rating : "New"}</div>
                     <div className="text-xs text-[#64748B] mt-0.5">Rating</div>
                   </div>
                   <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
-                    <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{demoWorkerJobsDone}</div>
+                    <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{myWorkerProfile ? myCompletedJobsCount : demoWorkerJobsDone}</div>
                     <div className="text-xs text-[#64748B] mt-0.5">Jobs done</div>
                   </div>
                   <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
-                    <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{demoWorkerExperienceYears} yr</div>
+                    <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{myWorkerProfile ? myWorkerProfile.experience : demoWorkerExperienceYears} yr</div>
                     <div className="text-xs text-[#64748B] mt-0.5">Experience</div>
                   </div>
                 </div>
@@ -2757,7 +2806,7 @@ export default function App() {
                 <div>
                   <div className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-2">Skills</div>
                   <div className="flex flex-wrap gap-2">
-                    {demoWorkerSkills.map((skill) => (
+                    {(myWorkerProfile ? [myWorkerProfile.role] : demoWorkerSkills).map((skill) => (
                       <span key={skill} className="bg-[#F3F7FE] border border-[#CBD9EE] text-sm px-3 py-1.5 rounded-full">{skill}</span>
                     ))}
                   </div>
@@ -2766,10 +2815,16 @@ export default function App() {
                 <div>
                   <div className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-2">Certifications</div>
                   <div className="bg-white border border-[#CBD9EE] rounded-2xl divide-y divide-[#E6EEFB]">
-                    {demoWorkerCertifications.map((cert) => (
+                    {(myWorkerProfile
+                      ? [
+                          { name: "Cooperative Verification", status: myWorkerProfile.verified !== false ? "Verified" : "Pending" },
+                          ...(myWorkerProfile.certificateNote ? [{ name: myWorkerProfile.certificateNote, status: "On file" }] : []),
+                        ]
+                      : demoWorkerCertifications
+                    ).map((cert) => (
                       <div key={cert.name} className="flex justify-between items-center px-5 py-4 text-sm">
                         <span className="text-[#0F1E3D]">{cert.name}</span>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${cert.status === "Active" ? "bg-[#EAF2FE] text-[#0EA5E9]" : "bg-[#E4EEFC] text-[#1D4ED8]"}`}>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${cert.status === "Active" || cert.status === "Verified" ? "bg-[#EAF2FE] text-[#0EA5E9]" : "bg-[#E4EEFC] text-[#1D4ED8]"}`}>
                           {cert.status.toUpperCase()}
                         </span>
                       </div>
@@ -3359,6 +3414,24 @@ export default function App() {
 
             {signInStep === 1 && (
               <div className="p-6 flex flex-col gap-4">
+                {authMode === "signup" && (
+                  <div className="grid grid-cols-2 gap-2 bg-[#F3F7FE] rounded-xl p-1">
+                    <button
+                      type="button"
+                      onClick={() => setAuthRole("customer")}
+                      className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authRole === "customer" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}
+                    >
+                      I'm a Customer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthRole("worker")}
+                      className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authRole === "worker" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}
+                    >
+                      I'm a Worker
+                    </button>
+                  </div>
+                )}
                 {authError && (
                   <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{authError}</div>
                 )}
@@ -3579,7 +3652,7 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { closeJoinWorker(); openSignIn("customer"); }}
+                    onClick={() => { closeJoinWorker(); openSignIn("worker"); }}
                     className="text-sm text-[#64748B] hover:text-[#1D4ED8] text-center"
                   >
                     Already a member? <span className="font-semibold">Sign in</span>
