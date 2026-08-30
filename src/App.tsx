@@ -348,6 +348,7 @@ type Worker = Omit<(typeof workers)[number], "id"> & {
   age?: number;
   address?: string;
   certificateFileName?: string;
+  certificateDataUrl?: string;
 };
 
 // Small blue verification badge — shown next to a worker's name once the
@@ -395,7 +396,8 @@ function buildCommunityWorker(
   phone = "",
   age = 0,
   address = "",
-  certificateFileName = ""
+  certificateFileName = "",
+  certificateDataUrl = ""
 ): Worker {
   const cat = serviceCategories.find((c) => c.id === categoryId);
   return {
@@ -419,6 +421,7 @@ function buildCommunityWorker(
     age,
     address,
     certificateFileName,
+    certificateDataUrl,
   };
 }
 
@@ -547,7 +550,7 @@ const translations: Record<Lang, Record<string, string>> = {
     adminOverview: "Overview",
     adminVerification: "Verifications",
     adminBookingsDemand: "Bookings & Demand",
-    memberCooperatives: "Member cooperatives",
+    memberCooperatives: "Verified workers",
     totalWorkerMembers: "Total worker-members",
     activeThisMonth: "Active this month",
     combinedMonthlyRevenue: "Combined monthly revenue",
@@ -655,7 +658,7 @@ const translations: Record<Lang, Record<string, string>> = {
     adminOverview: "अवलोकन",
     adminVerification: "सत्यापन",
     adminBookingsDemand: "बुकिंग व मांग",
-    memberCooperatives: "सदस्य सहकारी समितियां",
+    memberCooperatives: "सत्यापित कामगार",
     totalWorkerMembers: "कुल कामगार-सदस्य",
     activeThisMonth: "इस महीने सक्रिय",
     combinedMonthlyRevenue: "संयुक्त मासिक राजस्व",
@@ -1075,6 +1078,8 @@ export default function App() {
   const [joinPhotoPreview, setJoinPhotoPreview] = useState(""); // data URL, local preview only
   const [joinPhotoName, setJoinPhotoName] = useState("");
   const [joinCertificateName, setJoinCertificateName] = useState("");
+  const [joinCertificateDataUrl, setJoinCertificateDataUrl] = useState(""); // data URL of the actual uploaded file
+  const [joinCertificateError, setJoinCertificateError] = useState("");
   const [joinRefId, setJoinRefId] = useState("");
 
   function readFileAsDataUrl(file: File): Promise<string> {
@@ -1095,10 +1100,27 @@ export default function App() {
       console.error("Failed to read profile photo:", err);
     }
   }
-  function handleJoinCertificateChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // Certificate upload — previously this only remembered the file's *name*
+  // and threw away the actual file, so the Federation admin panel had
+  // nothing to open. Now the file itself is read and kept (as a data URL)
+  // so it can be saved to Firestore and viewed/opened from the admin panel.
+  async function handleJoinCertificateChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setJoinCertificateError("");
+    // Firestore documents cap out at ~1MB total, so keep the encoded file
+    // comfortably under that limit.
+    if (file.size > 700 * 1024) {
+      setJoinCertificateError("File is too large — please upload a certificate under 700KB.");
+      return;
+    }
     setJoinCertificateName(file.name);
+    try {
+      setJoinCertificateDataUrl(await readFileAsDataUrl(file));
+    } catch (err) {
+      console.error("Failed to read certificate file:", err);
+      setJoinCertificateError("Couldn't read that file — please try again.");
+    }
   }
 
   // Join as customer
@@ -1176,7 +1198,7 @@ export default function App() {
           const data = d.data() as {
             name?: string; category?: string; experience?: number | string; verified?: boolean; email?: string;
             certificateNote?: string; hourlyRate?: number | string; phone?: string; age?: number | string;
-            address?: string; certificateFileName?: string;
+            address?: string; certificateFileName?: string; certificateDataUrl?: string;
           };
           return buildCommunityWorker(
             d.id,
@@ -1190,7 +1212,8 @@ export default function App() {
             data.phone || "",
             Number(data.age) || 0,
             data.address || "",
-            data.certificateFileName || ""
+            data.certificateFileName || "",
+            data.certificateDataUrl || ""
           );
         });
         setCommunityWorkers(loaded);
@@ -1656,6 +1679,8 @@ export default function App() {
     setJoinPhotoPreview("");
     setJoinPhotoName("");
     setJoinCertificateName("");
+    setJoinCertificateDataUrl("");
+    setJoinCertificateError("");
   }
   function closeJoinWorker() {
     setShowJoinWorker(false);
@@ -1686,6 +1711,7 @@ export default function App() {
         certificateNote,
         photoFileName: joinPhotoName,
         certificateFileName: joinCertificateName,
+        certificateDataUrl: joinCertificateDataUrl,
         refId,
         verified: false,
         createdAt: serverTimestamp(),
@@ -1694,7 +1720,7 @@ export default function App() {
       // queue and stays unverified until a real human reviewer there
       // approves or rejects them — no auto-approval.
       setCommunityWorkers((prev) => [
-        buildCommunityWorker(docRef.id, name, category, experience, false, email, certificateNote, hourlyRate, phone, age, address, joinCertificateName),
+        buildCommunityWorker(docRef.id, name, category, experience, false, email, certificateNote, hourlyRate, phone, age, address, joinCertificateName, joinCertificateDataUrl),
         ...prev,
       ]);
     } catch (err) {
@@ -3147,6 +3173,7 @@ export default function App() {
         const totalMembers = federationBranches.reduce((s, b) => s + b.members, 0);
         const totalActive = federationBranches.reduce((s, b) => s + b.activeMembers, 0);
         const totalRevenue = federationBranches.reduce((s, b) => s + b.monthlyRevenue, 0);
+        const verifiedWorkersCount = communityWorkers.filter((w) => w.verified).length;
         const pendingWorkers = communityWorkers.filter((w) => !w.verified);
         const platformRevenue = allRequests.reduce((s, r) => s + (Number(r.rate) || 0), 0);
         return (
@@ -3178,7 +3205,7 @@ export default function App() {
               {adminView === "overview" && (
                 <>
                   <div className="grid sm:grid-cols-4 gap-4 mb-8">
-                    <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{federationBranches.length}</div><div className="text-xs text-white/60 mt-1">{t("memberCooperatives")}</div></div>
+                    <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{verifiedWorkersCount}</div><div className="text-xs text-white/60 mt-1">{t("memberCooperatives")}</div></div>
                     <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{totalMembers.toLocaleString("en-IN")}</div><div className="text-xs text-white/60 mt-1">{t("totalWorkerMembers")}</div></div>
                     <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{totalActive.toLocaleString("en-IN")}</div><div className="text-xs text-white/60 mt-1">{t("activeThisMonth")}</div></div>
                     <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>₹{(totalRevenue / 100000).toFixed(1)}L</div><div className="text-xs text-white/60 mt-1">{t("combinedMonthlyRevenue")}</div></div>
@@ -3253,7 +3280,26 @@ export default function App() {
                           </div>
                           <div className="flex justify-between sm:block sm:col-span-2">
                             <span className="text-white/50 text-xs uppercase tracking-wide">Certificate file</span>
-                            <div className="sm:mt-0.5">{w.certificateFileName || "No file uploaded"}</div>
+                            {w.certificateDataUrl ? (
+                              <div className="sm:mt-1 flex items-center gap-3">
+                                {w.certificateDataUrl.startsWith("data:image") ? (
+                                  <a href={w.certificateDataUrl} target="_blank" rel="noopener noreferrer">
+                                    <img src={w.certificateDataUrl} alt="Certificate" className="w-16 h-16 object-cover rounded-lg border border-white/20" />
+                                  </a>
+                                ) : null}
+                                <a
+                                  href={w.certificateDataUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  download={w.certificateFileName || "certificate"}
+                                  className="text-sm font-semibold text-[#60A5FA] hover:underline"
+                                >
+                                  📄 View {w.certificateFileName || "certificate"}
+                                </a>
+                              </div>
+                            ) : (
+                              <div className="sm:mt-0.5">{w.certificateFileName || "No file uploaded"}</div>
+                            )}
                           </div>
                           {w.certificateNote && (
                             <div className="flex justify-between sm:block sm:col-span-2">
@@ -3877,6 +3923,12 @@ export default function App() {
                       </span>
                       <input type="file" accept="image/*,.pdf" onChange={handleJoinCertificateChange} className="hidden" />
                     </label>
+                    {joinCertificateError && (
+                      <p className="text-xs text-red-600 mt-1">{joinCertificateError}</p>
+                    )}
+                    {joinCertificateDataUrl && joinCertificateDataUrl.startsWith("data:image") && (
+                      <img src={joinCertificateDataUrl} alt="Certificate preview" className="mt-2 w-20 h-20 object-cover rounded-lg border border-[#CBD9EE]" />
+                    )}
                     <input
                       type="text"
                       value={joinForm.certificateNote}
