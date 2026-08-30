@@ -336,14 +336,68 @@ const demoInitialWorkerRequests: WorkerRequest[] = [
   },
 ];
 
-type Worker = Omit<(typeof workers)[number], "id"> & { id: number | string; verified?: boolean; email?: string; certificateNote?: string };
+type Worker = Omit<(typeof workers)[number], "id"> & {
+  id: number | string;
+  verified?: boolean;
+  email?: string;
+  certificateNote?: string;
+  // Extra fields collected on "Join the Cooperative" — kept on the worker
+  // record so the Federation's verification queue has everything it needs
+  // to check the applicant (certificate, address, phone, age) before
+  // approving or rejecting them.
+  phone?: string;
+  age?: number;
+  address?: string;
+  certificateFileName?: string;
+};
 
-// Builds a searchable Worker profile out of a name/category/experience —
+// Small blue verification badge — shown next to a worker's name once the
+// Federation has approved their application. Deliberately its own component
+// so every place a worker's name appears (search cards, service-detail
+// cards, dashboard profile) renders the exact same "blue tick".
+function VerifiedTick({ size = 16, title = "Federation verified" }: { size?: number; title?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      className="inline-block align-middle shrink-0"
+      role="img"
+      aria-label={title}
+    >
+      <title>{title}</title>
+      <path
+        fill="#1D9BF0"
+        d="M12 2.5c.6 0 1.16.24 1.58.66l1.2 1.22 1.7-.1a2.24 2.24 0 0 1 2.24 1.6l.47 1.64 1.64.47a2.24 2.24 0 0 1 1.6 2.24l-.1 1.7 1.22 1.2c.42.42.66.98.66 1.58s-.24 1.16-.66 1.58l-1.22 1.2.1 1.7a2.24 2.24 0 0 1-1.6 2.24l-1.64.47-.47 1.64a2.24 2.24 0 0 1-2.24 1.6l-1.7-.1-1.2 1.22a2.24 2.24 0 0 1-3.16 0l-1.2-1.22-1.7.1a2.24 2.24 0 0 1-2.24-1.6l-.47-1.64-1.64-.47a2.24 2.24 0 0 1-1.6-2.24l.1-1.7-1.22-1.2A2.24 2.24 0 0 1 1.5 12c0-.6.24-1.16.66-1.58l1.22-1.2-.1-1.7a2.24 2.24 0 0 1 1.6-2.24l1.64-.47.47-1.64a2.24 2.24 0 0 1 2.24-1.6l1.7.1 1.2-1.22c.42-.42.98-.66 1.58-.66Z"
+      />
+      <path
+        fill="#fff"
+        d="M9.9 16.2 6.3 12.6l1.4-1.4 2.2 2.2 5.4-5.4 1.4 1.4Z"
+      />
+    </svg>
+  );
+}
+
+// Builds a searchable Worker profile out of the "Join the Cooperative" form —
 // used for workers who register through "Join as Worker" or worker sign-up
 // (their full profile lives in Firestore; this is just enough to list them
-// in search results and worker cards). `email` lets a booking made against
-// this worker be routed to them live if they're signed in with that email.
-function buildCommunityWorker(id: number | string, name: string, categoryId: string, experience: number, verified = true, email = "", certificateNote = "", hourlyRate = 0): Worker {
+// in search results, worker cards, and the Federation's verification queue).
+// `email` lets a booking made against this worker be routed to them live if
+// they're signed in with that email.
+function buildCommunityWorker(
+  id: number | string,
+  name: string,
+  categoryId: string,
+  experience: number,
+  verified = true,
+  email = "",
+  certificateNote = "",
+  hourlyRate = 0,
+  phone = "",
+  age = 0,
+  address = "",
+  certificateFileName = ""
+): Worker {
   const cat = serviceCategories.find((c) => c.id === categoryId);
   return {
     id,
@@ -354,7 +408,7 @@ function buildCommunityWorker(id: number | string, name: string, categoryId: str
     reviews: 0,
     experience: experience || 0,
     hourlyRate,
-    location: "",
+    location: address || "",
     tags: ["New member"],
     image: personImgFallback(name || "Worker", "1B6B5E"),
     available: true,
@@ -362,6 +416,10 @@ function buildCommunityWorker(id: number | string, name: string, categoryId: str
     verified,
     email,
     certificateNote,
+    phone,
+    age,
+    address,
+    certificateFileName,
   };
 }
 
@@ -1117,8 +1175,25 @@ export default function App() {
       try {
         const snap = await getDocs(collection(db, "workers"));
         const loaded = snap.docs.map((d) => {
-          const data = d.data() as { name?: string; category?: string; experience?: number | string; verified?: boolean; email?: string; certificateNote?: string; hourlyRate?: number | string };
-          return buildCommunityWorker(d.id, data.name || "", data.category || "", Number(data.experience) || 0, data.verified !== false, data.email || "", data.certificateNote || "", Number(data.hourlyRate) || 0);
+          const data = d.data() as {
+            name?: string; category?: string; experience?: number | string; verified?: boolean; email?: string;
+            certificateNote?: string; hourlyRate?: number | string; phone?: string; age?: number | string;
+            address?: string; certificateFileName?: string;
+          };
+          return buildCommunityWorker(
+            d.id,
+            data.name || "",
+            data.category || "",
+            Number(data.experience) || 0,
+            data.verified !== false,
+            data.email || "",
+            data.certificateNote || "",
+            Number(data.hourlyRate) || 0,
+            data.phone || "",
+            Number(data.age) || 0,
+            data.address || "",
+            data.certificateFileName || ""
+          );
         });
         setCommunityWorkers(loaded);
       } catch (err) {
@@ -1576,7 +1651,10 @@ export default function App() {
       // Every new worker lands in the Federation Admin's "Verifications"
       // queue and stays unverified until a real human reviewer there
       // approves or rejects them — no auto-approval.
-      setCommunityWorkers((prev) => [buildCommunityWorker(docRef.id, name, category, experience, false, email, certificateNote, hourlyRate), ...prev]);
+      setCommunityWorkers((prev) => [
+        buildCommunityWorker(docRef.id, name, category, experience, false, email, certificateNote, hourlyRate, phone, age, address, joinCertificateName),
+        ...prev,
+      ]);
     } catch (err) {
       console.error("Failed to save worker profile:", err);
     }
@@ -2236,7 +2314,10 @@ export default function App() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <h3 className="font-semibold text-[#0F1E3D] truncate">{worker.name}</h3>
+                            <h3 className="font-semibold text-[#0F1E3D] truncate flex items-center gap-1">
+                              {worker.name}
+                              {isVerified(worker) && <VerifiedTick />}
+                            </h3>
                             <p className="text-sm text-[#64748B]">{worker.role}</p>
                           </div>
                           {worker.cooperative && (
@@ -2257,7 +2338,9 @@ export default function App() {
                         <span className="text-xs bg-[#0EA5E9]/10 text-[#0EA5E9] font-semibold px-2 py-0.5 rounded-full border border-[#0EA5E9]/30">⚡ AI Recommended</span>
                       )}
                       {isVerified(worker) ? (
-                        <span className="text-xs bg-[#E4EEFC] text-[#1D4ED8] font-semibold px-2 py-0.5 rounded-full border border-[#1D4ED8]/20">✓ Verified</span>
+                        <span className="inline-flex items-center gap-1 text-xs bg-[#E4EEFC] text-[#1D4ED8] font-semibold px-2 py-0.5 rounded-full border border-[#1D4ED8]/20">
+                          <VerifiedTick size={12} /> Verified
+                        </span>
                       ) : (
                         <span className="text-xs bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded-full border border-amber-200">Verification pending</span>
                       )}
@@ -2471,7 +2554,10 @@ export default function App() {
                             onError={(e) => handleImgError(e, personImgFallback(worker.name, "1B6B5E"))}
                           />
                           <div className="p-5 flex flex-col gap-2 flex-1">
-                            <div className="font-semibold text-[#0F1E3D]">{worker.name}</div>
+                            <div className="font-semibold text-[#0F1E3D] flex items-center gap-1">
+                              {worker.name}
+                              {isVerified(worker) && <VerifiedTick size={14} />}
+                            </div>
                             <div className="text-xs text-[#64748B]">{worker.role}</div>
                             <div className="flex items-center gap-3 text-xs text-[#1E293B] mt-1">
                               <span className="flex items-center gap-1">★ {worker.rating} <span className="text-[#64748B]">({worker.reviews})</span></span>
@@ -2785,11 +2871,14 @@ export default function App() {
                   <div>
                     <div className="font-semibold text-lg flex items-center gap-1.5 justify-center">
                       {currentUser?.name}
-                      {myWorkerProfile?.verified !== false && (
-                        <span className="text-[#0EA5E9]" title="Federation verified">✓</span>
-                      )}
+                      {myWorkerProfile?.verified !== false && <VerifiedTick size={18} />}
                     </div>
                     <div className="text-sm text-[#64748B]">{myWorkerProfile ? myWorkerProfile.role : demoWorkerSociety}</div>
+                    {myWorkerProfile?.verified === false && (
+                      <span className="inline-block text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full">
+                        Verification pending with the federation
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -3025,15 +3114,52 @@ export default function App() {
                     <div className="text-center py-16 text-white/50 bg-white/5 rounded-2xl">{t("queueClear")}</div>
                   ) : (
                     pendingWorkers.map((w) => (
-                      <div key={w.id} className="bg-white/10 rounded-xl p-4 flex items-center gap-4 flex-wrap">
-                        <img src={w.image} alt={w.name} className="w-12 h-12 rounded-lg object-cover" onError={(e) => handleImgError(e, personImgFallback(w.name, "D97840"))} />
-                        <div className="flex-1 min-w-[160px]">
-                          <div className="font-semibold">{w.name}</div>
-                          <div className="text-xs text-white/60">{w.role} · {w.experience} {t("yrsExperience")}</div>
+                      <div key={w.id} className="bg-white/10 rounded-xl p-5 flex flex-col gap-4">
+                        {/* Applicant summary */}
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <img src={w.image} alt={w.name} className="w-14 h-14 rounded-lg object-cover" onError={(e) => handleImgError(e, personImgFallback(w.name, "D97840"))} />
+                          <div className="flex-1 min-w-[160px]">
+                            <div className="font-semibold flex items-center gap-1.5">
+                              {w.name}
+                              <span className="text-[10px] font-bold uppercase tracking-wide text-amber-300 bg-amber-500/10 border border-amber-400/30 px-2 py-0.5 rounded-full">Pending review</span>
+                            </div>
+                            <div className="text-xs text-white/60">{w.role} · {w.experience} {t("yrsExperience")} · ₹{w.hourlyRate}/hr</div>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <button onClick={() => adminRejectWorker(w.id)} className="text-sm font-semibold border border-white/20 px-4 py-2 rounded-lg hover:bg-white/10 transition-colors">{t("reject")}</button>
+                            <button onClick={() => adminApproveWorker(w.id)} className="text-sm font-semibold bg-[#1D4ED8] px-4 py-2 rounded-lg hover:bg-[#1E3A8A] transition-colors">{t("accept")}</button>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => adminRejectWorker(w.id)} className="text-sm font-semibold border border-white/20 px-4 py-2 rounded-lg hover:bg-white/10 transition-colors">{t("reject")}</button>
-                          <button onClick={() => adminApproveWorker(w.id)} className="text-sm font-semibold bg-[#1D4ED8] px-4 py-2 rounded-lg hover:bg-[#1E3A8A] transition-colors">{t("accept")}</button>
+
+                        {/* Full application details — what the federation checks before
+                            approving: contact info, address, and the certificate on file. */}
+                        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm bg-black/20 rounded-lg p-4">
+                          <div className="flex justify-between sm:block">
+                            <span className="text-white/50 text-xs uppercase tracking-wide">Email</span>
+                            <div className="sm:mt-0.5 break-all">{w.email || "—"}</div>
+                          </div>
+                          <div className="flex justify-between sm:block">
+                            <span className="text-white/50 text-xs uppercase tracking-wide">Phone</span>
+                            <div className="sm:mt-0.5">{w.phone || "—"}</div>
+                          </div>
+                          <div className="flex justify-between sm:block">
+                            <span className="text-white/50 text-xs uppercase tracking-wide">Age</span>
+                            <div className="sm:mt-0.5">{w.age ? `${w.age} yrs` : "—"}</div>
+                          </div>
+                          <div className="flex justify-between sm:block">
+                            <span className="text-white/50 text-xs uppercase tracking-wide">Address</span>
+                            <div className="sm:mt-0.5">{w.address || "—"}</div>
+                          </div>
+                          <div className="flex justify-between sm:block sm:col-span-2">
+                            <span className="text-white/50 text-xs uppercase tracking-wide">Certificate file</span>
+                            <div className="sm:mt-0.5">{w.certificateFileName || "No file uploaded"}</div>
+                          </div>
+                          {w.certificateNote && (
+                            <div className="flex justify-between sm:block sm:col-span-2">
+                              <span className="text-white/50 text-xs uppercase tracking-wide">Certificate / ID note</span>
+                              <div className="sm:mt-0.5">{w.certificateNote}</div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))
