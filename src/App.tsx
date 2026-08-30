@@ -36,16 +36,16 @@ function handleImgError(
 }
 
 const serviceCategories = [
-  { id: "cleaning",        label: "Cleaning",         icon: "🧹", count: 412, color: "#E8F4F1", photo: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=450&fit=crop&auto=format" },
-  { id: "plumbing",        label: "Plumbing",          icon: "🔧", count: 187, color: "#FEF3EB", photo: "https://images.unsplash.com/photo-1607472829760-9a3494b8e59d?w=600&h=450&fit=crop&auto=format" },
-  { id: "carpentry",       label: "Carpentry",         icon: "🪚", count: 134, color: "#FDF4E7", photo: "https://images.unsplash.com/photo-1601058268499-e52e2e2a8e77?w=600&h=450&fit=crop&auto=format" },
-  { id: "painting",        label: "Painting",          icon: "🖌️", count: 156, color: "#F0ECF8", photo: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=600&h=450&fit=crop&auto=format" },
-  { id: "domestic",        label: "Domestic Help",     icon: "🏠", count: 321, color: "#E8F4F1", photo: "https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&h=450&fit=crop&auto=format" },
-  { id: "caregiver",       label: "Caregiver",         icon: "🤝", count: 198, color: "#FEF3EB", photo: "https://images.unsplash.com/photo-1576765607924-3f7b1e1b3d0f?w=600&h=450&fit=crop&auto=format" },
-  { id: "driver",          label: "Driver",            icon: "🚗", count: 267, color: "#FDF4E7", photo: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=600&h=450&fit=crop&auto=format" },
-  { id: "gardening",       label: "Gardening",         icon: "🌿", count: 143, color: "#E8F4F1", photo: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=450&fit=crop&auto=format" },
-  { id: "electrician",     label: "Electrician",       icon: "⚡", count: 176, color: "#FFFBE6", photo: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&h=450&fit=crop&auto=format" },
-  { id: "technician",      label: "Technician",        icon: "🔩", count: 211, color: "#F0ECF8", photo: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&h=450&fit=crop&auto=format" },
+  { id: "cleaning",        label: "Cleaning",         icon: "🧹", count: 412, color: "#E4EEFC", photo: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=450&fit=crop&auto=format" },
+  { id: "plumbing",        label: "Plumbing",          icon: "🔧", count: 187, color: "#EAF2FE", photo: "https://images.unsplash.com/photo-1607472829760-9a3494b8e59d?w=600&h=450&fit=crop&auto=format" },
+  { id: "carpentry",       label: "Carpentry",         icon: "🪚", count: 134, color: "#E0EAFC", photo: "https://images.unsplash.com/photo-1601058268499-e52e2e2a8e77?w=600&h=450&fit=crop&auto=format" },
+  { id: "painting",        label: "Painting",          icon: "🖌️", count: 156, color: "#E8EEFE", photo: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=600&h=450&fit=crop&auto=format" },
+  { id: "domestic",        label: "Domestic Help",     icon: "🏠", count: 321, color: "#E4EEFC", photo: "https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&h=450&fit=crop&auto=format" },
+  { id: "caregiver",       label: "Caregiver",         icon: "🤝", count: 198, color: "#EAF2FE", photo: "https://images.unsplash.com/photo-1576765607924-3f7b1e1b3d0f?w=600&h=450&fit=crop&auto=format" },
+  { id: "driver",          label: "Driver",            icon: "🚗", count: 267, color: "#E0EAFC", photo: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=600&h=450&fit=crop&auto=format" },
+  { id: "gardening",       label: "Gardening",         icon: "🌿", count: 143, color: "#E4EEFC", photo: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=450&fit=crop&auto=format" },
+  { id: "electrician",     label: "Electrician",       icon: "⚡", count: 176, color: "#EFF6FE", photo: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&h=450&fit=crop&auto=format" },
+  { id: "technician",      label: "Technician",        icon: "🔩", count: 211, color: "#E8EEFE", photo: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&h=450&fit=crop&auto=format" },
 ];
 
 const filterCategories = [
@@ -843,8 +843,44 @@ export default function App() {
   // Join as worker
   const [showJoinWorker, setShowJoinWorker] = useState(false);
   const [joinStep, setJoinStep] = useState(1);
-  const [joinForm, setJoinForm] = useState({ name: "", phone: "", category: serviceCategories[0].id, experience: "", certificate: "" });
+  const [joinForm, setJoinForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    category: serviceCategories[0].id, // primary skill / service offered
+    age: "",
+    experience: "",
+    address: "",
+    certificateNote: "",
+  });
+  const [joinPhotoPreview, setJoinPhotoPreview] = useState(""); // data URL, local preview only
+  const [joinPhotoName, setJoinPhotoName] = useState("");
+  const [joinCertificateName, setJoinCertificateName] = useState("");
   const [joinRefId, setJoinRefId] = useState("");
+
+  function readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+  async function handleJoinPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setJoinPhotoName(file.name);
+    try {
+      setJoinPhotoPreview(await readFileAsDataUrl(file));
+    } catch (err) {
+      console.error("Failed to read profile photo:", err);
+    }
+  }
+  function handleJoinCertificateChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setJoinCertificateName(file.name);
+  }
 
   // Workers who registered via "Join as Worker" or worker sign-up, persisted
   // in Firestore ("workers" collection) so they stay searchable across
@@ -1134,7 +1170,10 @@ export default function App() {
   function openJoinWorker() {
     setShowJoinWorker(true);
     setJoinStep(1);
-    setJoinForm({ name: "", phone: "", category: serviceCategories[0].id, experience: "", certificate: "" });
+    setJoinForm({ name: "", email: "", phone: "", category: serviceCategories[0].id, age: "", experience: "", address: "", certificateNote: "" });
+    setJoinPhotoPreview("");
+    setJoinPhotoName("");
+    setJoinCertificateName("");
   }
   function closeJoinWorker() {
     setShowJoinWorker(false);
@@ -1142,23 +1181,31 @@ export default function App() {
   async function submitJoinWorker() {
     const refId = "APP-" + Math.floor(100000 + Math.random() * 900000);
     const name = joinForm.name.trim();
+    const email = joinForm.email.trim();
     const category = joinForm.category;
+    const age = Number(joinForm.age) || 0;
     const experience = Number(joinForm.experience) || 0;
-    const certificate = joinForm.certificate.trim();
+    const address = joinForm.address.trim();
+    const certificateNote = joinForm.certificateNote.trim();
     const phone = joinForm.phone.trim();
     // AI-assisted verification check: enough experience, a valid phone, and
-    // a certificate/ID reference is enough to auto-verify in this demo — a
+    // an uploaded certificate is enough to auto-verify in this demo — a
     // real deployment would route this to human cooperative reviewers too.
-    const passesAutoCheck = experience >= 1 && phone.length >= 10 && certificate.length > 0;
+    const passesAutoCheck = experience >= 1 && phone.length >= 10 && joinCertificateName.length > 0;
     setJoinRefId(refId);
     setJoinStep(2);
     try {
       const docRef = await addDoc(collection(db, "workers"), {
         name,
+        email,
         phone,
         category,
+        age,
         experience,
-        certificate,
+        address,
+        certificateNote,
+        photoFileName: joinPhotoName,
+        certificateFileName: joinCertificateName,
         refId,
         verified: false,
         createdAt: serverTimestamp(),
@@ -1199,64 +1246,64 @@ export default function App() {
     .sort((a, b) => b.requests - a.requests);
 
   return (
-    <div className="min-h-full bg-[#F7F2E9] text-[#1C1A16]" style={{ fontFamily: "'Outfit', sans-serif" }}>
+    <div className="min-h-full bg-[#F3F7FE] text-[#0F1E3D]" style={{ fontFamily: "'Outfit', sans-serif" }}>
 
       {/* ── NAV ── */}
       {page !== "login" && (
-      <nav className="sticky top-0 z-50 bg-[#F7F2E9]/95 backdrop-blur border-b border-[#D8D2C5]">
+      <nav className="sticky top-0 z-50 bg-[#F3F7FE]/95 backdrop-blur border-b border-[#CBD9EE]">
         <div className="max-w-7xl mx-auto px-5 md:px-10 flex items-center justify-between h-16">
           <div className="flex items-center gap-2 cursor-pointer" onClick={goHome}>
-            <div className="w-8 h-8 rounded-full bg-[#1B6B5E] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-[#1D4ED8] flex items-center justify-center">
               <span className="text-white text-xs font-bold">KS</span>
             </div>
             <span className="font-semibold text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Kaamsetu</span>
           </div>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#7A7469]">
-            <button onClick={goToServicesPage} className="hover:text-[#1C1A16] transition-colors">{t("services")}</button>
-            <button onClick={() => goToSection("how")} className="hover:text-[#1C1A16] transition-colors">{t("howItWorks")}</button>
-            <button onClick={() => goToSection("workers")} className="hover:text-[#1C1A16] transition-colors">{t("workers")}</button>
-            <button onClick={() => goToSection("stories")} className="hover:text-[#1C1A16] transition-colors">{t("stories")}</button>
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#64748B]">
+            <button onClick={goToServicesPage} className="hover:text-[#0F1E3D] transition-colors">{t("services")}</button>
+            <button onClick={() => goToSection("how")} className="hover:text-[#0F1E3D] transition-colors">{t("howItWorks")}</button>
+            <button onClick={() => goToSection("workers")} className="hover:text-[#0F1E3D] transition-colors">{t("workers")}</button>
+            <button onClick={() => goToSection("stories")} className="hover:text-[#0F1E3D] transition-colors">{t("stories")}</button>
           </div>
           <div className="hidden md:flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-[#EDE8DF] rounded-full p-1 mr-1" role="group" aria-label="Portal">
-              <button onClick={() => switchMode("customer")} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "customer" ? "bg-white shadow-sm text-[#1C1A16]" : "text-[#7A7469] hover:text-[#1C1A16]"}`}>
+            <div className="flex items-center gap-1 bg-[#E6EEFB] rounded-full p-1 mr-1" role="group" aria-label="Portal">
+              <button onClick={() => switchMode("customer")} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "customer" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B] hover:text-[#0F1E3D]"}`}>
                 {t("customerTab")}
               </button>
-              <button onClick={() => switchMode("worker")} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "worker" ? "bg-white shadow-sm text-[#1C1A16]" : "text-[#7A7469] hover:text-[#1C1A16]"}`}>
+              <button onClick={() => switchMode("worker")} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "worker" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B] hover:text-[#0F1E3D]"}`}>
                 {t("workerTab")}
               </button>
-              <button onClick={() => switchMode("federation")} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#1C1A16]" : "text-[#7A7469] hover:text-[#1C1A16]"}`}>
+              <button onClick={() => switchMode("federation")} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B] hover:text-[#0F1E3D]"}`}>
                 {t("federationTab")}
               </button>
             </div>
             <div className="flex items-center gap-1 mr-1" role="group" aria-label={t("language")}>
-              <button onClick={() => setLang("en")} className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${lang === "en" ? "bg-[#1B6B5E] text-white border-[#1B6B5E]" : "border-[#D8D2C5] text-[#7A7469] hover:text-[#1C1A16]"}`}>EN</button>
-              <button onClick={() => setLang("hi")} className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${lang === "hi" ? "bg-[#1B6B5E] text-white border-[#1B6B5E]" : "border-[#D8D2C5] text-[#7A7469] hover:text-[#1C1A16]"}`}>हिं</button>
+              <button onClick={() => setLang("en")} className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${lang === "en" ? "bg-[#1D4ED8] text-white border-[#1D4ED8]" : "border-[#CBD9EE] text-[#64748B] hover:text-[#0F1E3D]"}`}>EN</button>
+              <button onClick={() => setLang("hi")} className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${lang === "hi" ? "bg-[#1D4ED8] text-white border-[#1D4ED8]" : "border-[#CBD9EE] text-[#64748B] hover:text-[#0F1E3D]"}`}>हिं</button>
             </div>
             {isSignedIn ? (
               <div className="flex items-center gap-2">
                 {userRole === "worker" && page !== "workerDashboard" && (
-                  <button onClick={() => { setPage("workerDashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-sm font-semibold text-[#1B6B5E] hover:underline">
+                  <button onClick={() => { setPage("workerDashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-sm font-semibold text-[#1D4ED8] hover:underline">
                     {t("dashboard")}
                   </button>
                 )}
                 <div className="relative">
-                  <button onClick={openNotifPanel} className="relative p-2 rounded-lg hover:bg-[#EDE8DF]" aria-label="Notifications">
+                  <button onClick={openNotifPanel} className="relative p-2 rounded-lg hover:bg-[#E6EEFB]" aria-label="Notifications">
                     <span className="text-lg leading-none">🔔</span>
                     {myNotifCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 bg-[#D97840] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{myNotifCount}</span>
+                      <span className="absolute -top-0.5 -right-0.5 bg-[#0EA5E9] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{myNotifCount}</span>
                     )}
                   </button>
                   {notifPanelOpen && (
-                    <div className="absolute right-0 top-11 w-80 bg-white border border-[#D8D2C5] rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto">
-                      <div className="px-4 py-3 border-b border-[#D8D2C5] font-semibold text-sm">{t("notifications")}</div>
+                    <div className="absolute right-0 top-11 w-80 bg-white border border-[#CBD9EE] rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto">
+                      <div className="px-4 py-3 border-b border-[#CBD9EE] font-semibold text-sm">{t("notifications")}</div>
                       {myNotifications.length === 0 ? (
-                        <div className="px-4 py-6 text-sm text-[#7A7469] text-center">{t("noNotifications")}</div>
+                        <div className="px-4 py-6 text-sm text-[#64748B] text-center">{t("noNotifications")}</div>
                       ) : (
                         myNotifications.map((n) => (
-                          <div key={n.id} className="px-4 py-3 border-b border-[#EDE8DF] last:border-0 text-sm">
-                            <p className="text-[#1C1A16]">{n.text}</p>
-                            <p className="text-xs text-[#7A7469] mt-1">{n.time}</p>
+                          <div key={n.id} className="px-4 py-3 border-b border-[#E6EEFB] last:border-0 text-sm">
+                            <p className="text-[#0F1E3D]">{n.text}</p>
+                            <p className="text-xs text-[#64748B] mt-1">{n.time}</p>
                           </div>
                         ))
                       )}
@@ -1264,7 +1311,7 @@ export default function App() {
                   )}
                 </div>
                 <div className="relative">
-                  <button onClick={() => setAccountMenuOpen(!accountMenuOpen)} className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-[#EDE8DF] transition-colors">
+                  <button onClick={() => setAccountMenuOpen(!accountMenuOpen)} className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-[#E6EEFB] transition-colors">
                     <img
                       src={currentUser?.photoURL || personImgFallback(currentUser?.name || "U", "1B6B5E")}
                       alt={currentUser?.name || "Account"}
@@ -1272,14 +1319,14 @@ export default function App() {
                       onError={(e) => handleImgError(e, personImgFallback(currentUser?.name || "U", "1B6B5E"))}
                     />
                     <span className="flex flex-col gap-[3px]">
-                      <span className="w-4 h-0.5 bg-[#1C1A16] rounded-full" />
-                      <span className="w-4 h-0.5 bg-[#1C1A16] rounded-full" />
-                      <span className="w-4 h-0.5 bg-[#1C1A16] rounded-full" />
+                      <span className="w-4 h-0.5 bg-[#0F1E3D] rounded-full" />
+                      <span className="w-4 h-0.5 bg-[#0F1E3D] rounded-full" />
+                      <span className="w-4 h-0.5 bg-[#0F1E3D] rounded-full" />
                     </span>
                   </button>
                   {accountMenuOpen && (
-                    <div className="absolute right-0 top-11 w-64 bg-white border border-[#D8D2C5] rounded-xl shadow-xl z-50 overflow-hidden">
-                      <div className="px-4 py-3 border-b border-[#D8D2C5] flex items-center gap-3">
+                    <div className="absolute right-0 top-11 w-64 bg-white border border-[#CBD9EE] rounded-xl shadow-xl z-50 overflow-hidden">
+                      <div className="px-4 py-3 border-b border-[#CBD9EE] flex items-center gap-3">
                         <img
                           src={currentUser?.photoURL || personImgFallback(currentUser?.name || "U", "1B6B5E")}
                           alt={currentUser?.name || "Account"}
@@ -1288,16 +1335,16 @@ export default function App() {
                         />
                         <div className="min-w-0">
                           <div className="font-semibold text-sm truncate">{currentUser?.name}</div>
-                          <div className="text-xs text-[#7A7469] truncate">{currentUser?.email}</div>
+                          <div className="text-xs text-[#64748B] truncate">{currentUser?.email}</div>
                         </div>
                       </div>
                       <button
                         onClick={() => { setAccountMenuOpen(false); setPage(userRole === "worker" ? "workerDashboard" : "workHistory"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#F7F2E9] transition-colors"
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#F3F7FE] transition-colors"
                       >
                         📋 {t("workHistory")}
                       </button>
-                      <button onClick={handleSignOut} className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-[#D8D2C5] transition-colors">
+                      <button onClick={handleSignOut} className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-[#CBD9EE] transition-colors">
                         {t("signOut")}
                       </button>
                     </div>
@@ -1305,43 +1352,43 @@ export default function App() {
                 </div>
               </div>
             ) : (
-              <button onClick={() => openSignIn("customer")} className="text-sm font-semibold bg-[#1B6B5E] text-white px-5 py-2 rounded-lg hover:bg-[#155750] transition-colors">
+              <button onClick={() => openSignIn("customer")} className="text-sm font-semibold bg-[#1D4ED8] text-white px-5 py-2 rounded-lg hover:bg-[#1E3A8A] transition-colors">
                 {t("signInCustomerNav")}
               </button>
             )}
             {!isSignedIn && (
-              <button onClick={openJoinWorker} className="text-sm font-medium text-[#1C1A16] px-4 py-2 rounded-lg border border-[#D8D2C5] hover:bg-[#EDE8DF] transition-colors">{t("joinAsWorker")}</button>
+              <button onClick={openJoinWorker} className="text-sm font-medium text-[#0F1E3D] px-4 py-2 rounded-lg border border-[#CBD9EE] hover:bg-[#E6EEFB] transition-colors">{t("joinAsWorker")}</button>
             )}
           </div>
-          <button className="md:hidden p-2 rounded-md hover:bg-[#EDE8DF]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            <div className="w-5 h-0.5 bg-[#1C1A16] mb-1" />
-            <div className="w-5 h-0.5 bg-[#1C1A16] mb-1" />
-            <div className="w-4 h-0.5 bg-[#1C1A16]" />
+          <button className="md:hidden p-2 rounded-md hover:bg-[#E6EEFB]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            <div className="w-5 h-0.5 bg-[#0F1E3D] mb-1" />
+            <div className="w-5 h-0.5 bg-[#0F1E3D] mb-1" />
+            <div className="w-4 h-0.5 bg-[#0F1E3D]" />
           </button>
         </div>
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-[#D8D2C5] bg-[#FDFAF4] px-5 py-4 flex flex-col gap-3 text-sm">
-            <div className="flex items-center gap-1 bg-[#EDE8DF] rounded-full p-1 self-stretch" role="group" aria-label="Portal">
-              <button onClick={() => switchMode("customer")} className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "customer" ? "bg-white shadow-sm text-[#1C1A16]" : "text-[#7A7469]"}`}>
+          <div className="md:hidden border-t border-[#CBD9EE] bg-[#FFFFFF] px-5 py-4 flex flex-col gap-3 text-sm">
+            <div className="flex items-center gap-1 bg-[#E6EEFB] rounded-full p-1 self-stretch" role="group" aria-label="Portal">
+              <button onClick={() => switchMode("customer")} className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "customer" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}>
                 {t("customerTab")}
               </button>
-              <button onClick={() => switchMode("worker")} className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "worker" ? "bg-white shadow-sm text-[#1C1A16]" : "text-[#7A7469]"}`}>
+              <button onClick={() => switchMode("worker")} className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "worker" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}>
                 {t("workerTab")}
               </button>
-              <button onClick={() => switchMode("federation")} className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#1C1A16]" : "text-[#7A7469]"}`}>
+              <button onClick={() => switchMode("federation")} className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${activeMode === "federation" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}>
                 {t("federationTab")}
               </button>
             </div>
             <div className="flex items-center gap-1 self-end -mt-1 mb-1" role="group" aria-label={t("language")}>
-              <button onClick={() => setLang("en")} className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${lang === "en" ? "bg-[#1B6B5E] text-white border-[#1B6B5E]" : "border-[#D8D2C5] text-[#7A7469]"}`}>EN</button>
-              <button onClick={() => setLang("hi")} className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${lang === "hi" ? "bg-[#1B6B5E] text-white border-[#1B6B5E]" : "border-[#D8D2C5] text-[#7A7469]"}`}>हिं</button>
+              <button onClick={() => setLang("en")} className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${lang === "en" ? "bg-[#1D4ED8] text-white border-[#1D4ED8]" : "border-[#CBD9EE] text-[#64748B]"}`}>EN</button>
+              <button onClick={() => setLang("hi")} className={`text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors ${lang === "hi" ? "bg-[#1D4ED8] text-white border-[#1D4ED8]" : "border-[#CBD9EE] text-[#64748B]"}`}>हिं</button>
             </div>
-            <button className="text-left font-medium text-[#3D3A33] py-1" onClick={goToServicesPage}>{t("services")}</button>
-            <button className="text-left font-medium text-[#3D3A33] py-1" onClick={() => goToSection("how")}>{t("howItWorks")}</button>
-            <button className="text-left font-medium text-[#3D3A33] py-1" onClick={() => goToSection("workers")}>{t("workers")}</button>
-            <button className="text-left font-medium text-[#3D3A33] py-1" onClick={() => goToSection("stories")}>{t("stories")}</button>
+            <button className="text-left font-medium text-[#1E293B] py-1" onClick={goToServicesPage}>{t("services")}</button>
+            <button className="text-left font-medium text-[#1E293B] py-1" onClick={() => goToSection("how")}>{t("howItWorks")}</button>
+            <button className="text-left font-medium text-[#1E293B] py-1" onClick={() => goToSection("workers")}>{t("workers")}</button>
+            <button className="text-left font-medium text-[#1E293B] py-1" onClick={() => goToSection("stories")}>{t("stories")}</button>
 
-            <div className="border-t border-[#D8D2C5] pt-3 mt-1 flex flex-col gap-2.5">
+            <div className="border-t border-[#CBD9EE] pt-3 mt-1 flex flex-col gap-2.5">
               {isSignedIn ? (
                 <>
                   <div className="flex items-center gap-3">
@@ -1353,32 +1400,32 @@ export default function App() {
                     />
                     <div>
                       <div className="font-semibold text-sm">{currentUser?.name}</div>
-                      <div className="text-xs text-[#7A7469]">{currentUser?.email}</div>
+                      <div className="text-xs text-[#64748B]">{currentUser?.email}</div>
                     </div>
                   </div>
                   {userRole === "worker" && (
                     <button
                       onClick={() => { setMobileMenuOpen(false); setPage("workerDashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                      className="text-left font-medium text-[#1B6B5E] py-1"
+                      className="text-left font-medium text-[#1D4ED8] py-1"
                     >
                       🔔 {t("dashboard")} {pendingRequestsCount > 0 && `(${pendingRequestsCount})`}
                     </button>
                   )}
                   <button
                     onClick={() => { setMobileMenuOpen(false); setPage(userRole === "worker" ? "workerDashboard" : "workHistory"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                    className="text-left font-medium text-[#3D3A33] py-1"
+                    className="text-left font-medium text-[#1E293B] py-1"
                   >
                     📋 {t("workHistory")}
                   </button>
                   <button onClick={handleSignOut} className="text-left font-medium text-red-600 py-1">{t("signOut")}</button>
                 </>
               ) : (
-                <button onClick={() => { setMobileMenuOpen(false); openSignIn("customer"); }} className="text-left w-full bg-[#1B6B5E] text-white font-semibold py-2.5 rounded-lg text-center">{t("signInCustomerNav")}</button>
+                <button onClick={() => { setMobileMenuOpen(false); openSignIn("customer"); }} className="text-left w-full bg-[#1D4ED8] text-white font-semibold py-2.5 rounded-lg text-center">{t("signInCustomerNav")}</button>
               )}
             </div>
 
             {!isSignedIn && (
-              <button onClick={() => { setMobileMenuOpen(false); openJoinWorker(); }} className="mt-1 w-full border border-[#D8D2C5] text-[#1C1A16] font-semibold py-2.5 rounded-lg">{t("joinAsWorker")}</button>
+              <button onClick={() => { setMobileMenuOpen(false); openJoinWorker(); }} className="mt-1 w-full border border-[#CBD9EE] text-[#0F1E3D] font-semibold py-2.5 rounded-lg">{t("joinAsWorker")}</button>
             )}
           </div>
         )}
@@ -1387,27 +1434,27 @@ export default function App() {
 
       {/* ── LOGIN PAGE (shown first, before the rest of the app) ── */}
       {page === "login" && (
-        <section className="min-h-screen flex items-center justify-center px-5 py-16 bg-[#F7F2E9]">
+        <section className="min-h-screen flex items-center justify-center px-5 py-16 bg-[#F3F7FE]">
           <div className="w-full max-w-sm">
             <div className="flex flex-col items-center text-center mb-8">
               <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 rounded-full bg-[#1B6B5E] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-[#1D4ED8] flex items-center justify-center">
                   <span className="text-white text-xs font-bold">KS</span>
                 </div>
                 <span className="font-semibold text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Kaamsetu</span>
               </div>
-              <div className="w-14 h-14 rounded-2xl bg-[#1B6B5E] flex items-center justify-center text-white text-2xl mb-5 shadow-md">
+              <div className="w-14 h-14 rounded-2xl bg-[#1D4ED8] flex items-center justify-center text-white text-2xl mb-5 shadow-md">
                 →]
               </div>
               <h1 className="text-3xl font-semibold mb-1" style={{ fontFamily: "'Fraunces', serif" }}>
                 {authMode === "signup" ? t("welcomeExclaim") : t("welcomeBack")}
               </h1>
-              <p className="text-sm text-[#7A7469]">
+              <p className="text-sm text-[#64748B]">
                 {authMode === "signup" ? t("createCustomerAccount") : t("logInToAccount")}
               </p>
             </div>
 
-            <div className="bg-white border border-[#D8D2C5] rounded-3xl p-6 shadow-sm">
+            <div className="bg-white border border-[#CBD9EE] rounded-3xl p-6 shadow-sm">
               {authError && (
                 <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{authError}</div>
               )}
@@ -1415,43 +1462,43 @@ export default function App() {
               <button
                 onClick={signInWithGoogle}
                 disabled={authLoading}
-                className="w-full flex items-center justify-center gap-2 border border-[#D8D2C5] bg-white text-[#1C1A16] font-semibold py-3 rounded-xl hover:bg-[#EDE8DF] transition-colors disabled:opacity-50 mb-4"
+                className="w-full flex items-center justify-center gap-2 border border-[#CBD9EE] bg-white text-[#0F1E3D] font-semibold py-3 rounded-xl hover:bg-[#E6EEFB] transition-colors disabled:opacity-50 mb-4"
               >
                 <span className="text-base font-bold" style={{ color: "#4285F4" }}>G</span> {t("continueWithGoogle")}
               </button>
 
-              <div className="flex items-center gap-3 text-xs text-[#7A7469] mb-4">
-                <div className="flex-1 h-px bg-[#D8D2C5]" /> {t("orEmail")} <div className="flex-1 h-px bg-[#D8D2C5]" />
+              <div className="flex items-center gap-3 text-xs text-[#64748B] mb-4">
+                <div className="flex-1 h-px bg-[#CBD9EE]" /> {t("orEmail")} <div className="flex-1 h-px bg-[#CBD9EE]" />
               </div>
 
               <div className="flex flex-col gap-4">
                 {authMode === "signup" && (
                   <div>
-                    <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">{t("fullName")}</label>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">{t("fullName")}</label>
                     <input
                       type="text"
                       value={signInName}
                       onChange={(e) => setSignInName(e.target.value)}
                       placeholder="Your full name"
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                     />
                   </div>
                 )}
                 <div>
-                  <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">{t("email")}</label>
+                  <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">{t("email")}</label>
                   <input
                     type="email"
                     value={signInEmail}
                     onChange={(e) => setSignInEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                    className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                   />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-sm font-semibold text-[#1C1A16]">{t("password")}</label>
+                    <label className="text-sm font-semibold text-[#0F1E3D]">{t("password")}</label>
                     {authMode === "signin" && (
-                      <button type="button" onClick={() => setAuthError(t("forgotPasswordHint"))} className="text-xs font-semibold text-[#1B6B5E] hover:underline">
+                      <button type="button" onClick={() => setAuthError(t("forgotPasswordHint"))} className="text-xs font-semibold text-[#1D4ED8] hover:underline">
                         {t("forgotPassword")}
                       </button>
                     )}
@@ -1461,13 +1508,13 @@ export default function App() {
                     value={signInPassword}
                     onChange={(e) => setSignInPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                    className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                   />
                 </div>
                 <button
                   disabled={authLoading || !signInEmail.trim() || signInPassword.trim().length < 6 || (authMode === "signup" && !signInName.trim())}
                   onClick={submitEmailAuth}
-                  className="bg-[#1B6B5E] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#155750] transition-colors"
+                  className="bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1E3A8A] transition-colors"
                 >
                   {authLoading ? "Please wait…" : authMode === "signup" ? t("signUpBtn") : t("signInBtn")}
                 </button>
@@ -1477,14 +1524,14 @@ export default function App() {
             <div className="text-center mt-6">
               <button
                 onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setAuthError(""); }}
-                className="text-sm text-[#1B6B5E] font-semibold hover:underline"
+                className="text-sm text-[#1D4ED8] font-semibold hover:underline"
               >
                 {authMode === "signup" ? t("alreadyHaveAccount") : t("needAccount")}
               </button>
             </div>
 
             <div className="text-center mt-4">
-              <button onClick={goHome} className="text-xs text-[#7A7469] hover:text-[#1C1A16] underline underline-offset-2">
+              <button onClick={goHome} className="text-xs text-[#64748B] hover:text-[#0F1E3D] underline underline-offset-2">
                 Continue browsing without an account →
               </button>
             </div>
@@ -1496,13 +1543,13 @@ export default function App() {
       <>
       {isSignedIn && userRole === "customer" && currentUser && (
         <div className="max-w-7xl mx-auto px-5 md:px-10 pt-6">
-          <div className="bg-white border border-[#D8D2C5] rounded-2xl px-5 py-4 flex items-center gap-3">
+          <div className="bg-white border border-[#CBD9EE] rounded-2xl px-5 py-4 flex items-center gap-3">
             <span className="text-2xl">👋</span>
             <div>
               <p className="font-semibold text-lg" style={{ fontFamily: "'Fraunces', serif" }}>
                 {t("namaste")}, {currentUser.name?.split(" ")[0] || currentUser.name}
               </p>
-              <p className="text-sm text-[#7A7469]">{t("whatDoYouNeed")}</p>
+              <p className="text-sm text-[#64748B]">{t("whatDoYouNeed")}</p>
             </div>
           </div>
         </div>
@@ -1511,47 +1558,47 @@ export default function App() {
       <section className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-5 md:px-10 pt-12 pb-16 md:pt-24 md:pb-28 grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <span className="inline-block text-xs font-semibold tracking-widest uppercase text-[#D97840] mb-5 border border-[#D97840]/40 bg-[#D97840]/10 px-3 py-1 rounded-full">
+            <span className="inline-block text-xs font-semibold tracking-widest uppercase text-[#0EA5E9] mb-5 border border-[#0EA5E9]/40 bg-[#0EA5E9]/10 px-3 py-1 rounded-full">
               {t("heroTag")}
             </span>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.05] font-semibold mb-6 text-[#1C1A16]" style={{ fontFamily: "'Fraunces', serif" }}>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.05] font-semibold mb-6 text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>
               {t("heroHeadline1")}
               <br />
-              <em className="text-[#1B6B5E] not-italic">{t("heroHeadlineEm")}</em>{lang === "en" ? " your" : ""}
+              <em className="text-[#1D4ED8] not-italic">{t("heroHeadlineEm")}</em>{lang === "en" ? " your" : ""}
               <br />
               {t("heroHeadline2")}
             </h1>
-            <p className="text-[#7A7469] text-lg leading-relaxed max-w-md mb-8">
+            <p className="text-[#64748B] text-lg leading-relaxed max-w-md mb-8">
               {t("heroSubtext")}
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => handleServiceClick("all")}
-                className="bg-[#1B6B5E] text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-[#155750] transition-all hover:shadow-lg hover:shadow-[#1B6B5E]/20"
+                className="bg-[#1D4ED8] text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-[#1E3A8A] transition-all hover:shadow-lg hover:shadow-[#1D4ED8]/20"
               >
                 {t("findAService")}
               </button>
-              <button onClick={openJoinWorker} className="border border-[#D8D2C5] text-[#1C1A16] font-medium px-7 py-3.5 rounded-xl hover:bg-[#EDE8DF] transition-colors">
+              <button onClick={openJoinWorker} className="border border-[#CBD9EE] text-[#0F1E3D] font-medium px-7 py-3.5 rounded-xl hover:bg-[#E6EEFB] transition-colors">
                 {t("becomeAMember")}
               </button>
             </div>
             <div className="mt-10 grid grid-cols-3 gap-3 text-sm">
               <div>
-                <div className="text-2xl font-semibold text-[#1C1A16]" style={{ fontFamily: "'Fraunces', serif" }}>2,400+</div>
-                <div className="text-[#7A7469] text-xs sm:text-sm">{t("statVerifiedWorkers")}</div>
+                <div className="text-2xl font-semibold text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>2,400+</div>
+                <div className="text-[#64748B] text-xs sm:text-sm">{t("statVerifiedWorkers")}</div>
               </div>
-              <div className="border-x border-[#D8D2C5] px-3">
-                <div className="text-2xl font-semibold text-[#1C1A16]" style={{ fontFamily: "'Fraunces', serif" }}>18,000+</div>
-                <div className="text-[#7A7469] text-xs sm:text-sm">{t("statBookingsDone")}</div>
+              <div className="border-x border-[#CBD9EE] px-3">
+                <div className="text-2xl font-semibold text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>18,000+</div>
+                <div className="text-[#64748B] text-xs sm:text-sm">{t("statBookingsDone")}</div>
               </div>
               <div className="pl-3">
-                <div className="text-2xl font-semibold text-[#1C1A16]" style={{ fontFamily: "'Fraunces', serif" }}>90%</div>
-                <div className="text-[#7A7469] text-xs sm:text-sm">{t("statEarningsKept")}</div>
+                <div className="text-2xl font-semibold text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>90%</div>
+                <div className="text-[#64748B] text-xs sm:text-sm">{t("statEarningsKept")}</div>
               </div>
             </div>
           </div>
           <div className="relative hidden md:block">
-            <div className="absolute -top-4 -right-4 w-72 h-72 rounded-3xl overflow-hidden shadow-2xl bg-[#E8E3D8]">
+            <div className="absolute -top-4 -right-4 w-72 h-72 rounded-3xl overflow-hidden shadow-2xl bg-[#DCE7F8]">
               <img
                 src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=600&fit=crop&auto=format"
                 alt="Cleaner at work"
@@ -1559,7 +1606,7 @@ export default function App() {
                 onError={(e) => handleImgError(e, categoryImgFallback("cleaner-hero"))}
               />
             </div>
-            <div className="absolute top-40 -left-8 w-52 h-52 rounded-2xl overflow-hidden shadow-xl border-4 border-[#F7F2E9] bg-[#E8E3D8]">
+            <div className="absolute top-40 -left-8 w-52 h-52 rounded-2xl overflow-hidden shadow-xl border-4 border-[#F3F7FE] bg-[#DCE7F8]">
               <img
                 src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop&auto=format"
                 alt="Home cooking"
@@ -1567,22 +1614,22 @@ export default function App() {
                 onError={(e) => handleImgError(e, categoryImgFallback("home-cooking-hero"))}
               />
             </div>
-            <div className="absolute bottom-4 right-12 bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3 border border-[#D8D2C5]">
-              <div className="w-10 h-10 rounded-full bg-[#1B6B5E] flex items-center justify-center text-white font-bold text-sm">4.9</div>
+            <div className="absolute bottom-4 right-12 bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3 border border-[#CBD9EE]">
+              <div className="w-10 h-10 rounded-full bg-[#1D4ED8] flex items-center justify-center text-white font-bold text-sm">4.9</div>
               <div>
                 <div className="font-semibold text-sm">Top rated workers</div>
-                <div className="text-xs text-[#7A7469]">Community verified ✓</div>
+                <div className="text-xs text-[#64748B]">Community verified ✓</div>
               </div>
             </div>
             <div className="w-full h-80" />
           </div>
         </div>
         <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
-          style={{ backgroundImage: "repeating-linear-gradient(45deg,#1C1A16 0,#1C1A16 1px,transparent 0,transparent 50%)", backgroundSize: "12px 12px" }} />
+          style={{ backgroundImage: "repeating-linear-gradient(45deg,#0F1E3D 0,#0F1E3D 1px,transparent 0,transparent 50%)", backgroundSize: "12px 12px" }} />
       </section>
 
       {/* ── SERVICE CATEGORIES ── */}
-      <section id="services" className="bg-[#FDFAF4] border-y border-[#D8D2C5] py-16 md:py-24">
+      <section id="services" className="bg-[#FFFFFF] border-y border-[#CBD9EE] py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-5 md:px-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
             <div>
@@ -1590,7 +1637,7 @@ export default function App() {
                 What do you need<br />done today?
               </h2>
             </div>
-            <p className="text-[#7A7469] max-w-xs text-sm leading-relaxed">
+            <p className="text-[#64748B] max-w-xs text-sm leading-relaxed">
               Click any service to browse verified cooperative workers near you.
             </p>
           </div>
@@ -1600,7 +1647,7 @@ export default function App() {
               <button
                 key={cat.id}
                 onClick={() => goToServiceDetail(cat.id)}
-                className="group flex flex-col rounded-2xl border border-[#D8D2C5] bg-white overflow-hidden text-left transition-all hover:border-[#1B6B5E] hover:shadow-md"
+                className="group flex flex-col rounded-2xl border border-[#CBD9EE] bg-white overflow-hidden text-left transition-all hover:border-[#1D4ED8] hover:shadow-md"
               >
                 <div className="relative h-32 sm:h-36 overflow-hidden">
                   <img
@@ -1617,8 +1664,8 @@ export default function App() {
                   </span>
                 </div>
                 <div className="p-4">
-                  <div className="font-semibold text-sm text-[#1C1A16]">{cat.label}</div>
-                  <div className="text-xs text-[#7A7469]">{cat.count} workers</div>
+                  <div className="font-semibold text-sm text-[#0F1E3D]">{cat.label}</div>
+                  <div className="text-xs text-[#64748B]">{cat.count} workers</div>
                 </div>
               </button>
             ))}
@@ -1627,7 +1674,7 @@ export default function App() {
           <div className="text-center mt-10">
             <button
               onClick={goToServicesPage}
-              className="text-sm font-semibold text-[#1B6B5E] border border-[#1B6B5E]/40 px-6 py-2.5 rounded-xl hover:bg-[#E8F4F1] transition-colors"
+              className="text-sm font-semibold text-[#1D4ED8] border border-[#1D4ED8]/40 px-6 py-2.5 rounded-xl hover:bg-[#E4EEFC] transition-colors"
             >
               View all services →
             </button>
@@ -1639,17 +1686,17 @@ export default function App() {
       <section id="how" className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-5 md:px-10">
           <div className="text-center mb-14">
-            <span className="text-xs font-semibold tracking-widest uppercase text-[#7A7469]">{t("simpleProcess")}</span>
+            <span className="text-xs font-semibold tracking-widest uppercase text-[#64748B]">{t("simpleProcess")}</span>
             <h2 className="text-4xl md:text-5xl font-semibold mt-2" style={{ fontFamily: "'Fraunces', serif" }}>{t("howKaamsetuWorks")}</h2>
           </div>
           <div className="grid md:grid-cols-4 gap-6 relative">
-            <div className="hidden md:block absolute top-12 left-[12%] right-[12%] h-px bg-[#D8D2C5] z-0" />
+            <div className="hidden md:block absolute top-12 left-[12%] right-[12%] h-px bg-[#CBD9EE] z-0" />
             {howItWorks.map((step) => (
-              <div key={step.step} className="relative z-10 flex flex-col items-center text-center p-6 rounded-2xl bg-[#FDFAF4] border border-[#D8D2C5]">
-                <div className="w-14 h-14 rounded-full bg-[#1B6B5E] text-white flex items-center justify-center text-xl mb-4 shadow-md">{step.icon}</div>
-                <div className="text-xs font-mono text-[#7A7469] mb-2">{step.step}</div>
+              <div key={step.step} className="relative z-10 flex flex-col items-center text-center p-6 rounded-2xl bg-[#FFFFFF] border border-[#CBD9EE]">
+                <div className="w-14 h-14 rounded-full bg-[#1D4ED8] text-white flex items-center justify-center text-xl mb-4 shadow-md">{step.icon}</div>
+                <div className="text-xs font-mono text-[#64748B] mb-2">{step.step}</div>
                 <h3 className="font-semibold text-lg mb-2" style={{ fontFamily: "'Fraunces', serif" }}>{step.title}</h3>
-                <p className="text-sm text-[#7A7469] leading-relaxed">{step.desc}</p>
+                <p className="text-sm text-[#64748B] leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -1660,27 +1707,27 @@ export default function App() {
       <section className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-5 md:px-10">
           <div className="text-center mb-10">
-            <span className="text-xs font-semibold tracking-widest uppercase text-[#7A7469]">{t("cooperativeInsights")}</span>
+            <span className="text-xs font-semibold tracking-widest uppercase text-[#64748B]">{t("cooperativeInsights")}</span>
             <h2 className="text-4xl md:text-5xl font-semibold mt-2" style={{ fontFamily: "'Fraunces', serif" }}>{t("aiWorkforceIntelligence")}</h2>
-            <p className="text-[#7A7469] max-w-xl mx-auto mt-3 text-sm leading-relaxed">
+            <p className="text-[#64748B] max-w-xl mx-auto mt-3 text-sm leading-relaxed">
               {t("aiWorkforceIntelligenceDesc")}
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {demandByCategory.slice(0, 5).map((cat) => (
-              <div key={cat.id} className="bg-[#FDFAF4] border border-[#D8D2C5] rounded-2xl p-5 flex flex-col gap-2">
+              <div key={cat.id} className="bg-[#FFFFFF] border border-[#CBD9EE] rounded-2xl p-5 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-2xl">{cat.icon}</span>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                     cat.level === "High" ? "bg-red-50 text-red-600" :
-                    cat.level === "Moderate" ? "bg-[#FEF3EB] text-[#D97840]" :
-                    "bg-[#E8F4F1] text-[#1B6B5E]"
+                    cat.level === "Moderate" ? "bg-[#EAF2FE] text-[#0EA5E9]" :
+                    "bg-[#E4EEFC] text-[#1D4ED8]"
                   }`}>{cat.level.toUpperCase()} DEMAND</span>
                 </div>
-                <div className="font-semibold text-sm text-[#1C1A16]">{cat.label}</div>
-                <div className="text-xs text-[#7A7469]">{cat.requests} live booking{cat.requests === 1 ? "" : "s"} · {cat.workerCount} workers</div>
+                <div className="font-semibold text-sm text-[#0F1E3D]">{cat.label}</div>
+                <div className="text-xs text-[#64748B]">{cat.requests} live booking{cat.requests === 1 ? "" : "s"} · {cat.workerCount} workers</div>
                 {cat.level === "High" && (
-                  <div className="text-xs font-semibold text-[#D97840] mt-1">→ Recommend onboarding more {cat.label.toLowerCase()} workers</div>
+                  <div className="text-xs font-semibold text-[#0EA5E9] mt-1">→ Recommend onboarding more {cat.label.toLowerCase()} workers</div>
                 )}
               </div>
             ))}
@@ -1689,7 +1736,7 @@ export default function App() {
       </section>
 
       {/* ── WORKER LISTINGS ── */}
-      <section id="workers" ref={workersRef} className="bg-[#FDFAF4] border-t border-[#D8D2C5] py-16 md:py-24 scroll-mt-16">
+      <section id="workers" ref={workersRef} className="bg-[#FFFFFF] border-t border-[#CBD9EE] py-16 md:py-24 scroll-mt-16">
         <div className="max-w-7xl mx-auto px-5 md:px-10">
           <div className="flex flex-col gap-6 mb-10">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -1699,7 +1746,7 @@ export default function App() {
               {activeFilter !== "all" && (
                 <button
                   onClick={() => setActiveFilter("all")}
-                  className="self-start md:self-auto text-sm text-[#1B6B5E] border border-[#1B6B5E]/40 px-4 py-1.5 rounded-full hover:bg-[#E8F4F1] transition-colors"
+                  className="self-start md:self-auto text-sm text-[#1D4ED8] border border-[#1D4ED8]/40 px-4 py-1.5 rounded-full hover:bg-[#E4EEFC] transition-colors"
                 >
                   ✕ Clear filter
                 </button>
@@ -1709,25 +1756,25 @@ export default function App() {
             {/* Search + flexible pricing filter */}
             <div className="flex flex-col md:flex-row gap-3 md:items-center">
               <div className="relative flex-1 max-w-md">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7A7469]">🔍</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B]">🔍</span>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by name, work type, or skill..."
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A7469] hover:text-[#1C1A16] text-sm"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#0F1E3D] text-sm"
                   >
                     ✕
                   </button>
                 )}
               </div>
-              <div className="flex items-center gap-3 bg-white border border-[#D8D2C5] rounded-xl px-4 py-2.5 text-sm">
-                <span className="text-[#7A7469] whitespace-nowrap">Max rate</span>
+              <div className="flex items-center gap-3 bg-white border border-[#CBD9EE] rounded-xl px-4 py-2.5 text-sm">
+                <span className="text-[#64748B] whitespace-nowrap">Max rate</span>
                 <input
                   type="range"
                   min={200}
@@ -1735,15 +1782,15 @@ export default function App() {
                   step={10}
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
-                  className="w-32 md:w-40 accent-[#1B6B5E]"
+                  className="w-32 md:w-40 accent-[#1D4ED8]"
                 />
-                <span className="font-semibold text-[#1C1A16] whitespace-nowrap">₹{maxPrice}/hr</span>
+                <span className="font-semibold text-[#0F1E3D] whitespace-nowrap">₹{maxPrice}/hr</span>
               </div>
             </div>
 
             {/* AI-Powered Fair Match — sort mode */}
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-xs font-semibold text-[#7A7469]">Sort:</span>
+              <span className="text-xs font-semibold text-[#64748B]">Sort:</span>
               {([
                 { id: "ai", label: "⚡ AI Match" },
                 { id: "rating", label: "Top Rated" },
@@ -1753,7 +1800,7 @@ export default function App() {
                   key={opt.id}
                   onClick={() => setSortMode(opt.id)}
                   className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-                    sortMode === opt.id ? "bg-[#1B6B5E] text-white border-[#1B6B5E]" : "bg-white text-[#3D3A33] border-[#D8D2C5] hover:border-[#1B6B5E]"
+                    sortMode === opt.id ? "bg-[#1D4ED8] text-white border-[#1D4ED8]" : "bg-white text-[#1E293B] border-[#CBD9EE] hover:border-[#1D4ED8]"
                   }`}
                 >
                   {opt.label}
@@ -1769,8 +1816,8 @@ export default function App() {
                   onClick={() => setActiveFilter(cat.id)}
                   className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
                     activeFilter === cat.id
-                      ? "bg-[#1B6B5E] text-white border-[#1B6B5E]"
-                      : "bg-white text-[#3D3A33] border-[#D8D2C5] hover:border-[#1B6B5E]"
+                      ? "bg-[#1D4ED8] text-white border-[#1D4ED8]"
+                      : "bg-white text-[#1E293B] border-[#CBD9EE] hover:border-[#1D4ED8]"
                   }`}
                 >
                   {cat.label}
@@ -1780,12 +1827,12 @@ export default function App() {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="text-center py-20 text-[#7A7469]">
+            <div className="text-center py-20 text-[#64748B]">
               No workers match your search yet. Try a different keyword or increase the max rate.
               <div className="mt-4">
                 <button
                   onClick={() => { setSearchQuery(""); setActiveFilter("all"); setMaxPrice(550); }}
-                  className="text-[#1B6B5E] font-semibold underline"
+                  className="text-[#1D4ED8] font-semibold underline"
                 >
                   Reset filters
                 </button>
@@ -1796,7 +1843,7 @@ export default function App() {
               {filtered.map((worker, idx) => (
                 <div
                   key={worker.id}
-                  className="bg-white rounded-2xl border border-[#D8D2C5] overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                  className="bg-white rounded-2xl border border-[#CBD9EE] overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                 >
                   <div className="p-5 pb-4">
                     <div className="flex items-start gap-4">
@@ -1804,7 +1851,7 @@ export default function App() {
                         <img
                           src={worker.image}
                           alt={worker.name}
-                          className="w-16 h-16 rounded-xl object-cover bg-[#E8E3D8]"
+                          className="w-16 h-16 rounded-xl object-cover bg-[#DCE7F8]"
                           onError={(e) => handleImgError(e, personImgFallback(worker.name, "1B6B5E"))}
                         />
                         {worker.available && (
@@ -1814,49 +1861,49 @@ export default function App() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <h3 className="font-semibold text-[#1C1A16] truncate">{worker.name}</h3>
-                            <p className="text-sm text-[#7A7469]">{worker.role}</p>
+                            <h3 className="font-semibold text-[#0F1E3D] truncate">{worker.name}</h3>
+                            <p className="text-sm text-[#64748B]">{worker.role}</p>
                           </div>
                           {worker.cooperative && (
-                            <span className="shrink-0 text-xs bg-[#E8F4F1] text-[#1B6B5E] font-semibold px-2 py-0.5 rounded-full border border-[#1B6B5E]/20">
+                            <span className="shrink-0 text-xs bg-[#E4EEFC] text-[#1D4ED8] font-semibold px-2 py-0.5 rounded-full border border-[#1D4ED8]/20">
                               Co-op
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-1 mt-1">
-                          <span className="text-[#D97840]">★</span>
+                          <span className="text-[#0EA5E9]">★</span>
                           <span className="font-semibold text-sm">{worker.rating}</span>
-                          <span className="text-xs text-[#7A7469]">({worker.reviews})</span>
+                          <span className="text-xs text-[#64748B]">({worker.reviews})</span>
                         </div>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 mt-3">
                       {sortMode === "ai" && idx < 3 && (
-                        <span className="text-xs bg-[#D97840]/10 text-[#D97840] font-semibold px-2 py-0.5 rounded-full border border-[#D97840]/30">⚡ AI Recommended</span>
+                        <span className="text-xs bg-[#0EA5E9]/10 text-[#0EA5E9] font-semibold px-2 py-0.5 rounded-full border border-[#0EA5E9]/30">⚡ AI Recommended</span>
                       )}
                       {isVerified(worker) ? (
-                        <span className="text-xs bg-[#E8F4F1] text-[#1B6B5E] font-semibold px-2 py-0.5 rounded-full border border-[#1B6B5E]/20">✓ Verified</span>
+                        <span className="text-xs bg-[#E4EEFC] text-[#1D4ED8] font-semibold px-2 py-0.5 rounded-full border border-[#1D4ED8]/20">✓ Verified</span>
                       ) : (
                         <span className="text-xs bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded-full border border-amber-200">Verification pending</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 mt-3 text-xs text-[#7A7469]">
+                    <div className="flex items-center gap-1.5 mt-3 text-xs text-[#64748B]">
                       <span>📍</span><span>{worker.location}</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5 mt-3">
                       {worker.tags.map((tag) => (
-                        <span key={tag} className="text-xs bg-[#F7F2E9] text-[#3D3A33] px-2 py-0.5 rounded-md border border-[#D8D2C5]">{tag}</span>
+                        <span key={tag} className="text-xs bg-[#F3F7FE] text-[#1E293B] px-2 py-0.5 rounded-md border border-[#CBD9EE]">{tag}</span>
                       ))}
                     </div>
                   </div>
-                  <div className="border-t border-[#D8D2C5] px-5 py-3 flex items-center justify-between">
+                  <div className="border-t border-[#CBD9EE] px-5 py-3 flex items-center justify-between">
                     <div>
-                      <span className="font-semibold text-lg text-[#1C1A16]" style={{ fontFamily: "'Fraunces', serif" }}>₹{worker.hourlyRate}</span>
-                      <span className="text-xs text-[#7A7469]">/hr</span>
+                      <span className="font-semibold text-lg text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>₹{worker.hourlyRate}</span>
+                      <span className="text-xs text-[#64748B]">/hr</span>
                     </div>
                     <button
                       onClick={() => openBooking(worker)}
-                      className="bg-[#1B6B5E] text-white text-sm font-semibold px-5 py-2 rounded-lg hover:bg-[#155750] transition-colors"
+                      className="bg-[#1D4ED8] text-white text-sm font-semibold px-5 py-2 rounded-lg hover:bg-[#1E3A8A] transition-colors"
                     >
                       Book Now
                     </button>
@@ -1867,7 +1914,7 @@ export default function App() {
           )}
 
           <div className="text-center mt-10">
-            <button className="border border-[#1B6B5E] text-[#1B6B5E] font-semibold px-8 py-3 rounded-xl hover:bg-[#1B6B5E] hover:text-white transition-all">
+            <button className="border border-[#1D4ED8] text-[#1D4ED8] font-semibold px-8 py-3 rounded-xl hover:bg-[#1D4ED8] hover:text-white transition-all">
               View all 2,400+ workers →
             </button>
           </div>
@@ -1875,18 +1922,18 @@ export default function App() {
       </section>
 
       {/* ── COOPERATIVE BANNER ── */}
-      <section className="bg-[#1B6B5E] text-white py-16 md:py-20">
+      <section className="bg-[#1D4ED8] text-white py-16 md:py-20">
         <div className="max-w-7xl mx-auto px-5 md:px-10 grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <span className="text-xs font-semibold tracking-widest uppercase text-[#A8D5CB] mb-4 block">Worker Cooperative</span>
+            <span className="text-xs font-semibold tracking-widest uppercase text-[#BFDBFE] mb-4 block">Worker Cooperative</span>
             <h2 className="text-4xl md:text-5xl font-semibold leading-tight mb-5" style={{ fontFamily: "'Fraunces', serif" }}>
-              Work that<em className="text-[#F5B87A] not-italic"> belongs</em><br />to you.
+              Work that<em className="text-[#60A5FA] not-italic"> belongs</em><br />to you.
             </h2>
-            <p className="text-[#A8D5CB] leading-relaxed mb-7 max-w-md">
+            <p className="text-[#BFDBFE] leading-relaxed mb-7 max-w-md">
               Kaamsetu is owned by its workers. Every member has a vote in platform decisions,
               earns cooperative dividends, and builds their own client base — not ours.
             </p>
-            <button onClick={openJoinWorker} className="bg-[#D97840] text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-[#C0652F] transition-colors">
+            <button onClick={openJoinWorker} className="bg-[#0EA5E9] text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-[#0284C7] transition-colors">
               Apply to Join the Cooperative
             </button>
           </div>
@@ -1899,7 +1946,7 @@ export default function App() {
             ].map((stat) => (
               <div key={stat.label} className="bg-white/10 rounded-2xl p-5 border border-white/20">
                 <div className="text-3xl font-semibold text-white mb-1" style={{ fontFamily: "'Fraunces', serif" }}>{stat.value}</div>
-                <div className="text-sm text-[#A8D5CB]">{stat.label}</div>
+                <div className="text-sm text-[#BFDBFE]">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -1910,32 +1957,32 @@ export default function App() {
       <section id="stories" className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-5 md:px-10">
           <div className="text-center mb-12">
-            <span className="text-xs font-semibold tracking-widest uppercase text-[#7A7469]">Community stories</span>
+            <span className="text-xs font-semibold tracking-widest uppercase text-[#64748B]">Community stories</span>
             <h2 className="text-4xl md:text-5xl font-semibold mt-2" style={{ fontFamily: "'Fraunces', serif" }}>Heard from our community</h2>
           </div>
           <div className="max-w-3xl mx-auto">
-            <div className="bg-[#FDFAF4] border border-[#D8D2C5] rounded-3xl p-8 md:p-12 relative">
-              <div className="text-5xl text-[#D8D2C5] font-serif leading-none mb-4">"</div>
-              <p className="text-xl md:text-2xl leading-relaxed text-[#1C1A16] mb-8" style={{ fontFamily: "'Fraunces', serif" }}>
+            <div className="bg-[#FFFFFF] border border-[#CBD9EE] rounded-3xl p-8 md:p-12 relative">
+              <div className="text-5xl text-[#CBD9EE] font-serif leading-none mb-4">"</div>
+              <p className="text-xl md:text-2xl leading-relaxed text-[#0F1E3D] mb-8" style={{ fontFamily: "'Fraunces', serif" }}>
                 {testimonials[activeTestimonial].text}
               </p>
               <div className="flex items-center gap-4">
                 <img
                   src={testimonials[activeTestimonial].avatar}
                   alt={testimonials[activeTestimonial].name}
-                  className="w-12 h-12 rounded-full object-cover bg-[#E8E3D8]"
+                  className="w-12 h-12 rounded-full object-cover bg-[#DCE7F8]"
                   onError={(e) => handleImgError(e, personImgFallback(testimonials[activeTestimonial].name, "7A7469"))}
                 />
                 <div>
                   <div className="font-semibold">{testimonials[activeTestimonial].name}</div>
-                  <div className="text-sm text-[#7A7469]">{testimonials[activeTestimonial].location} · {testimonials[activeTestimonial].service}</div>
+                  <div className="text-sm text-[#64748B]">{testimonials[activeTestimonial].location} · {testimonials[activeTestimonial].service}</div>
                 </div>
               </div>
             </div>
             <div className="flex justify-center gap-3 mt-6">
               {testimonials.map((_, i) => (
                 <button key={i} onClick={() => setActiveTestimonial(i)}
-                  className={`h-2 rounded-full transition-all ${i === activeTestimonial ? "w-8 bg-[#1B6B5E]" : "w-2 bg-[#D8D2C5]"}`}
+                  className={`h-2 rounded-full transition-all ${i === activeTestimonial ? "w-8 bg-[#1D4ED8]" : "w-2 bg-[#CBD9EE]"}`}
                 />
               ))}
             </div>
@@ -1944,22 +1991,22 @@ export default function App() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="bg-[#FDFAF4] border-t border-[#D8D2C5] py-16 md:py-24">
+      <section className="bg-[#FFFFFF] border-t border-[#CBD9EE] py-16 md:py-24">
         <div className="max-w-4xl mx-auto px-5 md:px-10 text-center">
           <h2 className="text-4xl md:text-6xl font-semibold leading-tight mb-5" style={{ fontFamily: "'Fraunces', serif" }}>
             Your neighbourhood,<br />
-            <em className="text-[#1B6B5E] not-italic">stronger together.</em>
+            <em className="text-[#1D4ED8] not-italic">stronger together.</em>
           </h2>
-          <p className="text-[#7A7469] text-lg max-w-xl mx-auto mb-8">
+          <p className="text-[#64748B] text-lg max-w-xl mx-auto mb-8">
             Join thousands of households and workers building a fairer local economy — one booking at a time.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <input
               type="text"
               placeholder="Enter your pincode or area..."
-              className="flex-1 max-w-xs px-5 py-3.5 rounded-xl border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+              className="flex-1 max-w-xs px-5 py-3.5 rounded-xl border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
             />
-            <button className="bg-[#D97840] text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-[#C0652F] transition-colors whitespace-nowrap">
+            <button className="bg-[#0EA5E9] text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-[#0284C7] transition-colors whitespace-nowrap">
               Find Workers Near Me
             </button>
           </div>
@@ -1972,11 +2019,11 @@ export default function App() {
       {page === "services" && (
         <section className="py-14 md:py-20">
           <div className="max-w-7xl mx-auto px-5 md:px-10">
-            <button onClick={goHome} className="text-sm text-[#7A7469] hover:text-[#1C1A16] mb-6 flex items-center gap-1">← Back to home</button>
+            <button onClick={goHome} className="text-sm text-[#64748B] hover:text-[#0F1E3D] mb-6 flex items-center gap-1">← Back to home</button>
             <h2 className="text-4xl md:text-5xl font-semibold leading-tight mb-3" style={{ fontFamily: "'Fraunces', serif" }}>
               All services
             </h2>
-            <p className="text-[#7A7469] mb-10 max-w-lg">
+            <p className="text-[#64748B] mb-10 max-w-lg">
               Pick a service to see verified cooperative workers with their experience and ratings.
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
@@ -1984,7 +2031,7 @@ export default function App() {
                 <button
                   key={cat.id}
                   onClick={() => goToServiceDetail(cat.id)}
-                  className="group flex flex-col rounded-2xl border border-[#D8D2C5] bg-white overflow-hidden text-left transition-all hover:border-[#1B6B5E] hover:shadow-md"
+                  className="group flex flex-col rounded-2xl border border-[#CBD9EE] bg-white overflow-hidden text-left transition-all hover:border-[#1D4ED8] hover:shadow-md"
                 >
                   <div className="relative h-32 sm:h-40 overflow-hidden">
                     <img
@@ -2001,8 +2048,8 @@ export default function App() {
                     </span>
                   </div>
                   <div className="p-4">
-                    <div className="font-semibold text-sm text-[#1C1A16]">{cat.label}</div>
-                    <div className="text-xs text-[#7A7469]">{cat.count} workers</div>
+                    <div className="font-semibold text-sm text-[#0F1E3D]">{cat.label}</div>
+                    <div className="text-xs text-[#64748B]">{cat.count} workers</div>
                   </div>
                 </button>
               ))}
@@ -2015,7 +2062,7 @@ export default function App() {
       {page === "serviceDetail" && selectedCategory && (
         <section className="py-14 md:py-20">
           <div className="max-w-6xl mx-auto px-5 md:px-10">
-            <button onClick={goToServicesPage} className="text-sm text-[#7A7469] hover:text-[#1C1A16] mb-6 flex items-center gap-1">← Back to all services</button>
+            <button onClick={goToServicesPage} className="text-sm text-[#64748B] hover:text-[#0F1E3D] mb-6 flex items-center gap-1">← Back to all services</button>
             {(() => {
               const cat = serviceCategories.find((c) => c.id === selectedCategory)!;
               const catWorkers = allWorkers.filter((w) => w.category === selectedCategory);
@@ -2032,16 +2079,16 @@ export default function App() {
                       <h2 className="text-3xl md:text-4xl font-semibold leading-tight" style={{ fontFamily: "'Fraunces', serif" }}>
                         {cat.label}
                       </h2>
-                      <p className="text-[#7A7469] text-sm mt-1">{catWorkers.length} verified worker{catWorkers.length !== 1 ? "s" : ""} available near you</p>
+                      <p className="text-[#64748B] text-sm mt-1">{catWorkers.length} verified worker{catWorkers.length !== 1 ? "s" : ""} available near you</p>
                     </div>
                   </div>
 
                   {catWorkers.length === 0 ? (
-                    <div className="text-center py-16 text-[#7A7469]">No workers listed for this service yet.</div>
+                    <div className="text-center py-16 text-[#64748B]">No workers listed for this service yet.</div>
                   ) : (
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                       {catWorkers.map((worker) => (
-                        <div key={worker.id} className="bg-white border border-[#D8D2C5] rounded-2xl overflow-hidden flex flex-col">
+                        <div key={worker.id} className="bg-white border border-[#CBD9EE] rounded-2xl overflow-hidden flex flex-col">
                           <img
                             src={worker.image}
                             alt={worker.name}
@@ -2049,19 +2096,19 @@ export default function App() {
                             onError={(e) => handleImgError(e, personImgFallback(worker.name, "1B6B5E"))}
                           />
                           <div className="p-5 flex flex-col gap-2 flex-1">
-                            <div className="font-semibold text-[#1C1A16]">{worker.name}</div>
-                            <div className="text-xs text-[#7A7469]">{worker.role}</div>
-                            <div className="flex items-center gap-3 text-xs text-[#3D3A33] mt-1">
-                              <span className="flex items-center gap-1">★ {worker.rating} <span className="text-[#7A7469]">({worker.reviews})</span></span>
+                            <div className="font-semibold text-[#0F1E3D]">{worker.name}</div>
+                            <div className="text-xs text-[#64748B]">{worker.role}</div>
+                            <div className="flex items-center gap-3 text-xs text-[#1E293B] mt-1">
+                              <span className="flex items-center gap-1">★ {worker.rating} <span className="text-[#64748B]">({worker.reviews})</span></span>
                               <span>•</span>
                               <span>{worker.experience} yrs experience</span>
                             </div>
-                            <div className="text-xs text-[#7A7469]">{worker.location}</div>
+                            <div className="text-xs text-[#64748B]">{worker.location}</div>
                             <div className="flex items-center justify-between mt-auto pt-3">
-                              <span className="font-semibold text-[#1B6B5E]">₹{worker.hourlyRate}/hr</span>
+                              <span className="font-semibold text-[#1D4ED8]">₹{worker.hourlyRate}/hr</span>
                               <button
                                 onClick={() => openBooking(worker)}
-                                className="bg-[#1B6B5E] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#155750] transition-colors"
+                                className="bg-[#1D4ED8] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1E3A8A] transition-colors"
                               >
                                 Book Now
                               </button>
@@ -2082,7 +2129,7 @@ export default function App() {
       {page === "workerDashboard" && (
         <section className="pb-24 md:pb-28">
           <div className="max-w-5xl mx-auto px-5 md:px-10 py-14 md:py-20">
-            <button onClick={goHome} className="text-sm text-[#7A7469] hover:text-[#1C1A16] mb-6 flex items-center gap-1">← Back to home</button>
+            <button onClick={goHome} className="text-sm text-[#64748B] hover:text-[#0F1E3D] mb-6 flex items-center gap-1">← Back to home</button>
 
             <div className="flex items-center gap-4 mb-8">
               <img
@@ -2093,7 +2140,7 @@ export default function App() {
               />
               <div>
                 <h2 className="text-2xl md:text-3xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{currentUser?.name}</h2>
-                <p className="text-sm text-[#7A7469]">{currentUser?.email}</p>
+                <p className="text-sm text-[#64748B]">{currentUser?.email}</p>
               </div>
             </div>
 
@@ -2101,42 +2148,42 @@ export default function App() {
             {workerTab === "jobs" && (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
-                  <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
-                    <div className="text-2xl font-semibold text-[#1B6B5E]" style={{ fontFamily: "'Fraunces', serif" }}>{acceptedJobs.length}</div>
-                    <div className="text-xs text-[#7A7469]">{t("jobsCompleted")}</div>
+                  <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
+                    <div className="text-2xl font-semibold text-[#1D4ED8]" style={{ fontFamily: "'Fraunces', serif" }}>{acceptedJobs.length}</div>
+                    <div className="text-xs text-[#64748B]">{t("jobsCompleted")}</div>
                   </div>
-                  <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
-                    <div className="text-2xl font-semibold text-[#1B6B5E]" style={{ fontFamily: "'Fraunces', serif" }}>₹{totalEarnings}</div>
-                    <div className="text-xs text-[#7A7469]">{t("totalEarnings")}</div>
+                  <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
+                    <div className="text-2xl font-semibold text-[#1D4ED8]" style={{ fontFamily: "'Fraunces', serif" }}>₹{totalEarnings}</div>
+                    <div className="text-xs text-[#64748B]">{t("totalEarnings")}</div>
                   </div>
-                  <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
-                    <div className="text-2xl font-semibold text-[#D97840]" style={{ fontFamily: "'Fraunces', serif" }}>{pendingRequestsCount}</div>
-                    <div className="text-xs text-[#7A7469]">Pending requests</div>
+                  <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
+                    <div className="text-2xl font-semibold text-[#0EA5E9]" style={{ fontFamily: "'Fraunces', serif" }}>{pendingRequestsCount}</div>
+                    <div className="text-xs text-[#64748B]">Pending requests</div>
                   </div>
                 </div>
 
                 <h3 className="font-semibold text-xl mb-4" style={{ fontFamily: "'Fraunces', serif" }}>{t("incomingRequests")}</h3>
                 {workerRequests.length === 0 ? (
-                  <div className="text-center py-12 text-[#7A7469] bg-white border border-[#D8D2C5] rounded-xl">
+                  <div className="text-center py-12 text-[#64748B] bg-white border border-[#CBD9EE] rounded-xl">
                     <div className="text-3xl mb-2">✓</div>
                     No new requests
-                    <p className="text-xs text-[#7A7469] mt-1">When a customer books you, the request appears here for a one-tap accept.</p>
+                    <p className="text-xs text-[#64748B] mt-1">When a customer books you, the request appears here for a one-tap accept.</p>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-4">
                     {workerRequests.map((req) => (
-                      <div key={req.id} className="bg-white border border-[#D8D2C5] rounded-xl p-5">
+                      <div key={req.id} className="bg-white border border-[#CBD9EE] rounded-xl p-5">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div className="font-semibold text-[#1C1A16]">{req.customerName}</div>
-                            <div className="text-sm text-[#7A7469]">{req.service}</div>
-                            <div className="text-xs text-[#7A7469] mt-1">{req.date} · {req.time}</div>
-                            <div className="text-xs text-[#7A7469]">{req.address}</div>
-                            <div className="text-xs font-semibold text-[#1B6B5E] mt-1">₹{req.rate}/hr</div>
+                            <div className="font-semibold text-[#0F1E3D]">{req.customerName}</div>
+                            <div className="text-sm text-[#64748B]">{req.service}</div>
+                            <div className="text-xs text-[#64748B] mt-1">{req.date} · {req.time}</div>
+                            <div className="text-xs text-[#64748B]">{req.address}</div>
+                            <div className="text-xs font-semibold text-[#1D4ED8] mt-1">₹{req.rate}/hr</div>
                           </div>
                           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
-                            req.status === "pending" ? "bg-[#FEF3EB] text-[#D97840]" :
-                            req.status === "accepted" ? "bg-[#E8F4F1] text-[#1B6B5E]" :
+                            req.status === "pending" ? "bg-[#EAF2FE] text-[#0EA5E9]" :
+                            req.status === "accepted" ? "bg-[#E4EEFC] text-[#1D4ED8]" :
                             "bg-red-50 text-red-600"
                           }`}>
                             {req.status === "pending" ? t("pending") : req.status === "accepted" ? t("accepted") : t("rejected")}
@@ -2144,34 +2191,34 @@ export default function App() {
                         </div>
                         {req.status === "pending" && (
                           <div className="flex gap-3 mt-4">
-                            <button onClick={() => rejectRequest(req.id)} className="flex-1 border border-[#D8D2C5] text-[#1C1A16] font-medium py-2 rounded-lg hover:bg-[#EDE8DF] transition-colors">
+                            <button onClick={() => rejectRequest(req.id)} className="flex-1 border border-[#CBD9EE] text-[#0F1E3D] font-medium py-2 rounded-lg hover:bg-[#E6EEFB] transition-colors">
                               {t("reject")}
                             </button>
-                            <button onClick={() => acceptRequest(req.id)} className="flex-1 bg-[#1B6B5E] text-white font-semibold py-2 rounded-lg hover:bg-[#155750] transition-colors">
+                            <button onClick={() => acceptRequest(req.id)} className="flex-1 bg-[#1D4ED8] text-white font-semibold py-2 rounded-lg hover:bg-[#1E3A8A] transition-colors">
                               {t("accept")}
                             </button>
                           </div>
                         )}
                         {req.status === "accepted" && req.etaMinutes != null && (
-                          <div className="mt-3 text-sm text-[#1B6B5E] font-medium">Arriving in ~{req.etaMinutes} minutes</div>
+                          <div className="mt-3 text-sm text-[#1D4ED8] font-medium">Arriving in ~{req.etaMinutes} minutes</div>
                         )}
                       </div>
                     ))}
                   </div>
                 )}
 
-                <h3 className="font-semibold text-sm uppercase tracking-widest text-[#7A7469] mt-10 mb-3">Forecast for your ward</h3>
-                <div className="bg-[#E8F4F1] border border-[#1B6B5E]/20 rounded-xl p-4 flex items-start gap-3 mb-10">
+                <h3 className="font-semibold text-sm uppercase tracking-widest text-[#64748B] mt-10 mb-3">Forecast for your ward</h3>
+                <div className="bg-[#E4EEFC] border border-[#1D4ED8]/20 rounded-xl p-4 flex items-start gap-3 mb-10">
                   <span className="text-lg">📈</span>
-                  <p className="text-sm text-[#1C1A16]">{demoForecastText}</p>
+                  <p className="text-sm text-[#0F1E3D]">{demoForecastText}</p>
                 </div>
 
-                <h3 className="font-semibold text-sm uppercase tracking-widest text-[#7A7469] mb-3">Recent completed</h3>
-                <div className="bg-white border border-[#D8D2C5] rounded-xl divide-y divide-[#EDE8DF]">
+                <h3 className="font-semibold text-sm uppercase tracking-widest text-[#64748B] mb-3">Recent completed</h3>
+                <div className="bg-white border border-[#CBD9EE] rounded-xl divide-y divide-[#E6EEFB]">
                   {demoRecentCompletedJobs.map((job, i) => (
                     <div key={i} className="flex items-center justify-between px-5 py-3 text-sm">
-                      <span className="text-[#1C1A16]">Job · {job.customer}</span>
-                      <span className="font-semibold text-[#1B6B5E]">₹{job.amount}</span>
+                      <span className="text-[#0F1E3D]">Job · {job.customer}</span>
+                      <span className="font-semibold text-[#1D4ED8]">₹{job.amount}</span>
                     </div>
                   ))}
                 </div>
@@ -2186,38 +2233,38 @@ export default function App() {
                 <div className="flex flex-col gap-6">
                   <h3 className="font-semibold text-2xl" style={{ fontFamily: "'Fraunces', serif" }}>Earnings & Welfare</h3>
 
-                  <div className="bg-white border border-[#D8D2C5] rounded-2xl p-6">
-                    <div className="text-xs text-[#7A7469] mb-1">This month</div>
+                  <div className="bg-white border border-[#CBD9EE] rounded-2xl p-6">
+                    <div className="text-xs text-[#64748B] mb-1">This month</div>
                     <div className="text-4xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>₹{demoThisMonthTotal.toLocaleString("en-IN")}</div>
-                    <div className="text-xs text-[#7A7469] mt-1">from {demoThisMonthJobs} completed jobs</div>
+                    <div className="text-xs text-[#64748B] mt-1">from {demoThisMonthJobs} completed jobs</div>
                   </div>
 
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-widest text-[#7A7469] mb-2">Welfare status</div>
-                    <div className="bg-white border border-[#D8D2C5] rounded-2xl divide-y divide-[#EDE8DF]">
+                    <div className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-2">Welfare status</div>
+                    <div className="bg-white border border-[#CBD9EE] rounded-2xl divide-y divide-[#E6EEFB]">
                       <div className="flex justify-between items-center px-5 py-4">
-                        <span className="text-sm text-[#1C1A16]">Health insurance (PMJAY-linked)</span>
-                        <span className="text-xs font-semibold bg-[#E8F4F1] text-[#1B6B5E] px-2 py-1 rounded-full">ACTIVE</span>
+                        <span className="text-sm text-[#0F1E3D]">Health insurance (PMJAY-linked)</span>
+                        <span className="text-xs font-semibold bg-[#E4EEFC] text-[#1D4ED8] px-2 py-1 rounded-full">ACTIVE</span>
                       </div>
                       <div className="flex justify-between items-center px-5 py-4">
-                        <span className="text-sm text-[#1C1A16]">Cooperative welfare fund</span>
-                        <span className="text-xs font-semibold text-[#1C1A16]">₹2,100 saved</span>
+                        <span className="text-sm text-[#0F1E3D]">Cooperative welfare fund</span>
+                        <span className="text-xs font-semibold text-[#0F1E3D]">₹2,100 saved</span>
                       </div>
                       <div className="flex justify-between items-center px-5 py-4">
-                        <span className="text-sm text-[#1C1A16]">Accident cover</span>
-                        <span className="text-xs font-semibold bg-[#E8F4F1] text-[#1B6B5E] px-2 py-1 rounded-full">ACTIVE</span>
+                        <span className="text-sm text-[#0F1E3D]">Accident cover</span>
+                        <span className="text-xs font-semibold bg-[#E4EEFC] text-[#1D4ED8] px-2 py-1 rounded-full">ACTIVE</span>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-widest text-[#7A7469] mb-2">Monthly income trend</div>
-                    <div className="bg-white border border-[#D8D2C5] rounded-2xl p-5">
+                    <div className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-2">Monthly income trend</div>
+                    <div className="bg-white border border-[#CBD9EE] rounded-2xl p-5">
                       <div className="relative h-28" onMouseLeave={() => setHoveredIncomeIdx(null)}>
                         <svg viewBox="0 0 300 100" className="w-full h-full" preserveAspectRatio="none">
                           <polyline
                             fill="none"
-                            stroke="#1B6B5E"
+                            stroke="#1D4ED8"
                             strokeWidth="2"
                             points={demoMonthlyIncomeTrend.map((d, i) => `${(i / (demoMonthlyIncomeTrend.length - 1)) * 300},${100 - (d.amount / maxIncome) * 90}`).join(" ")}
                           />
@@ -2226,7 +2273,7 @@ export default function App() {
                               x1={(hoveredIncomeIdx / (demoMonthlyIncomeTrend.length - 1)) * 300}
                               x2={(hoveredIncomeIdx / (demoMonthlyIncomeTrend.length - 1)) * 300}
                               y1="0" y2="100"
-                              stroke="#D8D2C5" strokeWidth="1" strokeDasharray="3,3"
+                              stroke="#CBD9EE" strokeWidth="1" strokeDasharray="3,3"
                             />
                           )}
                           {demoMonthlyIncomeTrend.map((d, i) => (
@@ -2235,7 +2282,7 @@ export default function App() {
                               cx={(i / (demoMonthlyIncomeTrend.length - 1)) * 300}
                               cy={100 - (d.amount / maxIncome) * 90}
                               r={hoveredIncomeIdx === i ? 5 : 3}
-                              fill="#1B6B5E"
+                              fill="#1D4ED8"
                             />
                           ))}
                         </svg>
@@ -2251,30 +2298,30 @@ export default function App() {
                         </div>
                         {hoveredIncomeIdx !== null && (
                           <div
-                            className="absolute bg-white border border-[#D8D2C5] rounded-lg px-3 py-1.5 shadow-md text-xs whitespace-nowrap pointer-events-none"
+                            className="absolute bg-white border border-[#CBD9EE] rounded-lg px-3 py-1.5 shadow-md text-xs whitespace-nowrap pointer-events-none"
                             style={{
                               left: `${(hoveredIncomeIdx / (demoMonthlyIncomeTrend.length - 1)) * 100}%`,
                               top: `${100 - (demoMonthlyIncomeTrend[hoveredIncomeIdx].amount / maxIncome) * 90}%`,
                               transform: "translate(-50%, -125%)",
                             }}
                           >
-                            <div className="font-semibold uppercase text-[10px] text-[#7A7469]">{demoMonthlyIncomeTrend[hoveredIncomeIdx].month}</div>
-                            <div className="font-semibold text-[#1C1A16]">₹{demoMonthlyIncomeTrend[hoveredIncomeIdx].amount.toLocaleString("en-IN")}</div>
+                            <div className="font-semibold uppercase text-[10px] text-[#64748B]">{demoMonthlyIncomeTrend[hoveredIncomeIdx].month}</div>
+                            <div className="font-semibold text-[#0F1E3D]">₹{demoMonthlyIncomeTrend[hoveredIncomeIdx].amount.toLocaleString("en-IN")}</div>
                           </div>
                         )}
                       </div>
-                      <div className="flex justify-between text-xs text-[#7A7469] mt-1">
+                      <div className="flex justify-between text-xs text-[#64748B] mt-1">
                         {demoMonthlyIncomeTrend.map((d) => (
                           <span key={d.month}>{d.month}</span>
                         ))}
                       </div>
-                      <p className="text-xs text-[#7A7469] mt-3">Last 6 months · visit fee + parts, net of society fee.</p>
+                      <p className="text-xs text-[#64748B] mt-3">Last 6 months · visit fee + parts, net of society fee.</p>
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-widest text-[#7A7469] mb-2">Payout history</div>
-                    <div className="bg-white border border-[#D8D2C5] rounded-2xl p-5">
+                    <div className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-2">Payout history</div>
+                    <div className="bg-white border border-[#CBD9EE] rounded-2xl p-5">
                       <div className="flex items-end justify-between gap-3 h-32" onMouseLeave={() => setHoveredPayoutIdx(null)}>
                         {demoPayoutHistory.map((p, i) => {
                           const isHovered = hoveredPayoutIdx === i;
@@ -2286,42 +2333,42 @@ export default function App() {
                               onMouseEnter={() => setHoveredPayoutIdx(i)}
                             >
                               {isHovered && (
-                                <div className="absolute inset-x-0 top-0 bottom-6 bg-[#FCEBDA] rounded-md -z-0" />
+                                <div className="absolute inset-x-0 top-0 bottom-6 bg-[#DCEAFE] rounded-md -z-0" />
                               )}
                               {isHovered && (
-                                <div className="absolute -top-2 -translate-y-full bg-white border border-[#D8D2C5] rounded-lg px-3 py-1.5 shadow-md text-xs whitespace-nowrap z-10">
-                                  <div className="font-semibold uppercase text-[10px] text-[#7A7469]">{p.label}</div>
-                                  <div className="font-semibold text-[#1C1A16]">₹{p.amount.toLocaleString("en-IN")}</div>
+                                <div className="absolute -top-2 -translate-y-full bg-white border border-[#CBD9EE] rounded-lg px-3 py-1.5 shadow-md text-xs whitespace-nowrap z-10">
+                                  <div className="font-semibold uppercase text-[10px] text-[#64748B]">{p.label}</div>
+                                  <div className="font-semibold text-[#0F1E3D]">₹{p.amount.toLocaleString("en-IN")}</div>
                                 </div>
                               )}
                               <div
-                                className={`relative w-full rounded-t-md z-[1] ${isHovered || isDefaultHighlight ? "bg-[#D97840]" : "bg-[#E8E3D8]"}`}
+                                className={`relative w-full rounded-t-md z-[1] ${isHovered || isDefaultHighlight ? "bg-[#0EA5E9]" : "bg-[#DCE7F8]"}`}
                                 style={{ height: `${(p.amount / maxPayout) * 100}%` }}
                               />
-                              <span className="relative text-[10px] text-[#7A7469] z-[1]">{p.label}</span>
+                              <span className="relative text-[10px] text-[#64748B] z-[1]">{p.label}</span>
                             </div>
                           );
                         })}
                       </div>
-                      <p className="text-xs text-[#7A7469] mt-3">Most recent week highlighted · settled to society account.</p>
+                      <p className="text-xs text-[#64748B] mt-3">Most recent week highlighted · settled to society account.</p>
                     </div>
-                    <div className="bg-white border border-[#D8D2C5] rounded-2xl divide-y divide-[#EDE8DF] mt-3">
+                    <div className="bg-white border border-[#CBD9EE] rounded-2xl divide-y divide-[#E6EEFB] mt-3">
                       {demoPayoutHistory.map((p) => (
                         <div key={p.label} className="flex justify-between items-center px-5 py-4 text-sm">
-                          <span className="text-[#1C1A16]">{p.label} · {p.jobs} jobs</span>
-                          <span className="font-semibold text-[#1B6B5E]">₹{p.amount.toLocaleString("en-IN")}</span>
+                          <span className="text-[#0F1E3D]">{p.label} · {p.jobs} jobs</span>
+                          <span className="font-semibold text-[#1D4ED8]">₹{p.amount.toLocaleString("en-IN")}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <button onClick={handleWithdraw} className="border border-[#1B6B5E] text-[#1B6B5E] font-semibold py-3 rounded-xl hover:bg-[#E8F4F1] transition-colors flex items-center justify-center gap-2">
+                  <button onClick={handleWithdraw} className="border border-[#1D4ED8] text-[#1D4ED8] font-semibold py-3 rounded-xl hover:bg-[#E4EEFC] transition-colors flex items-center justify-center gap-2">
                     🏦 Withdraw to bank
                   </button>
                   {withdrawStatus && (
-                    <p className="text-xs text-[#1B6B5E] text-center -mt-3">{withdrawStatus}</p>
+                    <p className="text-xs text-[#1D4ED8] text-center -mt-3">{withdrawStatus}</p>
                   )}
-                  <p className="text-xs text-[#7A7469] text-center -mt-3">Settlements are processed via the cooperative society account.</p>
+                  <p className="text-xs text-[#64748B] text-center -mt-3">Settlements are processed via the cooperative society account.</p>
                 </div>
               );
             })()}
@@ -2329,7 +2376,7 @@ export default function App() {
             {/* ── PROFILE TAB ── */}
             {workerTab === "profile" && (
               <div className="flex flex-col gap-6 max-w-md">
-                <div className="bg-white border border-[#D8D2C5] rounded-2xl p-6 flex flex-col items-center text-center gap-3">
+                <div className="bg-white border border-[#CBD9EE] rounded-2xl p-6 flex flex-col items-center text-center gap-3">
                   <img
                     src={currentUser?.photoURL || personImgFallback(currentUser?.name || "Worker", "1B6B5E")}
                     alt={currentUser?.name || "Worker"}
@@ -2339,43 +2386,43 @@ export default function App() {
                   <div>
                     <div className="font-semibold text-lg flex items-center gap-1.5 justify-center">
                       {currentUser?.name}
-                      <span className="text-[#D97840]" title="Federation verified">✓</span>
+                      <span className="text-[#0EA5E9]" title="Federation verified">✓</span>
                     </div>
-                    <div className="text-sm text-[#7A7469]">{demoWorkerSociety}</div>
+                    <div className="text-sm text-[#64748B]">{demoWorkerSociety}</div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
+                  <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
                     <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{demoWorkerRating}</div>
-                    <div className="text-xs text-[#7A7469] mt-0.5">Rating</div>
+                    <div className="text-xs text-[#64748B] mt-0.5">Rating</div>
                   </div>
-                  <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
+                  <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
                     <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{demoWorkerJobsDone}</div>
-                    <div className="text-xs text-[#7A7469] mt-0.5">Jobs done</div>
+                    <div className="text-xs text-[#64748B] mt-0.5">Jobs done</div>
                   </div>
-                  <div className="bg-white border border-[#D8D2C5] rounded-xl p-4">
+                  <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
                     <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{demoWorkerExperienceYears} yr</div>
-                    <div className="text-xs text-[#7A7469] mt-0.5">Experience</div>
+                    <div className="text-xs text-[#64748B] mt-0.5">Experience</div>
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-widest text-[#7A7469] mb-2">Skills</div>
+                  <div className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-2">Skills</div>
                   <div className="flex flex-wrap gap-2">
                     {demoWorkerSkills.map((skill) => (
-                      <span key={skill} className="bg-[#F7F2E9] border border-[#D8D2C5] text-sm px-3 py-1.5 rounded-full">{skill}</span>
+                      <span key={skill} className="bg-[#F3F7FE] border border-[#CBD9EE] text-sm px-3 py-1.5 rounded-full">{skill}</span>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-widest text-[#7A7469] mb-2">Certifications</div>
-                  <div className="bg-white border border-[#D8D2C5] rounded-2xl divide-y divide-[#EDE8DF]">
+                  <div className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-2">Certifications</div>
+                  <div className="bg-white border border-[#CBD9EE] rounded-2xl divide-y divide-[#E6EEFB]">
                     {demoWorkerCertifications.map((cert) => (
                       <div key={cert.name} className="flex justify-between items-center px-5 py-4 text-sm">
-                        <span className="text-[#1C1A16]">{cert.name}</span>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${cert.status === "Active" ? "bg-[#FEF3EB] text-[#D97840]" : "bg-[#E8F4F1] text-[#1B6B5E]"}`}>
+                        <span className="text-[#0F1E3D]">{cert.name}</span>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${cert.status === "Active" ? "bg-[#EAF2FE] text-[#0EA5E9]" : "bg-[#E4EEFC] text-[#1D4ED8]"}`}>
                           {cert.status.toUpperCase()}
                         </span>
                       </div>
@@ -2383,15 +2430,15 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-white border border-[#D8D2C5] rounded-2xl divide-y divide-[#EDE8DF] text-sm">
-                  <div className="flex justify-between px-5 py-3"><span className="text-[#7A7469]">Email</span><span className="font-medium">{currentUser?.email}</span></div>
-                  <div className="flex justify-between px-5 py-3"><span className="text-[#7A7469]">Jobs completed</span><span className="font-medium">{acceptedJobs.length}</span></div>
-                  <div className="flex justify-between px-5 py-3"><span className="text-[#7A7469]">This month earnings</span><span className="font-medium">₹{demoThisMonthTotal.toLocaleString("en-IN")}</span></div>
+                <div className="bg-white border border-[#CBD9EE] rounded-2xl divide-y divide-[#E6EEFB] text-sm">
+                  <div className="flex justify-between px-5 py-3"><span className="text-[#64748B]">Email</span><span className="font-medium">{currentUser?.email}</span></div>
+                  <div className="flex justify-between px-5 py-3"><span className="text-[#64748B]">Jobs completed</span><span className="font-medium">{acceptedJobs.length}</span></div>
+                  <div className="flex justify-between px-5 py-3"><span className="text-[#64748B]">This month earnings</span><span className="font-medium">₹{demoThisMonthTotal.toLocaleString("en-IN")}</span></div>
                 </div>
 
-                <div className="bg-[#E8F4F1] border border-[#1B6B5E]/20 rounded-xl p-4 flex items-start gap-3">
+                <div className="bg-[#E4EEFC] border border-[#1D4ED8]/20 rounded-xl p-4 flex items-start gap-3">
                   <span className="text-lg">🛡️</span>
-                  <p className="text-sm text-[#1C1A16]">Federation-verified worker. Your profile carries the cooperative trust seal shown to customers.</p>
+                  <p className="text-sm text-[#0F1E3D]">Federation-verified worker. Your profile carries the cooperative trust seal shown to customers.</p>
                 </div>
 
                 <button onClick={handleSignOut} className="border border-red-200 text-red-600 font-semibold py-3 rounded-xl hover:bg-red-50 transition-colors">
@@ -2402,25 +2449,25 @@ export default function App() {
           </div>
 
           {/* Bottom tab bar */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#D8D2C5] z-40">
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#CBD9EE] z-40">
             <div className="max-w-5xl mx-auto grid grid-cols-3 text-center">
               <button
                 onClick={() => setWorkerTab("jobs")}
-                className={`py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${workerTab === "jobs" ? "text-[#1B6B5E]" : "text-[#7A7469]"}`}
+                className={`py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${workerTab === "jobs" ? "text-[#1D4ED8]" : "text-[#64748B]"}`}
               >
                 <span className="text-lg leading-none">💼</span>
                 Jobs
               </button>
               <button
                 onClick={() => setWorkerTab("earnings")}
-                className={`py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${workerTab === "earnings" ? "text-[#1B6B5E]" : "text-[#7A7469]"}`}
+                className={`py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${workerTab === "earnings" ? "text-[#1D4ED8]" : "text-[#64748B]"}`}
               >
                 <span className="text-lg leading-none">💳</span>
                 Earnings
               </button>
               <button
                 onClick={() => setWorkerTab("profile")}
-                className={`py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${workerTab === "profile" ? "text-[#1B6B5E]" : "text-[#7A7469]"}`}
+                className={`py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${workerTab === "profile" ? "text-[#1D4ED8]" : "text-[#64748B]"}`}
               >
                 <span className="text-lg leading-none">👤</span>
                 Profile
@@ -2434,7 +2481,7 @@ export default function App() {
       {page === "workHistory" && (
         <section className="py-14 md:py-20">
           <div className="max-w-4xl mx-auto px-5 md:px-10">
-            <button onClick={goHome} className="text-sm text-[#7A7469] hover:text-[#1C1A16] mb-6 flex items-center gap-1">← Back to home</button>
+            <button onClick={goHome} className="text-sm text-[#64748B] hover:text-[#0F1E3D] mb-6 flex items-center gap-1">← Back to home</button>
             <div className="flex items-center gap-4 mb-8">
               <img
                 src={currentUser?.photoURL || personImgFallback(currentUser?.name || "U", "1B6B5E")}
@@ -2444,41 +2491,41 @@ export default function App() {
               />
               <div>
                 <h2 className="text-2xl md:text-3xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{t("workHistory")}</h2>
-                <p className="text-sm text-[#7A7469]">{currentUser?.email}</p>
+                <p className="text-sm text-[#64748B]">{currentUser?.email}</p>
               </div>
             </div>
             {myBookings.length === 0 ? (
-              <div className="text-center py-12 text-[#7A7469] bg-white border border-[#D8D2C5] rounded-xl">No bookings yet.</div>
+              <div className="text-center py-12 text-[#64748B] bg-white border border-[#CBD9EE] rounded-xl">No bookings yet.</div>
             ) : (
               <div className="flex flex-col gap-4">
                 {myBookings.map((b) => (
-                  <div key={b.id} className="bg-white border border-[#D8D2C5] rounded-xl p-5 flex flex-col gap-3">
+                  <div key={b.id} className="bg-white border border-[#CBD9EE] rounded-xl p-5 flex flex-col gap-3">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="font-semibold text-[#1C1A16]">{b.workerName} · {b.service}</div>
-                        <div className="text-xs text-[#7A7469] mt-1">{b.date} · {b.time}</div>
-                        <div className="text-xs text-[#7A7469]">{b.address}</div>
+                        <div className="font-semibold text-[#0F1E3D]">{b.workerName} · {b.service}</div>
+                        <div className="text-xs text-[#64748B] mt-1">{b.date} · {b.time}</div>
+                        <div className="text-xs text-[#64748B]">{b.address}</div>
                         {b.status === "accepted" && b.etaMinutes != null && (
-                          <div className="text-xs font-semibold text-[#1B6B5E] mt-1">Arriving in ~{b.etaMinutes} minutes</div>
+                          <div className="text-xs font-semibold text-[#1D4ED8] mt-1">Arriving in ~{b.etaMinutes} minutes</div>
                         )}
                       </div>
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
-                        b.status === "pending" ? "bg-[#FEF3EB] text-[#D97840]" :
-                        b.status === "accepted" ? "bg-[#E8F4F1] text-[#1B6B5E]" :
+                        b.status === "pending" ? "bg-[#EAF2FE] text-[#0EA5E9]" :
+                        b.status === "accepted" ? "bg-[#E4EEFC] text-[#1D4ED8]" :
                         "bg-red-50 text-red-600"
                       }`}>
                         {b.status === "pending" ? t("pending") : b.status === "accepted" ? t("accepted") : t("rejected")}
                       </span>
                     </div>
                     {b.status === "accepted" && (
-                      <div className="border-t border-[#EDE8DF] pt-3 flex items-center gap-2">
-                        <span className="text-xs text-[#7A7469]">{b.customerRating ? "Your rating:" : "Rate this job:"}</span>
+                      <div className="border-t border-[#E6EEFB] pt-3 flex items-center gap-2">
+                        <span className="text-xs text-[#64748B]">{b.customerRating ? "Your rating:" : "Rate this job:"}</span>
                         <div className="flex gap-0.5">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <button
                               key={star}
                               onClick={() => rateBooking(b.id, star)}
-                              className={`text-lg leading-none ${(b.customerRating ?? 0) >= star ? "text-[#D97840]" : "text-[#D8D2C5]"}`}
+                              className={`text-lg leading-none ${(b.customerRating ?? 0) >= star ? "text-[#0EA5E9]" : "text-[#CBD9EE]"}`}
                               aria-label={`Rate ${star} star`}
                             >
                               ★
@@ -2502,7 +2549,7 @@ export default function App() {
         const pendingWorkers = communityWorkers.filter((w) => !w.verified);
         const platformRevenue = workerRequests.reduce((s, r) => s + (Number(r.rate) || 0), 0);
         return (
-          <section className="py-14 md:py-20 bg-[#1C1A16] text-white min-h-screen">
+          <section className="py-14 md:py-20 bg-[#0F1E3D] text-white min-h-screen">
             <div className="max-w-6xl mx-auto px-5 md:px-10">
               <div className="flex items-center justify-between gap-3 mb-8 flex-wrap">
                 <div>
@@ -2519,7 +2566,7 @@ export default function App() {
                     <button
                       key={v.id}
                       onClick={() => setAdminView(v.id)}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${adminView === v.id ? "bg-white text-[#1C1A16]" : "text-white/70 hover:text-white"}`}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${adminView === v.id ? "bg-white text-[#0F1E3D]" : "text-white/70 hover:text-white"}`}
                     >
                       {v.label}
                     </button>
@@ -2551,7 +2598,7 @@ export default function App() {
                           <span className="text-white/70">{t("monthlyRevenue")}</span><span className="font-semibold">₹{(b.monthlyRevenue / 100000).toFixed(1)}L</span>
                         </div>
                         <div className="w-full h-1.5 bg-white/10 rounded-full mt-2 overflow-hidden">
-                          <div className="h-full bg-[#1B6B5E]" style={{ width: `${Math.round((b.activeMembers / b.members) * 100)}%` }} />
+                          <div className="h-full bg-[#1D4ED8]" style={{ width: `${Math.round((b.activeMembers / b.members) * 100)}%` }} />
                         </div>
                         <div className="text-[10px] text-white/50">{Math.round((b.activeMembers / b.members) * 100)}% {t("activeMembership")}</div>
                       </div>
@@ -2575,7 +2622,7 @@ export default function App() {
                         </div>
                         <div className="flex gap-2">
                           <button onClick={() => adminRejectWorker(w.id)} className="text-sm font-semibold border border-white/20 px-4 py-2 rounded-lg hover:bg-white/10 transition-colors">{t("reject")}</button>
-                          <button onClick={() => adminApproveWorker(w.id)} className="text-sm font-semibold bg-[#1B6B5E] px-4 py-2 rounded-lg hover:bg-[#155750] transition-colors">{t("accept")}</button>
+                          <button onClick={() => adminApproveWorker(w.id)} className="text-sm font-semibold bg-[#1D4ED8] px-4 py-2 rounded-lg hover:bg-[#1E3A8A] transition-colors">{t("accept")}</button>
                         </div>
                       </div>
                     ))
@@ -2612,17 +2659,17 @@ export default function App() {
       })()}
 
       {/* ── FOOTER ── */}
-      <footer className="border-t border-[#D8D2C5] py-12">
+      <footer className="border-t border-[#CBD9EE] py-12">
         <div className="max-w-7xl mx-auto px-5 md:px-10">
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 mb-10">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-7 h-7 rounded-full bg-[#1B6B5E] flex items-center justify-center">
+                <div className="w-7 h-7 rounded-full bg-[#1D4ED8] flex items-center justify-center">
                   <span className="text-white text-xs font-bold">KS</span>
                 </div>
                 <span className="font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>Kaamsetu</span>
               </div>
-              <p className="text-sm text-[#7A7469] leading-relaxed">{t("footerTagline")}</p>
+              <p className="text-sm text-[#64748B] leading-relaxed">{t("footerTagline")}</p>
             </div>
             {[
               { title: t("footerServices"), links: ["Cleaning", "Plumbing", "Carpentry", "Painting", "Domestic Help", "Caregiver", "Driver", "Gardening", "Electrician", "Technician"] },
@@ -2634,22 +2681,22 @@ export default function App() {
                 <ul className="space-y-2">
                   {col.links.map((link) => (
                     <li key={link}>
-                      <a href="#" className="text-sm text-[#7A7469] hover:text-[#1C1A16] transition-colors">{link}</a>
+                      <a href="#" className="text-sm text-[#64748B] hover:text-[#0F1E3D] transition-colors">{link}</a>
                     </li>
                   ))}
                 </ul>
               </div>
             ))}
           </div>
-          <div className="border-t border-[#D8D2C5] pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-[#7A7469]">
+          <div className="border-t border-[#CBD9EE] pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-[#64748B]">
             <span>{t("footerCopyright")}</span>
             <div className="flex items-center gap-4">
               {installPromptEvent && !appInstalled && (
-                <button onClick={handleInstallApp} className="flex items-center gap-1.5 font-semibold text-[#1B6B5E] hover:underline">
+                <button onClick={handleInstallApp} className="flex items-center gap-1.5 font-semibold text-[#1D4ED8] hover:underline">
                   📲 {t("installApp")}
                 </button>
               )}
-              <button onClick={goToAdmin} className="hover:text-[#1C1A16] transition-colors underline-offset-2 hover:underline">{t("adminPortal")}</button>
+              <button onClick={goToAdmin} className="hover:text-[#0F1E3D] transition-colors underline-offset-2 hover:underline">{t("adminPortal")}</button>
               <span>Delhi NCR · Mumbai · Bengaluru · More cities coming soon</span>
             </div>
           </div>
@@ -2660,10 +2707,10 @@ export default function App() {
       {bookingWorker && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={closeBooking}>
           <div
-            className="bg-[#FDFAF4] rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-[#D8D2C5] shadow-2xl"
+            className="bg-[#FFFFFF] rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-[#CBD9EE] shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#D8D2C5]">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#CBD9EE]">
               <div className="flex items-center gap-3">
                 <img
                   src={bookingWorker.image}
@@ -2672,11 +2719,11 @@ export default function App() {
                   onError={(e) => handleImgError(e, personImgFallback(bookingWorker.name, "1B6B5E"))}
                 />
                 <div>
-                  <div className="font-semibold text-[#1C1A16]">{bookingWorker.name}</div>
-                  <div className="text-xs text-[#7A7469]">{bookingWorker.role}</div>
+                  <div className="font-semibold text-[#0F1E3D]">{bookingWorker.name}</div>
+                  <div className="text-xs text-[#64748B]">{bookingWorker.role}</div>
                 </div>
               </div>
-              <button onClick={closeBooking} className="text-[#7A7469] hover:text-[#1C1A16] text-lg leading-none">✕</button>
+              <button onClick={closeBooking} className="text-[#64748B] hover:text-[#0F1E3D] text-lg leading-none">✕</button>
             </div>
 
             {/* Step indicator */}
@@ -2685,10 +2732,10 @@ export default function App() {
                 {["Schedule", "Details", "Confirm", "Payment"].map((label, i) => (
                   <div key={label} className="flex items-center gap-2 flex-1">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${
-                      bookingStep >= i + 1 ? "bg-[#1B6B5E] text-white" : "bg-[#EDE8DF] text-[#7A7469]"
+                      bookingStep >= i + 1 ? "bg-[#1D4ED8] text-white" : "bg-[#E6EEFB] text-[#64748B]"
                     }`}>{i + 1}</div>
-                    <span className={`text-xs font-medium hidden sm:inline ${bookingStep >= i + 1 ? "text-[#1C1A16]" : "text-[#7A7469]"}`}>{label}</span>
-                    {i < 3 && <div className={`flex-1 h-px ${bookingStep > i + 1 ? "bg-[#1B6B5E]" : "bg-[#D8D2C5]"}`} />}
+                    <span className={`text-xs font-medium hidden sm:inline ${bookingStep >= i + 1 ? "text-[#0F1E3D]" : "text-[#64748B]"}`}>{label}</span>
+                    {i < 3 && <div className={`flex-1 h-px ${bookingStep > i + 1 ? "bg-[#1D4ED8]" : "bg-[#CBD9EE]"}`} />}
                   </div>
                 ))}
               </div>
@@ -2699,16 +2746,16 @@ export default function App() {
               {bookingStep === 1 && (
                 <div className="flex flex-col gap-4">
                   <div>
-                    <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">Pick a date</label>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Pick a date</label>
                     <input
                       type="date"
                       value={bookingForm.date}
                       onChange={(e) => setBookingForm({ ...bookingForm, date: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">Pick a time slot</label>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Pick a time slot</label>
                     <div className="grid grid-cols-3 gap-2">
                       {timeSlots.map((slot) => (
                         <button
@@ -2716,8 +2763,8 @@ export default function App() {
                           onClick={() => setBookingForm({ ...bookingForm, time: slot })}
                           className={`text-xs sm:text-sm font-medium px-2 py-2 rounded-lg border transition-colors ${
                             bookingForm.time === slot
-                              ? "bg-[#1B6B5E] text-white border-[#1B6B5E]"
-                              : "bg-white text-[#3D3A33] border-[#D8D2C5] hover:border-[#1B6B5E]"
+                              ? "bg-[#1D4ED8] text-white border-[#1D4ED8]"
+                              : "bg-white text-[#1E293B] border-[#CBD9EE] hover:border-[#1D4ED8]"
                           }`}
                         >
                           {slot}
@@ -2728,7 +2775,7 @@ export default function App() {
                   <button
                     disabled={!bookingForm.date || !bookingForm.time}
                     onClick={() => setBookingStep(2)}
-                    className="mt-2 bg-[#1B6B5E] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#155750] transition-colors"
+                    className="mt-2 bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1E3A8A] transition-colors"
                   >
                     Continue
                   </button>
@@ -2739,65 +2786,65 @@ export default function App() {
               {bookingStep === 2 && (
                 <div className="flex flex-col gap-4">
                   <div>
-                    <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">Service address</label>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Service address</label>
                     <input
                       type="text"
                       value={bookingForm.address}
                       onChange={(e) => setBookingForm({ ...bookingForm, address: e.target.value })}
                       placeholder="House no., street, area, city"
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">Notes for the worker (optional)</label>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Notes for the worker (optional)</label>
                     <textarea
                       value={bookingForm.notes}
                       onChange={(e) => setBookingForm({ ...bookingForm, notes: e.target.value })}
                       placeholder="Any specific requirements..."
                       rows={2}
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30 resize-none"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30 resize-none"
                     />
                   </div>
 
-                  <div className="bg-[#E8F4F1] border border-[#1B6B5E]/20 rounded-xl p-4">
+                  <div className="bg-[#E4EEFC] border border-[#1D4ED8]/20 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-[#1C1A16]">Flexible pricing</span>
-                      <label className="flex items-center gap-2 text-xs text-[#3D3A33] cursor-pointer">
+                      <span className="text-sm font-semibold text-[#0F1E3D]">Flexible pricing</span>
+                      <label className="flex items-center gap-2 text-xs text-[#1E293B] cursor-pointer">
                         <input
                           type="checkbox"
                           checked={bookingForm.useCustomRate}
                           onChange={(e) => setBookingForm({ ...bookingForm, useCustomRate: e.target.checked })}
-                          className="accent-[#1B6B5E]"
+                          className="accent-[#1D4ED8]"
                         />
                         Propose my own rate
                       </label>
                     </div>
                     {bookingForm.useCustomRate ? (
                       <div className="flex items-center gap-2">
-                        <span className="text-[#1C1A16] font-semibold">₹</span>
+                        <span className="text-[#0F1E3D] font-semibold">₹</span>
                         <input
                           type="number"
                           value={bookingForm.proposedRate}
                           onChange={(e) => setBookingForm({ ...bookingForm, proposedRate: e.target.value })}
-                          className="w-28 px-3 py-2 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                          className="w-28 px-3 py-2 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                         />
-                        <span className="text-xs text-[#7A7469]">/hr — worker can accept or counter this offer</span>
+                        <span className="text-xs text-[#64748B]">/hr — worker can accept or counter this offer</span>
                       </div>
                     ) : (
-                      <p className="text-xs text-[#3D3A33]">
+                      <p className="text-xs text-[#1E293B]">
                         Listed rate: <strong>₹{bookingWorker.hourlyRate}/hr</strong>. No middleman commission — the full amount goes to {bookingWorker.name.split(" ")[0]}.
                       </p>
                     )}
                   </div>
 
                   <div className="flex gap-3 mt-1">
-                    <button onClick={() => setBookingStep(1)} className="flex-1 border border-[#D8D2C5] text-[#1C1A16] font-medium py-3 rounded-xl hover:bg-[#EDE8DF] transition-colors">
+                    <button onClick={() => setBookingStep(1)} className="flex-1 border border-[#CBD9EE] text-[#0F1E3D] font-medium py-3 rounded-xl hover:bg-[#E6EEFB] transition-colors">
                       Back
                     </button>
                     <button
                       disabled={!bookingForm.address}
                       onClick={() => setBookingStep(3)}
-                      className="flex-1 bg-[#1B6B5E] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#155750] transition-colors"
+                      className="flex-1 bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1E3A8A] transition-colors"
                     >
                       Continue
                     </button>
@@ -2809,24 +2856,24 @@ export default function App() {
               {bookingStep === 3 && (
                 <div className="flex flex-col gap-4">
                   <h3 className="font-semibold text-lg" style={{ fontFamily: "'Fraunces', serif" }}>Review your booking</h3>
-                  <div className="bg-white border border-[#D8D2C5] rounded-xl divide-y divide-[#EDE8DF] text-sm">
-                    <div className="flex justify-between px-4 py-3"><span className="text-[#7A7469]">Worker</span><span className="font-medium">{bookingWorker.name}</span></div>
-                    <div className="flex justify-between px-4 py-3"><span className="text-[#7A7469]">Service</span><span className="font-medium">{bookingWorker.role}</span></div>
-                    <div className="flex justify-between px-4 py-3"><span className="text-[#7A7469]">Date & time</span><span className="font-medium">{bookingForm.date} · {bookingForm.time}</span></div>
-                    <div className="flex justify-between px-4 py-3"><span className="text-[#7A7469]">Address</span><span className="font-medium text-right max-w-[60%]">{bookingForm.address}</span></div>
+                  <div className="bg-white border border-[#CBD9EE] rounded-xl divide-y divide-[#E6EEFB] text-sm">
+                    <div className="flex justify-between px-4 py-3"><span className="text-[#64748B]">Worker</span><span className="font-medium">{bookingWorker.name}</span></div>
+                    <div className="flex justify-between px-4 py-3"><span className="text-[#64748B]">Service</span><span className="font-medium">{bookingWorker.role}</span></div>
+                    <div className="flex justify-between px-4 py-3"><span className="text-[#64748B]">Date & time</span><span className="font-medium">{bookingForm.date} · {bookingForm.time}</span></div>
+                    <div className="flex justify-between px-4 py-3"><span className="text-[#64748B]">Address</span><span className="font-medium text-right max-w-[60%]">{bookingForm.address}</span></div>
                     <div className="flex justify-between px-4 py-3">
-                      <span className="text-[#7A7469]">Rate</span>
-                      <span className="font-semibold text-[#1B6B5E]">
+                      <span className="text-[#64748B]">Rate</span>
+                      <span className="font-semibold text-[#1D4ED8]">
                         ₹{bookingForm.useCustomRate ? bookingForm.proposedRate : bookingWorker.hourlyRate}/hr
-                        {bookingForm.useCustomRate && <span className="text-xs text-[#D97840] ml-1">(proposed)</span>}
+                        {bookingForm.useCustomRate && <span className="text-xs text-[#0EA5E9] ml-1">(proposed)</span>}
                       </span>
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <button onClick={() => setBookingStep(2)} className="flex-1 border border-[#D8D2C5] text-[#1C1A16] font-medium py-3 rounded-xl hover:bg-[#EDE8DF] transition-colors">
+                    <button onClick={() => setBookingStep(2)} className="flex-1 border border-[#CBD9EE] text-[#0F1E3D] font-medium py-3 rounded-xl hover:bg-[#E6EEFB] transition-colors">
                       Back
                     </button>
-                    <button onClick={() => setBookingStep(4)} className="flex-1 bg-[#D97840] text-white font-semibold py-3 rounded-xl hover:bg-[#C0652F] transition-colors">
+                    <button onClick={() => setBookingStep(4)} className="flex-1 bg-[#0EA5E9] text-white font-semibold py-3 rounded-xl hover:bg-[#0284C7] transition-colors">
                       Continue to Payment
                     </button>
                   </div>
@@ -2837,9 +2884,9 @@ export default function App() {
               {bookingStep === 4 && (
                 <div className="flex flex-col gap-4">
                   <h3 className="font-semibold text-lg" style={{ fontFamily: "'Fraunces', serif" }}>Payment</h3>
-                  <div className="bg-white border border-[#D8D2C5] rounded-xl px-4 py-3 flex justify-between text-sm">
-                    <span className="text-[#7A7469]">Amount due</span>
-                    <span className="font-semibold text-[#1B6B5E]">₹{bookingForm.useCustomRate ? bookingForm.proposedRate : bookingWorker.hourlyRate}/hr</span>
+                  <div className="bg-white border border-[#CBD9EE] rounded-xl px-4 py-3 flex justify-between text-sm">
+                    <span className="text-[#64748B]">Amount due</span>
+                    <span className="font-semibold text-[#1D4ED8]">₹{bookingForm.useCustomRate ? bookingForm.proposedRate : bookingWorker.hourlyRate}/hr</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     {([
@@ -2851,7 +2898,7 @@ export default function App() {
                         key={m.id}
                         onClick={() => setBookingForm({ ...bookingForm, paymentMethod: m.id })}
                         className={`flex flex-col items-center gap-1 py-3 rounded-xl border text-sm font-medium transition-colors ${
-                          bookingForm.paymentMethod === m.id ? "bg-[#E8F4F1] border-[#1B6B5E] text-[#1B6B5E]" : "bg-white border-[#D8D2C5] text-[#3D3A33]"
+                          bookingForm.paymentMethod === m.id ? "bg-[#E4EEFC] border-[#1D4ED8] text-[#1D4ED8]" : "bg-white border-[#CBD9EE] text-[#1E293B]"
                         }`}
                       >
                         <span className="text-lg">{m.icon}</span>
@@ -2859,12 +2906,12 @@ export default function App() {
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-[#7A7469]">Payment is held securely and released to the worker once you confirm the job is done. An invoice is generated after payment.</p>
+                  <p className="text-xs text-[#64748B]">Payment is held securely and released to the worker once you confirm the job is done. An invoice is generated after payment.</p>
                   <div className="flex gap-3">
-                    <button onClick={() => setBookingStep(3)} className="flex-1 border border-[#D8D2C5] text-[#1C1A16] font-medium py-3 rounded-xl hover:bg-[#EDE8DF] transition-colors">
+                    <button onClick={() => setBookingStep(3)} className="flex-1 border border-[#CBD9EE] text-[#0F1E3D] font-medium py-3 rounded-xl hover:bg-[#E6EEFB] transition-colors">
                       Back
                     </button>
-                    <button onClick={confirmBooking} className="flex-1 bg-[#1B6B5E] text-white font-semibold py-3 rounded-xl hover:bg-[#155750] transition-colors">
+                    <button onClick={confirmBooking} className="flex-1 bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl hover:bg-[#1E3A8A] transition-colors">
                       Pay & Confirm
                     </button>
                   </div>
@@ -2874,16 +2921,16 @@ export default function App() {
               {/* Step 5: Success */}
               {bookingStep === 5 && (
                 <div className="flex flex-col items-center text-center gap-3 py-4">
-                  <div className="w-16 h-16 rounded-full bg-[#E8F4F1] text-[#1B6B5E] flex items-center justify-center text-3xl">✓</div>
+                  <div className="w-16 h-16 rounded-full bg-[#E4EEFC] text-[#1D4ED8] flex items-center justify-center text-3xl">✓</div>
                   <h3 className="font-semibold text-xl" style={{ fontFamily: "'Fraunces', serif" }}>Booking confirmed & paid!</h3>
-                  <p className="text-sm text-[#7A7469] max-w-xs">
+                  <p className="text-sm text-[#64748B] max-w-xs">
                     {bookingWorker.name} has been notified for {bookingForm.date} at {bookingForm.time}. Booking ID:
                   </p>
-                  <div className="bg-[#F7F2E9] border border-[#D8D2C5] rounded-lg px-4 py-2 font-mono text-sm font-semibold">{bookingId}</div>
-                  <button onClick={downloadInvoice} className="w-full border border-[#1B6B5E] text-[#1B6B5E] font-semibold py-2.5 rounded-xl hover:bg-[#E8F4F1] transition-colors">
+                  <div className="bg-[#F3F7FE] border border-[#CBD9EE] rounded-lg px-4 py-2 font-mono text-sm font-semibold">{bookingId}</div>
+                  <button onClick={downloadInvoice} className="w-full border border-[#1D4ED8] text-[#1D4ED8] font-semibold py-2.5 rounded-xl hover:bg-[#E4EEFC] transition-colors">
                     📄 Download Invoice
                   </button>
-                  <button onClick={closeBooking} className="w-full bg-[#1B6B5E] text-white font-semibold py-3 rounded-xl hover:bg-[#155750] transition-colors">
+                  <button onClick={closeBooking} className="w-full bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl hover:bg-[#1E3A8A] transition-colors">
                     Done
                   </button>
                 </div>
@@ -2896,21 +2943,21 @@ export default function App() {
       {/* ── SIGN IN MODAL ── */}
       {showSignIn && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={closeSignIn}>
-          <div className="bg-[#FDFAF4] rounded-3xl max-w-sm w-full border border-[#D8D2C5] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#D8D2C5]">
+          <div className="bg-[#FFFFFF] rounded-3xl max-w-sm w-full border border-[#CBD9EE] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#CBD9EE]">
               <div>
                 <h3 className="font-semibold text-lg" style={{ fontFamily: "'Fraunces', serif" }}>
                   {signInStep === 2 ? t("welcomeExclaim") : t("welcomeBack")}
                 </h3>
                 {signInStep === 1 && (
-                  <p className="text-xs text-[#7A7469] mt-0.5">
+                  <p className="text-xs text-[#64748B] mt-0.5">
                     {authMode === "signup"
                       ? (authRole === "worker" ? t("createWorkerAccount") : t("createCustomerAccount"))
                       : (authRole === "worker" ? t("logInAsWorker") : t("logInToAccount"))}
                   </p>
                 )}
               </div>
-              <button onClick={closeSignIn} className="text-[#7A7469] hover:text-[#1C1A16] text-lg leading-none">✕</button>
+              <button onClick={closeSignIn} className="text-[#64748B] hover:text-[#0F1E3D] text-lg leading-none">✕</button>
             </div>
 
             {signInStep === 1 && (
@@ -2922,42 +2969,42 @@ export default function App() {
                 <button
                   onClick={signInWithGoogle}
                   disabled={authLoading}
-                  className="flex items-center justify-center gap-2 border border-[#D8D2C5] bg-white text-[#1C1A16] font-semibold py-3 rounded-xl hover:bg-[#EDE8DF] transition-colors disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 border border-[#CBD9EE] bg-white text-[#0F1E3D] font-semibold py-3 rounded-xl hover:bg-[#E6EEFB] transition-colors disabled:opacity-50"
                 >
                   <span className="text-base font-bold" style={{ color: "#4285F4" }}>G</span> {t("continueWithGoogle")}
                 </button>
 
-                <div className="flex items-center gap-3 text-xs text-[#7A7469]">
-                  <div className="flex-1 h-px bg-[#D8D2C5]" /> {t("orEmail")} <div className="flex-1 h-px bg-[#D8D2C5]" />
+                <div className="flex items-center gap-3 text-xs text-[#64748B]">
+                  <div className="flex-1 h-px bg-[#CBD9EE]" /> {t("orEmail")} <div className="flex-1 h-px bg-[#CBD9EE]" />
                 </div>
 
                 {authMode === "signup" && (
                   <div>
-                    <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">{t("fullName")}</label>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">{t("fullName")}</label>
                     <input
                       type="text"
                       value={signInName}
                       onChange={(e) => setSignInName(e.target.value)}
                       placeholder="Your full name"
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                     />
                   </div>
                 )}
                 <div>
-                  <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">{t("email")}</label>
+                  <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">{t("email")}</label>
                   <input
                     type="email"
                     value={signInEmail}
                     onChange={(e) => setSignInEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                    className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                   />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-sm font-semibold text-[#1C1A16]">{t("password")}</label>
+                    <label className="text-sm font-semibold text-[#0F1E3D]">{t("password")}</label>
                     {authMode === "signin" && (
-                      <button type="button" onClick={() => setAuthError(t("forgotPasswordHint"))} className="text-xs font-semibold text-[#1B6B5E] hover:underline">
+                      <button type="button" onClick={() => setAuthError(t("forgotPasswordHint"))} className="text-xs font-semibold text-[#1D4ED8] hover:underline">
                         {t("forgotPassword")}
                       </button>
                     )}
@@ -2967,19 +3014,19 @@ export default function App() {
                     value={signInPassword}
                     onChange={(e) => setSignInPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                    className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                   />
                 </div>
                 <button
                   disabled={authLoading || !signInEmail.trim() || signInPassword.trim().length < 6 || (authMode === "signup" && !signInName.trim())}
                   onClick={submitEmailAuth}
-                  className="bg-[#1B6B5E] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#155750] transition-colors"
+                  className="bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1E3A8A] transition-colors"
                 >
                   {authLoading ? "Please wait…" : authMode === "signup" ? t("signUpBtn") : t("signInBtn")}
                 </button>
                 <button
                   onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setAuthError(""); }}
-                  className="text-sm text-center text-[#1B6B5E] font-semibold hover:underline"
+                  className="text-sm text-center text-[#1D4ED8] font-semibold hover:underline"
                 >
                   {authMode === "signup" ? t("alreadyHaveAccount") : t("needAccount")}
                 </button>
@@ -2988,9 +3035,9 @@ export default function App() {
 
             {signInStep === 2 && (
               <div className="p-6 flex flex-col items-center text-center gap-2 py-8">
-                <div className="w-14 h-14 rounded-full bg-[#E8F4F1] text-[#1B6B5E] flex items-center justify-center text-2xl">✓</div>
+                <div className="w-14 h-14 rounded-full bg-[#E4EEFC] text-[#1D4ED8] flex items-center justify-center text-2xl">✓</div>
                 <p className="font-semibold">Signed in successfully!</p>
-                <p className="text-sm text-[#7A7469]">{currentUser?.name}</p>
+                <p className="text-sm text-[#64748B]">{currentUser?.name}</p>
               </div>
             )}
           </div>
@@ -3000,72 +3047,136 @@ export default function App() {
       {/* ── JOIN AS WORKER MODAL ── */}
       {showJoinWorker && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={closeJoinWorker}>
-          <div className="bg-[#FDFAF4] rounded-3xl max-w-md w-full border border-[#D8D2C5] shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#D8D2C5]">
+          <div className="bg-[#FFFFFF] rounded-3xl max-w-md w-full border border-[#CBD9EE] shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#CBD9EE]">
               <h3 className="font-semibold text-lg" style={{ fontFamily: "'Fraunces', serif" }}>Join the cooperative</h3>
-              <button onClick={closeJoinWorker} className="text-[#7A7469] hover:text-[#1C1A16] text-lg leading-none">✕</button>
+              <button onClick={closeJoinWorker} className="text-[#64748B] hover:text-[#0F1E3D] text-lg leading-none">✕</button>
             </div>
             <div className="p-6">
               {joinStep === 1 && (
                 <div className="flex flex-col gap-4">
-                  <p className="text-sm text-[#7A7469]">Fill in your details — our cooperative team will verify and onboard you within 3 working days.</p>
+                  <p className="text-sm text-[#64748B]">Fill in your details — our cooperative team will verify and onboard you within 3 working days.</p>
+
+                  {/* Profile photo upload */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 rounded-full border-2 border-dashed border-[#CBD9EE] bg-[#F3F7FE] flex items-center justify-center overflow-hidden shrink-0">
+                      {joinPhotoPreview ? (
+                        <img src={joinPhotoPreview} alt="Profile preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-2xl text-[#64748B]">👤</span>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Profile photo</label>
+                      <label className="inline-block cursor-pointer text-xs font-semibold bg-[#E4EEFC] text-[#1D4ED8] px-3 py-2 rounded-lg hover:bg-[#DCE7F8] transition-colors">
+                        {joinPhotoName ? "Change photo" : "Upload photo"}
+                        <input type="file" accept="image/*" onChange={handleJoinPhotoChange} className="hidden" />
+                      </label>
+                      {joinPhotoName && <p className="text-xs text-[#64748B] mt-1 truncate max-w-[10rem]">{joinPhotoName}</p>}
+                    </div>
+                  </div>
+
                   <div>
-                    <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">Full name</label>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Full name</label>
                     <input
                       type="text"
                       value={joinForm.name}
                       onChange={(e) => setJoinForm({ ...joinForm, name: e.target.value })}
                       placeholder="Your full name"
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">Mobile number</label>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Email address</label>
+                    <input
+                      type="email"
+                      value={joinForm.email}
+                      onChange={(e) => setJoinForm({ ...joinForm, email: e.target.value })}
+                      placeholder="you@example.com"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Mobile number</label>
                     <input
                       type="tel"
                       value={joinForm.phone}
                       onChange={(e) => setJoinForm({ ...joinForm, phone: e.target.value })}
                       placeholder="10-digit mobile number"
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">Service you offer</label>
-                    <select
-                      value={joinForm.category}
-                      onChange={(e) => setJoinForm({ ...joinForm, category: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
-                    >
-                      {serviceCategories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>{cat.label}</option>
-                      ))}
-                    </select>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Skill</label>
+                      <select
+                        value={joinForm.category}
+                        onChange={(e) => setJoinForm({ ...joinForm, category: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                      >
+                        {serviceCategories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>{cat.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Age</label>
+                      <input
+                        type="number"
+                        min={16}
+                        max={80}
+                        value={joinForm.age}
+                        onChange={(e) => setJoinForm({ ...joinForm, age: e.target.value })}
+                        placeholder="e.g. 28"
+                        className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">Years of experience</label>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Work experience (years)</label>
                     <input
                       type="number"
                       value={joinForm.experience}
                       onChange={(e) => setJoinForm({ ...joinForm, experience: e.target.value })}
                       placeholder="e.g. 3"
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-[#1C1A16] mb-1.5 block">Skill certificate / ID reference</label>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Address</label>
+                    <textarea
+                      value={joinForm.address}
+                      onChange={(e) => setJoinForm({ ...joinForm, address: e.target.value })}
+                      placeholder="House no., street, area, city, PIN code"
+                      rows={2}
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30 resize-none"
+                    />
+                  </div>
+
+                  {/* Dedicated certificate upload slot */}
+                  <div>
+                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Skill certificate</label>
+                    <label className="flex items-center gap-3 w-full px-4 py-3 rounded-lg border-2 border-dashed border-[#CBD9EE] bg-[#F3F7FE] cursor-pointer hover:border-[#1D4ED8]/50 transition-colors">
+                      <span className="text-xl">📄</span>
+                      <span className="text-sm text-[#64748B] truncate">
+                        {joinCertificateName || "Upload certificate (PDF or image)"}
+                      </span>
+                      <input type="file" accept="image/*,.pdf" onChange={handleJoinCertificateChange} className="hidden" />
+                    </label>
                     <input
                       type="text"
-                      value={joinForm.certificate}
-                      onChange={(e) => setJoinForm({ ...joinForm, certificate: e.target.value })}
-                      placeholder="Certificate number, Aadhaar last 4 digits, etc."
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+                      value={joinForm.certificateNote}
+                      onChange={(e) => setJoinForm({ ...joinForm, certificateNote: e.target.value })}
+                      placeholder="Certificate number, Aadhaar last 4 digits, etc. (optional)"
+                      className="w-full mt-2 px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                     />
-                    <p className="text-xs text-[#7A7469] mt-1">Used for digital verification of your skills and identity.</p>
+                    <p className="text-xs text-[#64748B] mt-1">Used for digital verification of your skills and identity.</p>
                   </div>
+
                   <button
                     disabled={!joinForm.name || joinForm.phone.trim().length < 10}
                     onClick={submitJoinWorker}
-                    className="mt-1 bg-[#D97840] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#C0652F] transition-colors"
+                    className="mt-1 bg-[#0EA5E9] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0284C7] transition-colors"
                   >
                     Submit Application
                   </button>
@@ -3073,13 +3184,13 @@ export default function App() {
               )}
               {joinStep === 2 && (
                 <div className="flex flex-col items-center text-center gap-3 py-4">
-                  <div className="w-16 h-16 rounded-full bg-[#E8F4F1] text-[#1B6B5E] flex items-center justify-center text-3xl">✓</div>
+                  <div className="w-16 h-16 rounded-full bg-[#E4EEFC] text-[#1D4ED8] flex items-center justify-center text-3xl">✓</div>
                   <h3 className="font-semibold text-xl" style={{ fontFamily: "'Fraunces', serif" }}>Application submitted!</h3>
-                  <p className="text-sm text-[#7A7469] max-w-xs">
+                  <p className="text-sm text-[#64748B] max-w-xs">
                     Welcome to the process, {joinForm.name.split(" ")[0]}! Our digital verification is running now — you're listed as searchable already, and a "Verified" badge appears on your profile within moments.
                   </p>
-                  <div className="bg-[#F7F2E9] border border-[#D8D2C5] rounded-lg px-4 py-2 font-mono text-sm font-semibold">{joinRefId}</div>
-                  <button onClick={closeJoinWorker} className="mt-3 w-full bg-[#1B6B5E] text-white font-semibold py-3 rounded-xl hover:bg-[#155750] transition-colors">
+                  <div className="bg-[#F3F7FE] border border-[#CBD9EE] rounded-lg px-4 py-2 font-mono text-sm font-semibold">{joinRefId}</div>
+                  <button onClick={closeJoinWorker} className="mt-3 w-full bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl hover:bg-[#1E3A8A] transition-colors">
                     Done
                   </button>
                 </div>
@@ -3092,19 +3203,19 @@ export default function App() {
       {/* ── CHATBOT ── */}
       <button
         onClick={() => setChatOpen(!chatOpen)}
-        className="fixed bottom-5 right-5 z-[90] w-14 h-14 rounded-full bg-[#1B6B5E] text-white text-2xl shadow-xl hover:bg-[#155750] transition-colors flex items-center justify-center"
+        className="fixed bottom-5 right-5 z-[90] w-14 h-14 rounded-full bg-[#1D4ED8] text-white text-2xl shadow-xl hover:bg-[#1E3A8A] transition-colors flex items-center justify-center"
         aria-label="Open support chat"
       >
         {chatOpen ? "✕" : "💬"}
       </button>
 
       {chatOpen && (
-        <div className="fixed bottom-24 right-5 z-[90] w-[90vw] max-w-sm h-[28rem] bg-[#FDFAF4] border border-[#D8D2C5] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-          <div className="bg-[#1B6B5E] text-white px-4 py-3 flex items-center gap-3">
+        <div className="fixed bottom-24 right-5 z-[90] w-[90vw] max-w-sm h-[28rem] bg-[#FFFFFF] border border-[#CBD9EE] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+          <div className="bg-[#1D4ED8] text-white px-4 py-3 flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm">KS</div>
             <div>
               <div className="font-semibold text-sm">Kaamsetu Assistant</div>
-              <div className="text-xs text-[#A8D5CB]">Usually replies instantly</div>
+              <div className="text-xs text-[#BFDBFE]">Usually replies instantly</div>
             </div>
           </div>
 
@@ -3112,14 +3223,14 @@ export default function App() {
             {chatMessages.map((msg, i) => (
               <div key={i} className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
                 msg.sender === "bot"
-                  ? "bg-white border border-[#D8D2C5] self-start rounded-bl-sm"
-                  : "bg-[#1B6B5E] text-white self-end rounded-br-sm"
+                  ? "bg-white border border-[#CBD9EE] self-start rounded-bl-sm"
+                  : "bg-[#1D4ED8] text-white self-end rounded-br-sm"
               }`}>
                 {msg.text}
               </div>
             ))}
             {chatTyping && (
-              <div className="bg-white border border-[#D8D2C5] self-start rounded-2xl rounded-bl-sm px-3 py-2 text-sm text-[#7A7469]">typing...</div>
+              <div className="bg-white border border-[#CBD9EE] self-start rounded-2xl rounded-bl-sm px-3 py-2 text-sm text-[#64748B]">typing...</div>
             )}
           </div>
 
@@ -3128,7 +3239,7 @@ export default function App() {
               <button
                 key={q}
                 onClick={() => sendChatMessage(q)}
-                className="shrink-0 text-xs font-medium bg-white border border-[#D8D2C5] text-[#3D3A33] px-3 py-1.5 rounded-full hover:border-[#1B6B5E] transition-colors"
+                className="shrink-0 text-xs font-medium bg-white border border-[#CBD9EE] text-[#1E293B] px-3 py-1.5 rounded-full hover:border-[#1D4ED8] transition-colors"
               >
                 {q}
               </button>
@@ -3137,16 +3248,16 @@ export default function App() {
 
           <form
             onSubmit={(e) => { e.preventDefault(); sendChatMessage(); }}
-            className="border-t border-[#D8D2C5] p-3 flex gap-2"
+            className="border-t border-[#CBD9EE] p-3 flex gap-2"
           >
             <input
               type="text"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               placeholder="Type a message..."
-              className="flex-1 px-3 py-2 rounded-lg border border-[#D8D2C5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B5E]/30"
+              className="flex-1 px-3 py-2 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
             />
-            <button type="submit" className="bg-[#1B6B5E] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#155750] transition-colors">
+            <button type="submit" className="bg-[#1D4ED8] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#1E3A8A] transition-colors">
               Send
             </button>
           </form>
