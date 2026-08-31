@@ -3669,8 +3669,14 @@ export default function App() {
                           {/* Accused member's profile, so the Federation has everything on
                               hand to investigate without hunting through other tabs. */}
                           <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm bg-black/20 rounded-lg p-4">
+                            <div className="flex justify-between sm:block sm:col-span-2">
+                              <span className="text-white/50 text-xs uppercase tracking-wide">Filed by ({c.filedByRole})</span>
+                              <div className="sm:mt-0.5 break-all">
+                                {c.filedByName}{c.filedByEmail ? ` — ${c.filedByEmail}` : " — no email on file"}
+                              </div>
+                            </div>
                             <div className="flex justify-between sm:block">
-                              <span className="text-white/50 text-xs uppercase tracking-wide">Email</span>
+                              <span className="text-white/50 text-xs uppercase tracking-wide">Accused ({c.againstRole}) email</span>
                               <div className="sm:mt-0.5 break-all">{c.againstEmail || accusedWorker?.email || "—"}</div>
                             </div>
                             {accusedWorker && (
