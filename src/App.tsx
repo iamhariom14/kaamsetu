@@ -752,7 +752,7 @@ function getBotReply(message: string, chatLang: ChatLang = "en"): string {
       return "आप अपनी बुकिंग की स्थिति 'My Bookings' से कभी भी ट्रैक कर सकते हैं। आपका कामगार आने से पहले आपको संदेश भी भेजेगा। 📍";
     }
     if (isComplaintIntent(message, chatLang)) {
-      return "यह सुनकर खेद है। कृपया कुछ शब्दों में बताएं कि क्या हुआ — हमारी सहकारी सहायता टीम हर शिकायत की समीक्षा 24 घंटों के भीतर करती है, और सुरक्षा से जुड़ी चिंताओं को तुरंत आगे बढ़ाया जाता है।";
+      return "यह सुनकर खेद है। आपको क्या समस्या हुई? कृपया नीचे टाइप करके बताएं — मैं इसे तुरंत सहकारी समिति (Federation) के पास भेज दूंगा, हमारी टीम 24 घंटों के भीतर इसकी समीक्षा करेगी।";
     }
     if (m.includes("feedback") || m.includes("review") || m.includes("suggest") || m.includes("फीडबैक") || m.includes("सुझाव")) {
       return "साझा करने के लिए धन्यवाद! ऐसी प्रतिक्रिया हमारे कामगार-सदस्यों को बेहतर बनाने में मदद करती है। आप हर पूरी हुई बुकिंग के बाद स्टार रेटिंग भी दे सकते हैं। ⭐";
@@ -775,7 +775,7 @@ function getBotReply(message: string, chatLang: ChatLang = "en"): string {
     return "You can track your booking status anytime from 'My Bookings'. Your worker will also message you before arrival. 📍";
   }
   if (isComplaintIntent(message, chatLang)) {
-    return "I'm sorry to hear that. Please describe what happened in a few words — our cooperative support team reviews every complaint within 24 hours, and safety concerns are escalated immediately.";
+    return "I'm sorry to hear that. What's the problem? Please type it below and I'll send it straight to the Federation — our cooperative team reviews every complaint within 24 hours.";
   }
   if (m.includes("feedback") || m.includes("review") || m.includes("suggest")) {
     return "Thank you for sharing! Feedback like this helps our worker-members improve. You can also leave a star rating after every completed booking. ⭐";
@@ -1467,20 +1467,36 @@ export default function App() {
         status: "open",
         createdAt: serverTimestamp(),
       };
-      addDoc(collection(db, "complaints"), complaint).catch((err) => console.error("Failed to file chatbot complaint:", err));
-      setTimeout(() => {
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            sender: "bot",
-            text:
-              chatLang === "hi"
-                ? "धन्यवाद। आपकी शिकायत सहकारी समिति (Federation) की Complaints सूची में भेज दी गई है — हमारी टीम इसे 24 घंटों में देखेगी। 🚩"
-                : "Thanks, I've filed this with the Federation's Complaints queue — our cooperative team will review it within 24 hours. 🚩",
-          },
-        ]);
-        setChatTyping(false);
-      }, 600);
+      // Wait for the write to actually succeed before telling the user it's
+      // filed — a fire-and-forget addDoc() would show a false "done!" even
+      // if Firestore silently rejected it (e.g. security rules).
+      addDoc(collection(db, "complaints"), complaint)
+        .then(() => {
+          setChatMessages((prev) => [
+            ...prev,
+            {
+              sender: "bot",
+              text:
+                chatLang === "hi"
+                  ? "धन्यवाद। आपकी शिकायत सहकारी समिति (Federation) की Complaints सूची में भेज दी गई है — हमारी टीम इसे 24 घंटों में देखेगी। 🚩"
+                  : "Thanks, I've filed this with the Federation's Complaints queue — our cooperative team will review it within 24 hours. 🚩",
+            },
+          ]);
+        })
+        .catch((err) => {
+          console.error("Failed to file chatbot complaint:", err);
+          setChatMessages((prev) => [
+            ...prev,
+            {
+              sender: "bot",
+              text:
+                chatLang === "hi"
+                  ? "माफ़ करें, आपकी शिकायत भेजने में कोई तकनीकी दिक्कत आ गई। कृपया 'किसी व्यक्ति से बात करें' चुनें या दोबारा कोशिश करें।"
+                  : "Sorry, something went wrong sending this to the Federation. Please try again, or tap 'Talk to a human' and our team will help directly.",
+            },
+          ]);
+        })
+        .finally(() => setChatTyping(false));
       return;
     }
 
