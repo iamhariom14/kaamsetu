@@ -14,6 +14,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
   query,
   where,
@@ -1090,6 +1091,11 @@ export default function App() {
   // not just the same browser tab.
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [seenNotifIds, setSeenNotifIds] = useState<Set<string>>(new Set());
+  // Requests/bookings the signed-in person has manually "cleared" from their
+  // own Incoming Requests / My Bookings list — purely a personal view filter
+  // (kept client-side, per session) so clearing your list never deletes the
+  // shared booking record or affects what the other side / admin sees.
+  const [clearedRequestIds, setClearedRequestIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!isSignedIn || !currentUser?.email) {
@@ -1702,8 +1708,13 @@ export default function App() {
       setIsSignedIn(true);
       applyUserRole(authRole);
       if (authMode === "signup" && authRole === "worker") {
-        redirectToWorkerOnboarding(name, email);
-        return;
+        // Skip onboarding if this Google account already has a completed
+        // worker profile (phone on file) from a previous sign-up.
+        const existingProfile = email ? allWorkers.find((w) => w.email && w.email === email && w.phone) : undefined;
+        if (!existingProfile) {
+          redirectToWorkerOnboarding(name, email);
+          return;
+        }
       }
       if (authRole === "worker") {
         saveWorkerAuthProfile(user.uid, name, email);
@@ -2013,6 +2024,24 @@ export default function App() {
     }
   }
 
+  // Wipes every notification for the signed-in person — removes them from
+  // Firestore (so they're gone for good, not just hidden) and clears the
+  // panel immediately rather than waiting for the snapshot round-trip.
+  function clearAllNotifications() {
+    if (myNotifications.length === 0) return;
+    const ids = myNotifications.map((n) => n.id);
+    setNotifications([]);
+    ids.forEach((id) => {
+      deleteDoc(doc(db, "notifications", id)).catch((err) => console.error("Failed to clear notification:", err));
+    });
+  }
+
+  // Removes a single booking/request card from this person's own list view
+  // only — see clearedRequestIds above.
+  function clearRequestFromView(id: string) {
+    setClearedRequestIds((prev) => new Set(prev).add(id));
+  }
+
   // Worker onboarding always requires a signed-in account first (so there's
   // no password field to fill in here — the account was already created,
   // or already existed, via the Sign In / Sign Up modal). If someone clicks
@@ -2026,6 +2055,16 @@ export default function App() {
       setAuthError("");
       setSignInStep(1);
       setShowSignIn(true);
+      return;
+    }
+    // Already a fully onboarded worker (profile has a phone number on file,
+    // meaning they finished the intake form before)? Skip straight to their
+    // dashboard instead of asking them to fill in the same details again.
+    const existingProfile = auth.currentUser.email
+      ? allWorkers.find((w) => w.email && w.email === auth.currentUser?.email && w.phone)
+      : undefined;
+    if (existingProfile) {
+      applyUserRole("worker");
       return;
     }
     setShowJoinWorker(true);
@@ -2134,6 +2173,10 @@ export default function App() {
   const myIncomingRequests = allRequests
     .filter((r) => (currentUser?.email && r.workerEmail ? r.workerEmail === currentUser.email : true))
     .sort((a, b) => Number(!!b.urgent) - Number(!!a.urgent));
+  // Same list, minus anything the worker has cleared from their own view —
+  // used only for what's actually rendered, so clearing a card never
+  // affects the stats above (jobs completed, earnings, pending count).
+  const visibleIncomingRequests = myIncomingRequests.filter((r) => !clearedRequestIds.has(String(r.id)));
   const acceptedJobs = myIncomingRequests.filter((r) => r.status === "accepted");
   // The signed-in worker's own profile — matched by the email they signed
   // up/joined with — used to show their real skill/experience/certificate
@@ -2143,6 +2186,7 @@ export default function App() {
   const totalEarnings = acceptedJobs.reduce((sum, r) => sum + (Number(r.rate) || 0), 0);
   const pendingRequestsCount = myIncomingRequests.filter((r) => r.status === "pending").length;
   const myBookings = allRequests.filter((r) => (currentUser?.email && r.customerEmail ? r.customerEmail === currentUser.email : r.customerName === currentUser?.name));
+  const visibleMyBookings = myBookings.filter((r) => !clearedRequestIds.has(String(r.id)));
 
   // AI Workforce Intelligence — forecasts demand per service category from
   // live booking activity and recommends where the cooperative should
@@ -2212,7 +2256,14 @@ export default function App() {
                   </button>
                   {notifPanelOpen && (
                     <div className="absolute right-0 top-11 w-80 bg-white border border-[#CBD9EE] rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto">
-                      <div className="px-4 py-3 border-b border-[#CBD9EE] font-semibold text-sm">{t("notifications")}</div>
+                      <div className="px-4 py-3 border-b border-[#CBD9EE] flex items-center justify-between gap-2">
+                        <span className="font-semibold text-sm">{t("notifications")}</span>
+                        {myNotifications.length > 0 && (
+                          <button onClick={clearAllNotifications} className="text-xs font-semibold text-[#64748B] hover:text-[#0F1E3D] hover:underline shrink-0">
+                            🗑 Clear all
+                          </button>
+                        )}
+                      </div>
                       {myNotifications.length === 0 ? (
                         <div className="px-4 py-6 text-sm text-[#64748B] text-center">{t("noNotifications")}</div>
                       ) : (
@@ -2361,7 +2412,7 @@ export default function App() {
 
       {/* ── LOGIN PAGE (shown first, before the rest of the app) ── */}
       {page === "login" && (
-        <section className="min-h-screen flex items-center justify-center px-5 py-16 bg-[#F3F7FE]">
+        <section className="min-h-screen flex items-center justify-center px-5 py-16 bg-[#F3F7FE] animate-page-in">
           <div className="w-full max-w-sm">
             <div className="flex flex-col items-center text-center mb-8">
               <div className="flex items-center gap-2 mb-6">
@@ -2450,7 +2501,7 @@ export default function App() {
       )}
 
       {page === "home" && (
-      <>
+      <div className="animate-page-in">
       {isSignedIn && userRole === "customer" && currentUser && (
         <div className="max-w-7xl mx-auto px-5 md:px-10 pt-6">
           <div className="bg-white border border-[#CBD9EE] rounded-2xl px-5 py-4 flex items-center gap-3">
@@ -2927,12 +2978,12 @@ export default function App() {
           </div>
         </div>
       </section>
-      </>
+      </div>
       )}
 
       {/* ── SERVICES LISTING PAGE ── */}
       {page === "services" && (
-        <section className="py-14 md:py-20">
+        <section className="py-14 md:py-20 animate-page-in">
           <div className="max-w-7xl mx-auto px-5 md:px-10">
             <button onClick={goHome} className="text-sm text-[#64748B] hover:text-[#0F1E3D] mb-6 flex items-center gap-1">← Back to home</button>
             <h2 className="text-4xl md:text-5xl font-semibold leading-tight mb-3" style={{ fontFamily: "'Fraunces', serif" }}>
@@ -2975,7 +3026,7 @@ export default function App() {
 
       {/* ── SERVICE DETAIL PAGE ── */}
       {page === "serviceDetail" && selectedCategory && (
-        <section className="py-14 md:py-20">
+        <section className="py-14 md:py-20 animate-page-in">
           <div className="max-w-6xl mx-auto px-5 md:px-10">
             <button onClick={goToServicesPage} className="text-sm text-[#64748B] hover:text-[#0F1E3D] mb-6 flex items-center gap-1">← Back to all services</button>
             {(() => {
@@ -3045,7 +3096,7 @@ export default function App() {
 
       {/* ── WORKER DASHBOARD PAGE ── */}
       {page === "workerDashboard" && (
-        <section className="pb-24 md:pb-28">
+        <section className="pb-24 md:pb-28 animate-page-in">
           <div className="max-w-5xl mx-auto px-5 md:px-10 py-14 md:py-20">
             <button onClick={goHome} className="text-sm text-[#64748B] hover:text-[#0F1E3D] mb-6 flex items-center gap-1">← Back to home</button>
 
@@ -3080,8 +3131,22 @@ export default function App() {
                   </div>
                 </div>
 
-                <h3 className="font-semibold text-xl mb-4" style={{ fontFamily: "'Fraunces', serif" }}>{t("incomingRequests")}</h3>
-                {myIncomingRequests.length === 0 ? (
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-xl" style={{ fontFamily: "'Fraunces', serif" }}>{t("incomingRequests")}</h3>
+                  {visibleIncomingRequests.some((r) => r.status !== "pending" && r.status !== "accepted") && (
+                    <button
+                      onClick={() => setClearedRequestIds((prev) => {
+                        const updated = new Set(prev);
+                        visibleIncomingRequests.forEach((r) => { if (r.status !== "pending" && r.status !== "accepted") updated.add(String(r.id)); });
+                        return updated;
+                      })}
+                      className="text-xs font-semibold text-[#64748B] hover:text-[#0F1E3D] hover:underline"
+                    >
+                      🗑 Clear finished
+                    </button>
+                  )}
+                </div>
+                {visibleIncomingRequests.length === 0 ? (
                   <div className="text-center py-12 text-[#64748B] bg-white border border-[#CBD9EE] rounded-xl">
                     <div className="text-3xl mb-2">✓</div>
                     No new requests
@@ -3089,7 +3154,7 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-4">
-                    {myIncomingRequests.map((req) => (
+                    {visibleIncomingRequests.map((req) => (
                       <div key={req.id} className={`bg-white border rounded-xl p-5 ${req.urgent && req.status === "pending" ? "border-red-400 ring-1 ring-red-200" : "border-[#CBD9EE]"}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -3112,14 +3177,21 @@ export default function App() {
                             )}
                             <div className="text-xs font-semibold text-[#1D4ED8] mt-1">₹{req.rate}/hr</div>
                           </div>
-                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
-                            req.status === "pending" ? "bg-[#EAF2FE] text-[#0EA5E9]" :
-                            req.status === "accepted" ? "bg-[#E4EEFC] text-[#1D4ED8]" :
-                            req.status === "completed" ? "bg-green-50 text-green-700" :
-                            "bg-red-50 text-red-600"
-                          }`}>
-                            {req.status === "pending" ? t("pending") : req.status === "accepted" ? t("accepted") : req.status === "completed" ? "Completed" : t("rejected")}
-                          </span>
+                          <div className="flex flex-col items-end gap-1.5 shrink-0">
+                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                              req.status === "pending" ? "bg-[#EAF2FE] text-[#0EA5E9]" :
+                              req.status === "accepted" ? "bg-[#E4EEFC] text-[#1D4ED8]" :
+                              req.status === "completed" ? "bg-green-50 text-green-700" :
+                              "bg-red-50 text-red-600"
+                            }`}>
+                              {req.status === "pending" ? t("pending") : req.status === "accepted" ? t("accepted") : req.status === "completed" ? "Completed" : t("rejected")}
+                            </span>
+                            {(req.status === "completed" || req.status === "rejected") && (
+                              <button onClick={() => clearRequestFromView(String(req.id))} className="text-[11px] text-[#64748B] hover:text-[#0F1E3D] hover:underline">
+                                ✕ Clear
+                              </button>
+                            )}
+                          </div>
                         </div>
                         {req.status === "pending" && (
                           <div className="flex gap-3 mt-4">
@@ -3441,7 +3513,7 @@ export default function App() {
 
       {/* ── WORK HISTORY PAGE (customer) ── */}
       {page === "workHistory" && (
-        <section className="py-14 md:py-20">
+        <section className="py-14 md:py-20 animate-page-in">
           <div className="max-w-4xl mx-auto px-5 md:px-10">
             <button onClick={goHome} className="text-sm text-[#64748B] hover:text-[#0F1E3D] mb-6 flex items-center gap-1">← Back to home</button>
             <div className="flex items-center gap-4 mb-8">
@@ -3456,11 +3528,25 @@ export default function App() {
                 <p className="text-sm text-[#64748B]">{currentUser?.email}</p>
               </div>
             </div>
-            {myBookings.length === 0 ? (
+            {visibleMyBookings.some((r) => r.status === "completed" || r.status === "rejected") && (
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={() => setClearedRequestIds((prev) => {
+                    const updated = new Set(prev);
+                    visibleMyBookings.forEach((r) => { if (r.status === "completed" || r.status === "rejected") updated.add(String(r.id)); });
+                    return updated;
+                  })}
+                  className="text-xs font-semibold text-[#64748B] hover:text-[#0F1E3D] hover:underline"
+                >
+                  🗑 Clear finished
+                </button>
+              </div>
+            )}
+            {visibleMyBookings.length === 0 ? (
               <div className="text-center py-12 text-[#64748B] bg-white border border-[#CBD9EE] rounded-xl">No bookings yet.</div>
             ) : (
               <div className="flex flex-col gap-4">
-                {myBookings.map((b) => (
+                {visibleMyBookings.map((b) => (
                   <div key={b.id} className="bg-white border border-[#CBD9EE] rounded-xl p-5 flex flex-col gap-3">
                     <div className="flex items-center justify-between gap-3">
                       <div>
@@ -3484,14 +3570,21 @@ export default function App() {
                           <div className="text-xs font-semibold text-[#1D4ED8] mt-1">Arriving in ~{b.etaMinutes} minutes</div>
                         )}
                       </div>
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
-                        b.status === "pending" ? "bg-[#EAF2FE] text-[#0EA5E9]" :
-                        b.status === "accepted" ? "bg-[#E4EEFC] text-[#1D4ED8]" :
-                        b.status === "completed" ? "bg-green-50 text-green-700" :
-                        "bg-red-50 text-red-600"
-                      }`}>
-                        {b.status === "pending" ? t("pending") : b.status === "accepted" ? t("accepted") : b.status === "completed" ? "Completed" : t("rejected")}
-                      </span>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                          b.status === "pending" ? "bg-[#EAF2FE] text-[#0EA5E9]" :
+                          b.status === "accepted" ? "bg-[#E4EEFC] text-[#1D4ED8]" :
+                          b.status === "completed" ? "bg-green-50 text-green-700" :
+                          "bg-red-50 text-red-600"
+                        }`}>
+                          {b.status === "pending" ? t("pending") : b.status === "accepted" ? t("accepted") : b.status === "completed" ? "Completed" : t("rejected")}
+                        </span>
+                        {(b.status === "completed" || b.status === "rejected") && (
+                          <button onClick={() => clearRequestFromView(String(b.id))} className="text-[11px] text-[#64748B] hover:text-[#0F1E3D] hover:underline">
+                            ✕ Clear
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {b.status === "completed" && (
                       <div className="border-t border-[#E6EEFB] pt-3 flex flex-col gap-2">
@@ -3516,7 +3609,7 @@ export default function App() {
       )}
 
       {page === "admin" && !isSignedIn && (
-        <section className="py-14 md:py-20 min-h-[60vh] bg-[#F3F7FE]">
+        <section className="py-14 md:py-20 min-h-[60vh] bg-[#F3F7FE] animate-page-in">
           <div className="max-w-4xl mx-auto px-5 md:px-10">
             <button onClick={goHome} className="text-sm text-[#64748B] hover:text-[#0F1E3D] mb-6 flex items-center gap-1">← {t("exitAdminPortal")}</button>
             <h2 className="text-3xl md:text-4xl font-semibold leading-tight mb-2" style={{ fontFamily: "'Fraunces', serif" }}>
@@ -3569,7 +3662,7 @@ export default function App() {
       )}
 
       {page === "admin" && isSignedIn && currentUser?.email !== FEDERATION_ADMIN_EMAIL && (
-        <section className="py-14 md:py-20 min-h-[60vh] bg-[#F3F7FE] flex items-center justify-center">
+        <section className="py-14 md:py-20 min-h-[60vh] bg-[#F3F7FE] flex items-center justify-center animate-page-in">
           <div className="max-w-sm bg-white border border-[#CBD9EE] rounded-2xl p-8 text-center">
             <div className="text-4xl mb-3">🤝</div>
             <div className="text-3xl font-semibold text-[#1D4ED8] mb-1" style={{ fontFamily: "'Fraunces', serif" }}>{communityWorkers.length}</div>
@@ -3587,7 +3680,7 @@ export default function App() {
         const platformRevenue = allRequests.reduce((s, r) => s + (Number(r.rate) || 0), 0);
         const openComplaints = complaints.filter((c) => c.status === "open");
         return (
-          <section className="py-14 md:py-20 bg-[#0F1E3D] text-white min-h-screen">
+          <section className="py-14 md:py-20 bg-[#0F1E3D] text-white min-h-screen animate-page-in">
             <div className="max-w-6xl mx-auto px-5 md:px-10">
               <div className="flex items-center justify-between gap-3 mb-8 flex-wrap">
                 <div>
@@ -3738,25 +3831,28 @@ export default function App() {
                       // boxes instead of mixing "filed by" and "accused"
                       // fields together.
                       const customerSide = c.filedByRole === "customer"
-                        ? { name: c.filedByName, email: c.filedByEmail, filedThis: true }
-                        : { name: c.againstName, email: c.againstEmail, filedThis: false };
+                        ? { name: c.filedByName, email: c.filedByEmail, filedThis: true, accused: false }
+                        : { name: c.againstName, email: c.againstEmail, filedThis: false, accused: true };
                       const workerSide = c.filedByRole === "worker"
-                        ? { name: c.filedByName, email: c.filedByEmail, filedThis: true }
-                        : { name: c.againstName, email: c.againstEmail, filedThis: false };
+                        ? { name: c.filedByName, email: c.filedByEmail, filedThis: true, accused: false }
+                        : { name: c.againstName, email: c.againstEmail, filedThis: false, accused: true };
                       const workerRecord = allWorkers.find((w) => w.email && workerSide.email && w.email === workerSide.email);
                       return (
                         <div key={c.id} className="bg-white/10 rounded-xl p-5 flex flex-col gap-4">
                           <div className="flex items-start justify-between gap-3 flex-wrap">
                             <div className="flex items-center gap-4">
                               {workerRecord ? (
-                                <img src={workerRecord.image} alt={workerRecord.name} className="w-14 h-14 rounded-lg object-cover" onError={(e) => handleImgError(e, personImgFallback(workerRecord.name, "D97840"))} />
+                                <img src={workerRecord.image} alt={workerRecord.name} className="w-14 h-14 rounded-lg object-cover ring-2 ring-red-400/50" onError={(e) => handleImgError(e, personImgFallback(workerRecord.name, "D97840"))} />
                               ) : (
-                                <div className="w-14 h-14 rounded-lg bg-white/10 flex items-center justify-center text-xl shrink-0">
+                                <div className="w-14 h-14 rounded-lg bg-red-500/10 ring-2 ring-red-400/50 flex items-center justify-center text-xl shrink-0">
                                   {c.againstRole === "worker" ? "🧑‍🔧" : "🧑"}
                                 </div>
                               )}
                               <div>
-                                <div className="font-semibold flex items-center gap-1.5">
+                                <div className="font-semibold flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-red-300 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-red-500/10 border border-red-400/30">
+                                    🚩 Accused
+                                  </span>
                                   {c.againstName}
                                   <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
                                     c.status === "open" ? "text-amber-300 bg-amber-500/10 border border-amber-400/30" :
@@ -3766,10 +3862,13 @@ export default function App() {
                                     {c.status === "open" ? "Needs review" : c.status === "resolved" ? "Resolved" : "Dismissed"}
                                   </span>
                                 </div>
-                                <div className="text-xs text-white/60">
-                                  Accused ({c.againstRole}) · Complaint by {c.filedByName} ({c.filedByRole})
+                                <div className="text-xs text-white/60 mt-0.5">
+                                  {c.againstRole === "worker" ? "🧑‍🔧 Worker" : "🧑 Customer"} being complained about
                                 </div>
-                                <div className="text-xs text-white/60">{c.service} · Booking #{c.bookingId}</div>
+                                <div className="text-xs text-blue-300/90 mt-0.5">
+                                  📝 Filed by {c.filedByName} ({c.filedByRole === "worker" ? "🧑‍🔧 worker" : "🧑 customer"})
+                                </div>
+                                <div className="text-xs text-white/60 mt-0.5">{c.service} · Booking #{c.bookingId}</div>
                               </div>
                             </div>
                             {c.status === "open" && (
@@ -3795,12 +3894,16 @@ export default function App() {
                               Federation never has to guess which details
                               belong to which person. */}
                           <div className="grid sm:grid-cols-2 gap-4">
-                            <div className="bg-black/20 rounded-lg p-4 text-sm flex flex-col gap-1.5">
+                            <div className={`rounded-lg p-4 text-sm flex flex-col gap-1.5 border-l-4 ${customerSide.accused ? "bg-red-500/10 border-red-400" : "bg-blue-500/10 border-blue-400"}`}>
                               <div className="flex items-center justify-between gap-2">
                                 <span className="text-white/50 text-xs uppercase tracking-wide font-semibold">🧑 Customer</span>
-                                {customerSide.filedThis && (
+                                {customerSide.accused ? (
+                                  <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full text-red-300 bg-red-500/10 border border-red-400/30 shrink-0">
+                                    🚩 Accused
+                                  </span>
+                                ) : (
                                   <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full text-blue-300 bg-blue-500/10 border border-blue-400/30 shrink-0">
-                                    Filed this complaint
+                                    📝 Filed this complaint
                                   </span>
                                 )}
                               </div>
@@ -3808,12 +3911,16 @@ export default function App() {
                               <div className="text-white/70 break-all">{customerSide.email || "No email on file"}</div>
                             </div>
 
-                            <div className="bg-black/20 rounded-lg p-4 text-sm flex flex-col gap-1.5">
+                            <div className={`rounded-lg p-4 text-sm flex flex-col gap-1.5 border-l-4 ${workerSide.accused ? "bg-red-500/10 border-red-400" : "bg-blue-500/10 border-blue-400"}`}>
                               <div className="flex items-center justify-between gap-2">
                                 <span className="text-white/50 text-xs uppercase tracking-wide font-semibold">🧑‍🔧 Worker</span>
-                                {workerSide.filedThis && (
+                                {workerSide.accused ? (
+                                  <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full text-red-300 bg-red-500/10 border border-red-400/30 shrink-0">
+                                    🚩 Accused
+                                  </span>
+                                ) : (
                                   <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full text-blue-300 bg-blue-500/10 border border-blue-400/30 shrink-0">
-                                    Filed this complaint
+                                    📝 Filed this complaint
                                   </span>
                                 )}
                               </div>
@@ -3919,9 +4026,9 @@ export default function App() {
 
       {/* ── BOOKING MODAL ── */}
       {bookingWorker && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={closeBooking}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 animate-modal-backdrop" onClick={closeBooking}>
           <div
-            className="bg-[#FFFFFF] rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-[#CBD9EE] shadow-2xl"
+            className="bg-[#FFFFFF] rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-[#CBD9EE] shadow-2xl animate-modal-pop"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-5 border-b border-[#CBD9EE]">
@@ -4202,8 +4309,8 @@ export default function App() {
 
       {/* ── SIGN IN MODAL ── */}
       {showSignIn && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={closeSignIn}>
-          <div className="bg-[#FFFFFF] rounded-3xl max-w-sm w-full border border-[#CBD9EE] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 animate-modal-backdrop" onClick={closeSignIn}>
+          <div className="bg-[#FFFFFF] rounded-3xl max-w-sm w-full border border-[#CBD9EE] shadow-2xl animate-modal-pop" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-5 border-b border-[#CBD9EE]">
               <div>
                 <h3 className="font-semibold text-lg" style={{ fontFamily: "'Fraunces', serif" }}>
@@ -4307,8 +4414,8 @@ export default function App() {
 
       {/* ── JOIN AS WORKER MODAL ── */}
       {showJoinWorker && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={closeJoinWorker}>
-          <div className="bg-[#FFFFFF] rounded-3xl max-w-md w-full border border-[#CBD9EE] shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 animate-modal-backdrop" onClick={closeJoinWorker}>
+          <div className="bg-[#FFFFFF] rounded-3xl max-w-md w-full border border-[#CBD9EE] shadow-2xl max-h-[90vh] overflow-y-auto animate-modal-pop" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-5 border-b border-[#CBD9EE]">
               <h3 className="font-semibold text-lg" style={{ fontFamily: "'Fraunces', serif" }}>Join the cooperative</h3>
               <button onClick={closeJoinWorker} className="text-[#64748B] hover:text-[#0F1E3D] text-lg leading-none">✕</button>
@@ -4510,8 +4617,8 @@ export default function App() {
 
       {/* ── JOIN AS CUSTOMER MODAL ── */}
       {showJoinCustomer && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={closeJoinCustomer}>
-          <div className="bg-[#FFFFFF] rounded-3xl max-w-md w-full border border-[#CBD9EE] shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 animate-modal-backdrop" onClick={closeJoinCustomer}>
+          <div className="bg-[#FFFFFF] rounded-3xl max-w-md w-full border border-[#CBD9EE] shadow-2xl max-h-[90vh] overflow-y-auto animate-modal-pop" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-5 border-b border-[#CBD9EE]">
               <h3 className="font-semibold text-lg" style={{ fontFamily: "'Fraunces', serif" }}>Create your customer account</h3>
               <button onClick={closeJoinCustomer} className="text-[#64748B] hover:text-[#0F1E3D] text-lg leading-none">✕</button>
@@ -4626,8 +4733,8 @@ export default function App() {
       {/* ── FEEDBACK MODAL — same form for customer and worker, shown once a
            job's status is "completed" ── */}
       {feedbackTarget && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={closeFeedback}>
-          <div className="bg-white rounded-3xl max-w-md w-full border border-[#CBD9EE] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 animate-modal-backdrop" onClick={closeFeedback}>
+          <div className="bg-white rounded-3xl max-w-md w-full border border-[#CBD9EE] shadow-2xl animate-modal-pop" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-5 border-b border-[#CBD9EE]">
               <h3 className="font-semibold text-lg" style={{ fontFamily: "'Fraunces', serif" }}>
                 {feedbackTarget.role === "customer" ? "Rate your worker" : "Rate your customer"}
@@ -4678,8 +4785,8 @@ export default function App() {
 
       {/* ── FILE A COMPLAINT MODAL ── */}
       {complaintTarget && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={closeComplaint}>
-          <div className="bg-white rounded-3xl max-w-md w-full border border-[#CBD9EE] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 animate-modal-backdrop" onClick={closeComplaint}>
+          <div className="bg-white rounded-3xl max-w-md w-full border border-[#CBD9EE] shadow-2xl animate-modal-pop" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-5 border-b border-[#CBD9EE]">
               <h3 className="font-semibold text-lg" style={{ fontFamily: "'Fraunces', serif" }}>
                 🚩 File a complaint
