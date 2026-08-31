@@ -745,6 +745,30 @@ function isComplaintIntent(message: string, chatLang: ChatLang): boolean {
   return (m.includes("complaint") || m.includes("problem") || m.includes("issue")) && !m.includes("payment");
 }
 
+// Every real chatbot function (tracking a booking, filing a complaint,
+// leaving feedback, a payment dispute, or asking for a human) needs to know
+// WHO is asking — so all of them require a signed-in account. A bare "hi" /
+// "hello" greeting is the only thing that still works while signed out.
+function isFunctionalIntent(message: string, chatLang: ChatLang): boolean {
+  const m = message.toLowerCase();
+  if (chatLang === "hi") {
+    return (
+      m.includes("track") || m.includes("status") || m.includes("ट्रैक") || m.includes("स्टेटस") ||
+      isComplaintIntent(message, chatLang) ||
+      m.includes("feedback") || m.includes("review") || m.includes("suggest") || m.includes("फीडबैक") || m.includes("सुझाव") ||
+      m.includes("payment") || m.includes("refund") || m.includes("charge") || m.includes("money") || m.includes("भुगतान") || m.includes("पैसे") || m.includes("रिफंड") ||
+      m.includes("human") || m.includes("agent") || m.includes("call") || m.includes("support") || m.includes("व्यक्ति") || m.includes("सहायता") || m.includes("बात")
+    );
+  }
+  return (
+    m.includes("track") || m.includes("status") ||
+    isComplaintIntent(message, chatLang) ||
+    m.includes("feedback") || m.includes("review") || m.includes("suggest") ||
+    m.includes("payment") || m.includes("refund") || m.includes("charge") || m.includes("money") ||
+    m.includes("human") || m.includes("agent") || m.includes("call") || m.includes("support")
+  );
+}
+
 function getBotReply(message: string, chatLang: ChatLang = "en"): string {
   const m = message.toLowerCase();
   if (chatLang === "hi") {
@@ -1453,6 +1477,32 @@ export default function App() {
     if (!message) return;
     setChatMessages((prev) => [...prev, { sender: "user", text: message }]);
     setChatInput("");
+
+    // Every real function here (tracking, complaints, feedback, payments,
+    // talking to a human) needs to know who's asking — so require sign-in
+    // before touching any of them. A signed-out visitor is just told to
+    // sign in first; we also pop the sign-in form for them.
+    const isMidComplaintFlow = chatComplaintStage !== "idle";
+    if (!isSignedIn && (isMidComplaintFlow || isFunctionalIntent(message, chatLang))) {
+      setChatComplaintStage("idle");
+      setChatComplaintTarget(null);
+      setChatTyping(true);
+      setTimeout(() => {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            sender: "bot",
+            text:
+              chatLang === "hi"
+                ? "इसके लिए पहले साइन इन करना ज़रूरी है, ताकि हम आपकी बुकिंग और पहचान वेरिफ़ाई कर सकें। मैंने साइन-इन फॉर्म खोल दिया है — कृपया साइन इन करके दोबारा कोशिश करें। 🔐"
+                : "You'll need to sign in first so we can verify your booking and identity. I've opened the sign-in form — please sign in and try again. 🔐",
+          },
+        ]);
+        setChatTyping(false);
+      }, 400);
+      openSignIn(userRole ?? "customer");
+      return;
+    }
     const filedByRole: "customer" | "worker" = userRole ?? "customer";
 
     // Step 2 of the complaint flow: the bot just asked "which worker/
