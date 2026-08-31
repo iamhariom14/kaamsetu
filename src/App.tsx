@@ -1547,6 +1547,16 @@ export default function App() {
       setChatComplaintStage("idle");
       setChatComplaintTarget(null);
       setChatTyping(true);
+      // Filing this involves a real network write to Firestore (unlike the
+      // other canned replies, which are instant) — show something right
+      // away so it doesn't feel stuck while that write is in flight.
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: chatLang === "hi" ? "एक पल... इसे Federation को भेज रहा हूँ। ⏳" : "One moment — filing this with the Federation... ⏳",
+        },
+      ]);
       const complaint: Omit<Complaint, "id"> = {
         bookingId: `chatbot-${Date.now()}`,
         service: target?.service ? `${target.service} (via chatbot)` : "General complaint (via chatbot)",
@@ -1571,8 +1581,8 @@ export default function App() {
               sender: "bot",
               text:
                 chatLang === "hi"
-                  ? "धन्यवाद। आपकी शिकायत सहकारी समिति (Federation) की Complaints सूची में भेज दी गई है — हमारी टीम इसे 24 घंटों में देखेगी। 🚩"
-                  : "Thanks, I've filed this with the Federation's Complaints queue — our cooperative team will review it within 24 hours. 🚩",
+                  ? "हो गया ✅ आपकी शिकायत सहकारी समिति (Federation) की Complaints सूची में भेज दी गई है — हमारी टीम इसे 24 घंटों में देखेगी।"
+                  : "Done ✅ — I've filed this with the Federation's Complaints queue. Our cooperative team will review it within 24 hours.",
             },
           ]);
         })
