@@ -1012,16 +1012,36 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; photoURL: string | null } | null>(null);
   const [userRole, setUserRole] = useState<"customer" | "worker" | null>(null);
+  // Firebase's session restore is async — right after page load there's a
+  // brief window where no callback has fired yet, so we don't actually know
+  // yet whether anyone is signed in. Until this flips true, treat auth as
+  // "unknown" rather than assuming signed-out (which is what let
+  // "Join as Worker" render/click before a restored session had resolved).
+  const [authChecked, setAuthChecked] = useState(false);
 
   // If the browser still has a valid Firebase session (returning visitor),
   // skip straight past the login page instead of showing it every time.
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser({ name: user.displayName || user.email?.split("@")[0] || "Member", email: user.email || "", photoURL: user.photoURL });
         setIsSignedIn(true);
+        // Resolve their actual role from Firestore too (not just "signed
+        // in") so a restored worker session doesn't sit with userRole still
+        // null/stale.
+        try {
+          const workerSnap = await getDoc(doc(db, "workers", user.uid));
+          setUserRole(workerSnap.exists() ? "worker" : "customer");
+        } catch (err) {
+          console.error("Failed to resolve restored session's role:", err);
+        }
         setPage((prev) => (prev === "login" ? "home" : prev));
+      } else {
+        setCurrentUser(null);
+        setIsSignedIn(false);
+        setUserRole(null);
       }
+      setAuthChecked(true);
     });
     return () => unsubscribe();
   }, []);
@@ -2074,6 +2094,10 @@ export default function App() {
   // instead; they'll land back here automatically once that's done (see
   // redirectToWorkerOnboarding).
   function openJoinWorker() {
+    // Don't act on a stale "signed out" read — if Firebase hasn't told us
+    // yet whether a session is being restored, wait rather than risk
+    // treating a real (about-to-resolve) login as no-login.
+    if (!authChecked) return;
     if (!auth.currentUser) {
       setAuthMode("signup");
       setAuthRole("worker");
@@ -2257,7 +2281,7 @@ export default function App() {
           </div>
           <div className="hidden md:flex items-center gap-3">
             <div className="flex items-center gap-1 bg-[#E6EEFB] rounded-full p-1 mr-1" role="group" aria-label="Portal">
-              {!isSignedIn && (
+              {authChecked && !isSignedIn && (
                 <>
                   <button onClick={openJoinWorker} className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors bg-[#1D4ED8] text-white hover:bg-[#1E3A8A]">
                     {t("joinAsWorker")}
@@ -2384,7 +2408,7 @@ export default function App() {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-[#CBD9EE] bg-[#FFFFFF] px-5 py-4 flex flex-col gap-3 text-sm">
             <div className="flex items-center gap-1 bg-[#E6EEFB] rounded-full p-1 self-stretch" role="group" aria-label="Portal">
-              {!isSignedIn && (
+              {authChecked && !isSignedIn && (
                 <>
                   <button onClick={() => { setMobileMenuOpen(false); openJoinWorker(); }} className="flex-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors bg-[#1D4ED8] text-white">
                     {t("joinAsWorker")}
@@ -4967,3 +4991,4 @@ export default function App() {
     </div>
   );
 }
+
