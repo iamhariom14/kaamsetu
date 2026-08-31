@@ -11,6 +11,7 @@ import {
   collection,
   addDoc,
   doc,
+  getDoc,
   setDoc,
   updateDoc,
   onSnapshot,
@@ -936,7 +937,6 @@ export default function App() {
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [signInName, setSignInName] = useState("");
   const [signInEmail, setSignInEmail] = useState("");
-  const [signInPassword, setSignInPassword] = useState("");
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
@@ -1075,7 +1075,6 @@ export default function App() {
     hourlyRate: "",
     address: "",
     certificateNote: "",
-    password: "",
   });
   const [joinPhotoPreview, setJoinPhotoPreview] = useState(""); // data URL, local preview only
   const [joinPhotoName, setJoinPhotoName] = useState("");
@@ -1391,7 +1390,6 @@ export default function App() {
     setSignInStep(1);
     setSignInName("");
     setSignInEmail("");
-    setSignInPassword("");
     setAuthError("");
   }
   function closeSignIn() {
@@ -1464,46 +1462,77 @@ export default function App() {
     }
   }
 
+  // No password field is shown anywhere in the UI anymore — the person only
+  // ever types their email. Under the hood we still use Firebase's email/
+  // password auth (so the rest of the app — uid-keyed worker profiles,
+  // Firestore rules, etc. — needs no changes), but the "password" is derived
+  // from the email itself. That means typing the same email again always
+  // resolves to the same Firebase account, so the same profile just opens
+  // automatically — no form to refill, nothing to remember beyond the email.
+  function deriveEmailSecret(email: string): string {
+    const normalized = email.trim().toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < normalized.length; i++) {
+      hash = (hash * 31 + normalized.charCodeAt(i)) >>> 0;
+    }
+    return `ks-${hash.toString(36)}-${normalized.length}!Aa1`;
+  }
+
   async function submitEmailAuth() {
     if (authLoading) return;
-    if (!signInEmail.trim() || signInPassword.trim().length < 6) return;
-    if (authMode === "signup" && !signInName.trim()) return;
+    const email = signInEmail.trim();
+    if (!email) return;
     setAuthError("");
     setAuthLoading(true);
     try {
-      if (authMode === "signup") {
-        const cred = await createUserWithEmailAndPassword(auth, signInEmail.trim(), signInPassword);
-        if (signInName.trim()) {
-          await updateProfile(cred.user, { displayName: signInName.trim() });
+      const secret = deriveEmailSecret(email);
+      let cred;
+      let isNewAccount = false;
+      try {
+        // Same email as before → this succeeds and hands back the exact
+        // same account (and uid) as last time.
+        cred = await signInWithEmailAndPassword(auth, email, secret);
+      } catch (signInErr: unknown) {
+        const code = (signInErr as { code?: string })?.code || "";
+        if (code.includes("user-not-found") || code.includes("invalid-credential") || code.includes("wrong-password")) {
+          // First time seeing this email → create the account.
+          cred = await createUserWithEmailAndPassword(auth, email, secret);
+          isNewAccount = true;
+        } else {
+          throw signInErr;
         }
-        setCurrentUser({ name: signInName.trim() || "Member", email: cred.user.email || "", photoURL: cred.user.photoURL });
-      } else {
-        const cred = await signInWithEmailAndPassword(auth, signInEmail.trim(), signInPassword);
-        setCurrentUser({ name: cred.user.displayName || cred.user.email?.split("@")[0] || "Member", email: cred.user.email || "", photoURL: cred.user.photoURL });
       }
+      if (isNewAccount && signInName.trim()) {
+        await updateProfile(cred.user, { displayName: signInName.trim() });
+      }
+      const name = cred.user.displayName || signInName.trim() || email.split("@")[0] || "Member";
+      setCurrentUser({ name, email: cred.user.email || email, photoURL: cred.user.photoURL });
       setIsSignedIn(true);
-      applyUserRole(authRole);
-      if (authMode === "signup" && authRole === "worker") {
-        const name = auth.currentUser?.displayName || signInName.trim() || signInEmail.split("@")[0] || "Member";
-        const email = auth.currentUser?.email || signInEmail.trim();
-        redirectToWorkerOnboarding(name, email);
-        return;
+
+      // Returning workers already have a profile saved under their uid —
+      // detect that and send them straight to their dashboard instead of
+      // the onboarding form.
+      let resolvedRole: "customer" | "worker" = authRole;
+      if (!isNewAccount) {
+        try {
+          const workerSnap = await getDoc(doc(db, "workers", cred.user.uid));
+          resolvedRole = workerSnap.exists() ? "worker" : "customer";
+        } catch (err) {
+          console.error("Failed to check existing profile:", err);
+        }
       }
-      if (authRole === "worker") {
-        const uid = auth.currentUser?.uid;
-        const name = auth.currentUser?.displayName || signInName.trim() || signInEmail.split("@")[0] || "Member";
-        const email = auth.currentUser?.email || signInEmail.trim();
-        if (uid) saveWorkerAuthProfile(uid, name, email);
+      applyUserRole(resolvedRole);
+
+      if (isNewAccount && resolvedRole === "worker") {
+        redirectToWorkerOnboarding(name, cred.user.email || email);
+        return;
       }
       setSignInStep(2);
       setTimeout(() => setShowSignIn(false), 1000);
     } catch (err: unknown) {
       console.error(err);
       const code = (err as { code?: string })?.code || "";
-      if (code.includes("email-already-in-use")) setAuthError("An account already exists with this email. Try signing in instead.");
-      else if (code.includes("wrong-password") || code.includes("invalid-credential")) setAuthError("Incorrect email or password.");
-      else if (code.includes("user-not-found")) setAuthError("No account found with this email. Try creating one.");
-      else if (code.includes("weak-password")) setAuthError("Password should be at least 6 characters.");
+      if (code.includes("invalid-email")) setAuthError("Please enter a valid email address.");
       else setAuthError("Something went wrong. Please try again.");
     } finally {
       setAuthLoading(false);
@@ -1676,10 +1705,34 @@ export default function App() {
     }
   }
 
+  // Worker onboarding always requires a signed-in account first (so there's
+  // no password field to fill in here — the account was already created,
+  // or already existed, via the Sign In / Sign Up modal). If someone clicks
+  // "Join as Worker" while signed out, send them to sign up as a worker
+  // instead; they'll land back here automatically once that's done (see
+  // redirectToWorkerOnboarding).
   function openJoinWorker() {
+    if (!auth.currentUser) {
+      setAuthMode("signup");
+      setAuthRole("worker");
+      setAuthError("");
+      setSignInStep(1);
+      setShowSignIn(true);
+      return;
+    }
     setShowJoinWorker(true);
     setJoinStep(1);
-    setJoinForm({ name: "", email: "", phone: "", category: serviceCategories[0].id, age: "", experience: "", hourlyRate: "", address: "", certificateNote: "", password: "" });
+    setJoinForm({
+      name: auth.currentUser.displayName || "",
+      email: auth.currentUser.email || "",
+      phone: "",
+      category: serviceCategories[0].id,
+      age: "",
+      experience: "",
+      hourlyRate: "",
+      address: "",
+      certificateNote: "",
+    });
     setJoinPhotoPreview("");
     setJoinPhotoName("");
     setJoinCertificateName("");
@@ -1703,30 +1756,20 @@ export default function App() {
     const phone = joinForm.phone.trim();
     setJoinAuthError("");
 
-    // If the person got here without already being signed in for real
-    // (e.g. clicked "Join as Worker" straight from the navbar instead of
-    // Sign Up), this form doubles as their account creation — a real
-    // Firebase account is made here so they can actually log back into
-    // this exact profile later. If they're already signed in (came here
-    // via the Sign Up → onboarding redirect), we just reuse that account.
-    let uid = auth.currentUser?.uid;
+    // Getting here always means the person is already signed in — openJoinWorker
+    // sends anyone who isn't straight to the Sign Up modal first. So this just
+    // reuses that account; it never creates one itself.
+    const uid = auth.currentUser?.uid;
     if (!uid) {
-      if (joinForm.password.trim().length < 6) {
-        setJoinAuthError("Please set a password (at least 6 characters) so you can sign back into this profile later.");
-        return;
-      }
+      setJoinAuthError("Please sign in to continue.");
+      openJoinWorker();
+      return;
+    }
+    if (name && auth.currentUser && auth.currentUser.displayName !== name) {
       try {
-        const cred = await createUserWithEmailAndPassword(auth, email, joinForm.password.trim());
-        if (name) await updateProfile(cred.user, { displayName: name });
-        uid = cred.user.uid;
-      } catch (err: unknown) {
-        console.error("Failed to create worker account:", err);
-        const code = (err as { code?: string })?.code || "";
-        if (code.includes("email-already-in-use")) setJoinAuthError("An account already exists with this email. Please sign in instead, then apply from your dashboard.");
-        else if (code.includes("weak-password")) setJoinAuthError("Password should be at least 6 characters.");
-        else if (code.includes("invalid-email")) setJoinAuthError("Please enter a valid email address.");
-        else setJoinAuthError("Something went wrong creating your account. Please try again.");
-        return;
+        await updateProfile(auth.currentUser, { displayName: name });
+      } catch (err) {
+        console.error("Failed to update display name:", err);
       }
     }
 
@@ -2069,29 +2112,12 @@ export default function App() {
                     className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                   />
                 </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-sm font-semibold text-[#0F1E3D]">{t("password")}</label>
-                    {authMode === "signin" && (
-                      <button type="button" onClick={() => setAuthError(t("forgotPasswordHint"))} className="text-xs font-semibold text-[#1D4ED8] hover:underline">
-                        {t("forgotPassword")}
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    type="password"
-                    value={signInPassword}
-                    onChange={(e) => setSignInPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
-                  />
-                </div>
                 <button
-                  disabled={authLoading || !signInEmail.trim() || signInPassword.trim().length < 6 || (authMode === "signup" && !signInName.trim())}
+                  disabled={authLoading || !signInEmail.trim() || (authMode === "signup" && !signInName.trim())}
                   onClick={submitEmailAuth}
                   className="bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1E3A8A] transition-colors"
                 >
-                  {authLoading ? "Please wait…" : authMode === "signup" ? t("signUpBtn") : t("signInBtn")}
+                  {authLoading ? "Please wait…" : "Continue"}
                 </button>
               </div>
             </div>
@@ -3806,29 +3832,12 @@ export default function App() {
                     className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                   />
                 </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-sm font-semibold text-[#0F1E3D]">{t("password")}</label>
-                    {authMode === "signin" && (
-                      <button type="button" onClick={() => setAuthError(t("forgotPasswordHint"))} className="text-xs font-semibold text-[#1D4ED8] hover:underline">
-                        {t("forgotPassword")}
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    type="password"
-                    value={signInPassword}
-                    onChange={(e) => setSignInPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
-                  />
-                </div>
                 <button
-                  disabled={authLoading || !signInEmail.trim() || signInPassword.trim().length < 6 || (authMode === "signup" && !signInName.trim())}
+                  disabled={authLoading || !signInEmail.trim() || (authMode === "signup" && !signInName.trim())}
                   onClick={submitEmailAuth}
                   className="bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1E3A8A] transition-colors"
                 >
-                  {authLoading ? "Please wait…" : authMode === "signup" ? t("signUpBtn") : t("signInBtn")}
+                  {authLoading ? "Please wait…" : "Continue"}
                 </button>
                 <button
                   onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setAuthError(""); }}
@@ -3902,19 +3911,6 @@ export default function App() {
                       className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                     />
                   </div>
-                  {!auth.currentUser && (
-                    <div>
-                      <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Set a password</label>
-                      <input
-                        type="password"
-                        value={joinForm.password}
-                        onChange={(e) => setJoinForm({ ...joinForm, password: e.target.value })}
-                        placeholder="At least 6 characters"
-                        className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
-                      />
-                      <p className="text-xs text-[#64748B] mt-1">So you can sign back into this exact profile after logging out.</p>
-                    </div>
-                  )}
                   {joinAuthError && (
                     <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{joinAuthError}</div>
                   )}
@@ -4014,7 +4010,7 @@ export default function App() {
                   </div>
 
                   <button
-                    disabled={!joinForm.name || !joinForm.email.trim() || joinForm.phone.trim().length < 10 || !joinForm.hourlyRate || Number(joinForm.hourlyRate) <= 0 || (!auth.currentUser && joinForm.password.trim().length < 6)}
+                    disabled={!joinForm.name || !joinForm.email.trim() || joinForm.phone.trim().length < 10 || !joinForm.hourlyRate || Number(joinForm.hourlyRate) <= 0}
                     onClick={submitJoinWorker}
                     className="mt-1 bg-[#0EA5E9] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0284C7] transition-colors"
                   >
