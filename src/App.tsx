@@ -1083,6 +1083,42 @@ export default function App() {
   const [joinCertificateError, setJoinCertificateError] = useState("");
   const [joinAuthError, setJoinAuthError] = useState("");
   const [joinRefId, setJoinRefId] = useState("");
+  const [joinLocating, setJoinLocating] = useState(false);
+  const [joinLocateError, setJoinLocateError] = useState("");
+  // Same "use current location" idea as the booking form's — GPS + reverse
+  // geocoding — but fills the worker's own address field during signup
+  // instead of a booking's service address.
+  function useCurrentLocationForJoin() {
+    if (!navigator.geolocation) {
+      setJoinLocateError("Location isn't supported on this device.");
+      return;
+    }
+    setJoinLocating(true);
+    setJoinLocateError("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+          );
+          const data = await res.json();
+          const readable = data?.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+          setJoinForm((prev) => ({ ...prev, address: readable }));
+        } catch (err) {
+          console.error("Reverse geocoding failed:", err);
+          setJoinForm((prev) => ({ ...prev, address: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}` }));
+          setJoinLocateError("Couldn't fetch the exact address, but we've saved your coordinates.");
+        } finally {
+          setJoinLocating(false);
+        }
+      },
+      () => {
+        setJoinLocating(false);
+        setJoinLocateError("Couldn't access your location. Please allow location access or enter it manually.");
+      }
+    );
+  }
 
   function readFileAsDataUrl(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -1739,6 +1775,7 @@ export default function App() {
     setJoinCertificateDataUrl("");
     setJoinCertificateError("");
     setJoinAuthError("");
+    setJoinLocateError("");
   }
   function closeJoinWorker() {
     setShowJoinWorker(false);
@@ -3973,7 +4010,17 @@ export default function App() {
                     <p className="text-xs text-[#64748B] mt-1">This is what customers will see and pay you directly — no middleman commission. You can change it later.</p>
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Address</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-sm font-semibold text-[#0F1E3D] block">Address</label>
+                      <button
+                        type="button"
+                        onClick={useCurrentLocationForJoin}
+                        disabled={joinLocating}
+                        className="text-xs font-semibold text-[#1D4ED8] hover:underline disabled:opacity-50 flex items-center gap-1"
+                      >
+                        📍 {joinLocating ? "Locating…" : "Use my current location"}
+                      </button>
+                    </div>
                     <textarea
                       value={joinForm.address}
                       onChange={(e) => setJoinForm({ ...joinForm, address: e.target.value })}
@@ -3981,6 +4028,7 @@ export default function App() {
                       rows={2}
                       className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30 resize-none"
                     />
+                    {joinLocateError && <p className="text-xs text-red-600 mt-1">{joinLocateError}</p>}
                   </div>
 
                   {/* Dedicated certificate upload slot */}
