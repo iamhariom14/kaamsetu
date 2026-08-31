@@ -487,6 +487,24 @@ type WorkerRequest = {
 // (static/seed workers who have no real account to route to).
 type AppNotification = { id: string; text: string; time: string; forRole: "customer" | "worker"; recipientEmail?: string; bookingId?: string };
 
+// A complaint one side of a booking files against the other. Filing one
+// routes the accused person's details straight into the Federation admin's
+// Complaints queue (next to Verification) for cooperative review.
+type Complaint = {
+  id: string;
+  bookingId: string;
+  service: string;
+  filedByRole: "customer" | "worker";
+  filedByName: string;
+  filedByEmail?: string;
+  againstRole: "customer" | "worker";
+  againstName: string;
+  againstEmail?: string;
+  reason: string;
+  status: "open" | "resolved" | "dismissed";
+  createdAt?: unknown;
+};
+
 type Lang = "en" | "hi";
 
 const translations: Record<Lang, Record<string, string>> = {
@@ -831,7 +849,7 @@ export default function App() {
   }
 
   // Cooperative Federation Administration Dashboard
-  const [adminView, setAdminView] = useState<"overview" | "verification" | "bookings">("overview");
+  const [adminView, setAdminView] = useState<"overview" | "verification" | "complaints" | "bookings">("overview");
   function goToAdmin() {
     setPage("admin");
     setAdminView("overview");
@@ -1004,6 +1022,18 @@ export default function App() {
       loaded.sort((a, b) => (a.id < b.id ? 1 : -1));
       setLiveBookings(loaded);
     }, (err) => console.error("Failed to sync live bookings:", err));
+    return () => unsub();
+  }, []);
+
+  // Complaints either side files against the other on a booking — synced
+  // live so they show up in the Federation admin's Complaints tab right away.
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "complaints"), (snap) => {
+      const loaded = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Complaint, "id">) }));
+      loaded.sort((a, b) => (a.id < b.id ? 1 : -1));
+      setComplaints(loaded);
+    }, (err) => console.error("Failed to sync complaints:", err));
     return () => unsub();
   }, []);
 
@@ -1727,6 +1757,58 @@ export default function App() {
       pushNotification("customer", `${req?.workerName ?? "Your worker"} left feedback on your booking.`, req?.customerEmail);
     }
     closeFeedback();
+  }
+
+  // Filing a complaint — same "which side of this booking" shape as
+  // feedback, but instead of a rating it sends the accused person's details
+  // straight to the Federation admin's Complaints queue for review.
+  const [complaintTarget, setComplaintTarget] = useState<{ bookingId: string; role: "customer" | "worker" } | null>(null);
+  const [complaintReason, setComplaintReason] = useState("");
+  const [complaintSubmitting, setComplaintSubmitting] = useState(false);
+
+  function openComplaint(bookingId: string, role: "customer" | "worker") {
+    setComplaintTarget({ bookingId, role });
+    setComplaintReason("");
+  }
+  function closeComplaint() {
+    setComplaintTarget(null);
+    setComplaintReason("");
+  }
+  async function submitComplaint() {
+    if (!complaintTarget || !complaintReason.trim() || complaintSubmitting) return;
+    const { bookingId, role } = complaintTarget;
+    const req = allRequests.find((r) => r.id === bookingId);
+    if (!req) {
+      closeComplaint();
+      return;
+    }
+    setComplaintSubmitting(true);
+    const filedByRole = role;
+    const againstRole: "customer" | "worker" = role === "customer" ? "worker" : "customer";
+    const complaint: Omit<Complaint, "id"> = {
+      bookingId,
+      service: req.service,
+      filedByRole,
+      filedByName: filedByRole === "customer" ? req.customerName : req.workerName,
+      filedByEmail: filedByRole === "customer" ? req.customerEmail : req.workerEmail,
+      againstRole,
+      againstName: againstRole === "customer" ? req.customerName : req.workerName,
+      againstEmail: againstRole === "customer" ? req.customerEmail : req.workerEmail,
+      reason: complaintReason.trim(),
+      status: "open",
+      createdAt: serverTimestamp(),
+    };
+    try {
+      await addDoc(collection(db, "complaints"), complaint);
+    } catch (err) {
+      console.error("Failed to file complaint:", err);
+    }
+    setComplaintSubmitting(false);
+    closeComplaint();
+  }
+  function adminUpdateComplaintStatus(id: string, status: "resolved" | "dismissed") {
+    setComplaints((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
+    updateDoc(doc(db, "complaints", id), { status }).catch((err) => console.error("Failed to update complaint:", err));
   }
 
   function openNotifPanel() {
@@ -2868,9 +2950,18 @@ export default function App() {
                           </button>
                         )}
                         {req.status === "completed" && (
-                          <button onClick={() => openFeedback(req.id, "worker")} className="mt-3 w-full border border-[#CBD9EE] text-[#0F1E3D] font-medium py-2 rounded-lg hover:bg-[#E6EEFB] transition-colors">
-                            {req.workerRating ? `⭐ Your feedback: ${req.workerRating}/5` : "⭐ Rate customer & give feedback"}
-                          </button>
+                          <>
+                            <button onClick={() => openFeedback(req.id, "worker")} className="mt-3 w-full border border-[#CBD9EE] text-[#0F1E3D] font-medium py-2 rounded-lg hover:bg-[#E6EEFB] transition-colors">
+                              {req.workerRating ? `⭐ Your feedback: ${req.workerRating}/5` : "⭐ Rate customer & give feedback"}
+                            </button>
+                            {complaints.some((c) => c.bookingId === req.id && c.filedByRole === "worker") ? (
+                              <div className="mt-2 text-xs text-center text-[#64748B]">🚩 Complaint filed — Federation is reviewing it</div>
+                            ) : (
+                              <button onClick={() => openComplaint(req.id, "worker")} className="mt-2 w-full text-xs font-semibold text-red-600 hover:underline py-1">
+                                🚩 File a complaint against this customer
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     ))}
@@ -3213,10 +3304,17 @@ export default function App() {
                       </span>
                     </div>
                     {b.status === "completed" && (
-                      <div className="border-t border-[#E6EEFB] pt-3">
+                      <div className="border-t border-[#E6EEFB] pt-3 flex flex-col gap-2">
                         <button onClick={() => openFeedback(b.id, "customer")} className="w-full border border-[#CBD9EE] text-[#0F1E3D] font-medium py-2 rounded-lg hover:bg-[#E6EEFB] transition-colors text-sm">
                           {b.customerRating ? `⭐ Your feedback: ${b.customerRating}/5 — tap to edit` : "⭐ Leave feedback for this job"}
                         </button>
+                        {complaints.some((c) => c.bookingId === b.id && c.filedByRole === "customer") ? (
+                          <div className="text-xs text-center text-[#64748B]">🚩 Complaint filed — Federation is reviewing it</div>
+                        ) : (
+                          <button onClick={() => openComplaint(b.id, "customer")} className="w-full text-xs font-semibold text-red-600 hover:underline py-1">
+                            🚩 File a complaint against this worker
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -3297,6 +3395,7 @@ export default function App() {
         const verifiedWorkersCount = communityWorkers.filter((w) => w.verified).length;
         const pendingWorkers = communityWorkers.filter((w) => !w.verified);
         const platformRevenue = allRequests.reduce((s, r) => s + (Number(r.rate) || 0), 0);
+        const openComplaints = complaints.filter((c) => c.status === "open");
         return (
           <section className="py-14 md:py-20 bg-[#0F1E3D] text-white min-h-screen">
             <div className="max-w-6xl mx-auto px-5 md:px-10">
@@ -3306,10 +3405,11 @@ export default function App() {
                   <h2 className="text-3xl md:text-4xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>🏛️ {t("adminPortal")}</h2>
                   <p className="text-white/60 text-sm mt-1">{t("adminPortalSubtitle")}</p>
                 </div>
-                <div className="flex gap-2 bg-white/10 rounded-xl p-1">
+                <div className="flex gap-2 bg-white/10 rounded-xl p-1 flex-wrap">
                   {([
                     { id: "overview", label: t("adminOverview") },
                     { id: "verification", label: `${t("adminVerification")}${pendingWorkers.length ? ` (${pendingWorkers.length})` : ""}` },
+                    { id: "complaints", label: `🚩 Complaints${openComplaints.length ? ` (${openComplaints.length})` : ""}` },
                     { id: "bookings", label: t("adminBookingsDemand") },
                   ] as const).map((v) => (
                     <button
@@ -3431,6 +3531,96 @@ export default function App() {
                         </div>
                       </div>
                     ))
+                  )}
+                </div>
+              )}
+
+              {adminView === "complaints" && (
+                <div className="flex flex-col gap-4">
+                  <p className="text-sm text-white/60">Complaints filed by customers against workers, and by workers against customers, land here for cooperative review — each with the accused member's profile attached.</p>
+                  {complaints.length === 0 ? (
+                    <div className="text-center py-16 text-white/50 bg-white/5 rounded-2xl">No complaints filed. 🎉</div>
+                  ) : (
+                    complaints.map((c) => {
+                      const accusedWorker = c.againstRole === "worker"
+                        ? communityWorkers.find((w) => w.email && c.againstEmail && w.email === c.againstEmail)
+                        : undefined;
+                      return (
+                        <div key={c.id} className="bg-white/10 rounded-xl p-5 flex flex-col gap-4">
+                          <div className="flex items-start justify-between gap-3 flex-wrap">
+                            <div className="flex items-center gap-4">
+                              {accusedWorker ? (
+                                <img src={accusedWorker.image} alt={accusedWorker.name} className="w-14 h-14 rounded-lg object-cover" onError={(e) => handleImgError(e, personImgFallback(accusedWorker.name, "D97840"))} />
+                              ) : (
+                                <div className="w-14 h-14 rounded-lg bg-white/10 flex items-center justify-center text-xl shrink-0">
+                                  {c.againstRole === "worker" ? "🧑‍🔧" : "🧑"}
+                                </div>
+                              )}
+                              <div>
+                                <div className="font-semibold flex items-center gap-1.5">
+                                  {c.againstName}
+                                  <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                                    c.status === "open" ? "text-amber-300 bg-amber-500/10 border border-amber-400/30" :
+                                    c.status === "resolved" ? "text-green-300 bg-green-500/10 border border-green-400/30" :
+                                    "text-white/50 bg-white/5 border border-white/20"
+                                  }`}>
+                                    {c.status === "open" ? "Needs review" : c.status === "resolved" ? "Resolved" : "Dismissed"}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-white/60">
+                                  Accused ({c.againstRole}) · Complaint by {c.filedByName} ({c.filedByRole})
+                                </div>
+                                <div className="text-xs text-white/60">{c.service} · Booking #{c.bookingId}</div>
+                              </div>
+                            </div>
+                            {c.status === "open" && (
+                              <div className="flex gap-2 shrink-0">
+                                <button onClick={() => adminUpdateComplaintStatus(c.id, "dismissed")} className="text-sm font-semibold border border-white/20 px-4 py-2 rounded-lg hover:bg-white/10 transition-colors">
+                                  Dismiss
+                                </button>
+                                <button onClick={() => adminUpdateComplaintStatus(c.id, "resolved")} className="text-sm font-semibold bg-[#1D4ED8] px-4 py-2 rounded-lg hover:bg-[#1E3A8A] transition-colors">
+                                  Mark resolved
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="bg-black/20 rounded-lg p-4 text-sm">
+                            <span className="text-white/50 text-xs uppercase tracking-wide">Complaint</span>
+                            <p className="mt-1">{c.reason}</p>
+                          </div>
+
+                          {/* Accused member's profile, so the Federation has everything on
+                              hand to investigate without hunting through other tabs. */}
+                          <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm bg-black/20 rounded-lg p-4">
+                            <div className="flex justify-between sm:block">
+                              <span className="text-white/50 text-xs uppercase tracking-wide">Email</span>
+                              <div className="sm:mt-0.5 break-all">{c.againstEmail || accusedWorker?.email || "—"}</div>
+                            </div>
+                            {accusedWorker && (
+                              <>
+                                <div className="flex justify-between sm:block">
+                                  <span className="text-white/50 text-xs uppercase tracking-wide">Phone</span>
+                                  <div className="sm:mt-0.5">{accusedWorker.phone || "—"}</div>
+                                </div>
+                                <div className="flex justify-between sm:block">
+                                  <span className="text-white/50 text-xs uppercase tracking-wide">Skill</span>
+                                  <div className="sm:mt-0.5">{accusedWorker.role}</div>
+                                </div>
+                                <div className="flex justify-between sm:block">
+                                  <span className="text-white/50 text-xs uppercase tracking-wide">Address</span>
+                                  <div className="sm:mt-0.5">{accusedWorker.address || "—"}</div>
+                                </div>
+                                <div className="flex justify-between sm:block">
+                                  <span className="text-white/50 text-xs uppercase tracking-wide">Federation verified</span>
+                                  <div className="sm:mt-0.5">{accusedWorker.verified ? "Yes ✓" : "No — still pending"}</div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               )}
@@ -4261,6 +4451,44 @@ export default function App() {
                 className="w-full bg-[#1D4ED8] text-white font-semibold py-2.5 rounded-lg hover:bg-[#1E3A8A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Submit feedback
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── FILE A COMPLAINT MODAL ── */}
+      {complaintTarget && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" onClick={closeComplaint}>
+          <div className="bg-white rounded-3xl max-w-md w-full border border-[#CBD9EE] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#CBD9EE]">
+              <h3 className="font-semibold text-lg" style={{ fontFamily: "'Fraunces', serif" }}>
+                🚩 File a complaint
+              </h3>
+              <button onClick={closeComplaint} className="text-[#64748B] hover:text-[#0F1E3D] text-xl leading-none">✕</button>
+            </div>
+            <div className="px-6 py-6 flex flex-col gap-4">
+              <p className="text-sm text-[#64748B]">
+                {complaintTarget.role === "customer"
+                  ? "Tell the Federation what went wrong with this worker. Their profile is sent to the cooperative's Complaints queue for review."
+                  : "Tell the Federation what went wrong with this customer. Their profile is sent to the cooperative's Complaints queue for review."}
+              </p>
+              <div>
+                <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">What happened?</label>
+                <textarea
+                  value={complaintReason}
+                  onChange={(e) => setComplaintReason(e.target.value)}
+                  rows={4}
+                  placeholder="Describe the issue in a few sentences..."
+                  className="w-full border border-[#CBD9EE] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400/30 resize-none"
+                />
+              </div>
+              <button
+                onClick={submitComplaint}
+                disabled={!complaintReason.trim() || complaintSubmitting}
+                className="w-full bg-red-600 text-white font-semibold py-2.5 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {complaintSubmitting ? "Submitting…" : "Submit complaint to Federation"}
               </button>
             </div>
           </div>
