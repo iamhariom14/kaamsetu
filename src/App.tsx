@@ -1710,8 +1710,22 @@ export default function App() {
       const email = user.email || "";
       setCurrentUser({ name, email, photoURL: user.photoURL });
       setIsSignedIn(true);
-      applyUserRole(authRole);
-      if (authMode === "signup" && authRole === "worker") {
+
+      // Returning members already have a profile saved under their uid —
+      // detect that (regardless of which tab is selected) so signing back
+      // in with the same Google account always reopens the same profile,
+      // whether it's a customer or a worker one.
+      let resolvedRole: "customer" | "worker" = authRole;
+      if (authMode !== "signup") {
+        try {
+          const workerSnap = await getDoc(doc(db, "workers", user.uid));
+          resolvedRole = workerSnap.exists() ? "worker" : "customer";
+        } catch (err) {
+          console.error("Failed to check existing profile:", err);
+        }
+      }
+      applyUserRole(resolvedRole);
+      if (authMode === "signup" && resolvedRole === "worker") {
         // Skip onboarding if this Google account already has a completed
         // worker profile (phone on file) from a previous sign-up.
         const existingProfile = email ? allWorkers.find((w) => w.email && w.email === email && w.phone) : undefined;
@@ -1720,7 +1734,7 @@ export default function App() {
           return;
         }
       }
-      if (authRole === "worker") {
+      if (resolvedRole === "worker") {
         saveWorkerAuthProfile(user.uid, name, email);
       }
       setSignInStep(2);
@@ -2449,11 +2463,30 @@ export default function App() {
                 {authMode === "signup" ? t("welcomeExclaim") : t("welcomeBack")}
               </h1>
               <p className="text-sm text-[#64748B]">
-                {authMode === "signup" ? t("createCustomerAccount") : t("logInToAccount")}
+                {authMode === "signup"
+                  ? (authRole === "worker" ? t("createWorkerAccount") : t("createCustomerAccount"))
+                  : (authRole === "worker" ? t("logInAsWorker") : t("logInToAccount"))}
               </p>
             </div>
 
             <div className="bg-white border border-[#CBD9EE] rounded-3xl p-6 shadow-sm">
+              <div className="grid grid-cols-2 gap-2 bg-[#F3F7FE] rounded-xl p-1 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setAuthRole("customer")}
+                  className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authRole === "customer" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}
+                >
+                  {t("joinAsCustomer")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthRole("worker")}
+                  className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authRole === "worker" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}
+                >
+                  {t("joinAsWorker")}
+                </button>
+              </div>
+
               {authError && (
                 <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{authError}</div>
               )}
