@@ -733,13 +733,25 @@ const chatQuickRepliesByLang: Record<ChatLang, string[]> = {
   hi: ["मेरी बुकिंग ट्रैक करें", "शिकायत दर्ज करें", "फीडबैक दें", "भुगतान समस्या", "किसी व्यक्ति से बात करें"],
 };
 
+// Shared "is this message asking to file a complaint" check — used both to
+// pick the bot's reply and (in sendChatMessage) to decide whether the NEXT
+// message the user sends should be filed with the Federation instead of
+// pattern-matched again.
+function isComplaintIntent(message: string, chatLang: ChatLang): boolean {
+  const m = message.toLowerCase();
+  if (chatLang === "hi") {
+    return (m.includes("complaint") || m.includes("problem") || m.includes("issue") || m.includes("शिकायत") || m.includes("समस्या")) && !m.includes("payment") && !m.includes("भुगतान");
+  }
+  return (m.includes("complaint") || m.includes("problem") || m.includes("issue")) && !m.includes("payment");
+}
+
 function getBotReply(message: string, chatLang: ChatLang = "en"): string {
   const m = message.toLowerCase();
   if (chatLang === "hi") {
     if (m.includes("track") || m.includes("status") || m.includes("ट्रैक") || m.includes("स्टेटस")) {
       return "आप अपनी बुकिंग की स्थिति 'My Bookings' से कभी भी ट्रैक कर सकते हैं। आपका कामगार आने से पहले आपको संदेश भी भेजेगा। 📍";
     }
-    if ((m.includes("complaint") || m.includes("problem") || m.includes("issue") || m.includes("शिकायत") || m.includes("समस्या")) && !m.includes("payment") && !m.includes("भुगतान")) {
+    if (isComplaintIntent(message, chatLang)) {
       return "यह सुनकर खेद है। कृपया कुछ शब्दों में बताएं कि क्या हुआ — हमारी सहकारी सहायता टीम हर शिकायत की समीक्षा 24 घंटों के भीतर करती है, और सुरक्षा से जुड़ी चिंताओं को तुरंत आगे बढ़ाया जाता है।";
     }
     if (m.includes("feedback") || m.includes("review") || m.includes("suggest") || m.includes("फीडबैक") || m.includes("सुझाव")) {
@@ -762,7 +774,7 @@ function getBotReply(message: string, chatLang: ChatLang = "en"): string {
   if (m.includes("track") || m.includes("status")) {
     return "You can track your booking status anytime from 'My Bookings'. Your worker will also message you before arrival. 📍";
   }
-  if (m.includes("complaint") || m.includes("problem") || m.includes("issue") && !m.includes("payment")) {
+  if (isComplaintIntent(message, chatLang)) {
     return "I'm sorry to hear that. Please describe what happened in a few words — our cooperative support team reviews every complaint within 24 hours, and safety concerns are escalated immediately.";
   }
   if (m.includes("feedback") || m.includes("review") || m.includes("suggest")) {
@@ -947,6 +959,10 @@ export default function App() {
   const [chatInput, setChatInput] = useState("");
   const [chatTyping, setChatTyping] = useState(false);
   const [chatLang, setChatLang] = useState<ChatLang>("en");
+  // Set to true right after the bot asks "what happened?" — the user's very
+  // next message is then filed as a real complaint (Firestore) instead of
+  // being pattern-matched again.
+  const [chatAwaitingComplaint, setChatAwaitingComplaint] = useState(false);
 
   // Sign in (email/password or Google) with a Customer / Worker role tab
   const [showSignIn, setShowSignIn] = useState(false);
@@ -1430,10 +1446,54 @@ export default function App() {
     if (!message) return;
     setChatMessages((prev) => [...prev, { sender: "user", text: message }]);
     setChatInput("");
+
+    // If the bot just asked "what happened?", this message IS the
+    // complaint — file it straight to the Federation's Complaints queue
+    // (same Firestore collection the booking-side "File a complaint"
+    // buttons use) instead of running it back through getBotReply.
+    if (chatAwaitingComplaint) {
+      setChatAwaitingComplaint(false);
+      setChatTyping(true);
+      const filedByRole: "customer" | "worker" = userRole ?? "customer";
+      const complaint: Omit<Complaint, "id"> = {
+        bookingId: `chatbot-${Date.now()}`,
+        service: "General complaint (via chatbot)",
+        filedByRole,
+        filedByName: currentUser?.name ?? "Website visitor",
+        filedByEmail: currentUser?.email,
+        againstRole: filedByRole === "customer" ? "worker" : "customer",
+        againstName: "Not specified (filed via chatbot)",
+        reason: message,
+        status: "open",
+        createdAt: serverTimestamp(),
+      };
+      addDoc(collection(db, "complaints"), complaint).catch((err) => console.error("Failed to file chatbot complaint:", err));
+      setTimeout(() => {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            sender: "bot",
+            text:
+              chatLang === "hi"
+                ? "धन्यवाद। आपकी शिकायत सहकारी समिति (Federation) की Complaints सूची में भेज दी गई है — हमारी टीम इसे 24 घंटों में देखेगी। 🚩"
+                : "Thanks, I've filed this with the Federation's Complaints queue — our cooperative team will review it within 24 hours. 🚩",
+          },
+        ]);
+        setChatTyping(false);
+      }, 600);
+      return;
+    }
+
     setChatTyping(true);
     setTimeout(() => {
-      setChatMessages((prev) => [...prev, { sender: "bot", text: getBotReply(message, chatLang) }]);
+      const reply = getBotReply(message, chatLang);
+      setChatMessages((prev) => [...prev, { sender: "bot", text: reply }]);
       setChatTyping(false);
+      // The reply we just showed was the "please describe what happened"
+      // prompt — remember to file the user's next message as a complaint.
+      if (isComplaintIntent(message, chatLang)) {
+        setChatAwaitingComplaint(true);
+      }
     }, 600);
   }
 
