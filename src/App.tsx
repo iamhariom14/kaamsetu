@@ -751,8 +751,11 @@ function getBotReply(message: string, chatLang: ChatLang = "en"): string {
     if (m.includes("track") || m.includes("status") || m.includes("ट्रैक") || m.includes("स्टेटस")) {
       return "आप अपनी बुकिंग की स्थिति 'My Bookings' से कभी भी ट्रैक कर सकते हैं। आपका कामगार आने से पहले आपको संदेश भी भेजेगा। 📍";
     }
+    // The actual "who is this about?" and "what happened?" questions are
+    // asked separately in sendChatMessage (that needs to know if the person
+    // is signed in as a customer or a worker — this function doesn't).
     if (isComplaintIntent(message, chatLang)) {
-      return "यह सुनकर खेद है। आपको क्या समस्या हुई? कृपया नीचे टाइप करके बताएं — मैं इसे तुरंत सहकारी समिति (Federation) के पास भेज दूंगा, हमारी टीम 24 घंटों के भीतर इसकी समीक्षा करेगी।";
+      return "यह सुनकर खेद है।";
     }
     if (m.includes("feedback") || m.includes("review") || m.includes("suggest") || m.includes("फीडबैक") || m.includes("सुझाव")) {
       return "साझा करने के लिए धन्यवाद! ऐसी प्रतिक्रिया हमारे कामगार-सदस्यों को बेहतर बनाने में मदद करती है। आप हर पूरी हुई बुकिंग के बाद स्टार रेटिंग भी दे सकते हैं। ⭐";
@@ -775,7 +778,7 @@ function getBotReply(message: string, chatLang: ChatLang = "en"): string {
     return "You can track your booking status anytime from 'My Bookings'. Your worker will also message you before arrival. 📍";
   }
   if (isComplaintIntent(message, chatLang)) {
-    return "I'm sorry to hear that. What's the problem? Please type it below and I'll send it straight to the Federation — our cooperative team reviews every complaint within 24 hours.";
+    return "I'm sorry to hear that.";
   }
   if (m.includes("feedback") || m.includes("review") || m.includes("suggest")) {
     return "Thank you for sharing! Feedback like this helps our worker-members improve. You can also leave a star rating after every completed booking. ⭐";
@@ -959,10 +962,14 @@ export default function App() {
   const [chatInput, setChatInput] = useState("");
   const [chatTyping, setChatTyping] = useState(false);
   const [chatLang, setChatLang] = useState<ChatLang>("en");
-  // Set to true right after the bot asks "what happened?" — the user's very
-  // next message is then filed as a real complaint (Firestore) instead of
-  // being pattern-matched again.
-  const [chatAwaitingComplaint, setChatAwaitingComplaint] = useState(false);
+  // Filing a complaint via the chatbot is a 2-step conversation: first we
+  // ask WHO it's about (so we can pull that worker's real profile — email,
+  // phone, address, service — into the Federation's queue), then WHAT
+  // happened. `chatComplaintStage` tracks which answer we're waiting for;
+  // `chatComplaintTarget` holds the resolved worker/customer info collected
+  // in between the two questions.
+  const [chatComplaintStage, setChatComplaintStage] = useState<"idle" | "awaitingTarget" | "awaitingReason">("idle");
+  const [chatComplaintTarget, setChatComplaintTarget] = useState<{ name: string; email?: string; phone?: string; address?: string; service?: string } | null>(null);
 
   // Sign in (email/password or Google) with a Customer / Worker role tab
   const [showSignIn, setShowSignIn] = useState(false);
@@ -1446,23 +1453,59 @@ export default function App() {
     if (!message) return;
     setChatMessages((prev) => [...prev, { sender: "user", text: message }]);
     setChatInput("");
+    const filedByRole: "customer" | "worker" = userRole ?? "customer";
 
-    // If the bot just asked "what happened?", this message IS the
-    // complaint — file it straight to the Federation's Complaints queue
-    // (same Firestore collection the booking-side "File a complaint"
-    // buttons use) instead of running it back through getBotReply.
-    if (chatAwaitingComplaint) {
-      setChatAwaitingComplaint(false);
+    // Step 2 of the complaint flow: the bot just asked "which worker/
+    // customer is this about?" — this message is that name. Look it up in
+    // the real worker directory so the Federation gets an actual profile
+    // (email, phone, address, service) instead of a blank "not specified".
+    if (chatComplaintStage === "awaitingTarget") {
+      const q = message.trim().toLowerCase();
+      const matchedWorker = filedByRole === "customer" ? allWorkers.find((w) => w.name.toLowerCase().includes(q) || q.includes(w.name.toLowerCase())) : undefined;
+      const target = {
+        name: matchedWorker?.name ?? message.trim(),
+        email: matchedWorker?.email,
+        phone: matchedWorker?.phone,
+        address: matchedWorker?.address,
+        service: matchedWorker?.role,
+      };
+      setChatComplaintTarget(target);
+      setChatComplaintStage("awaitingReason");
       setChatTyping(true);
-      const filedByRole: "customer" | "worker" = userRole ?? "customer";
+      setTimeout(() => {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            sender: "bot",
+            text:
+              chatLang === "hi"
+                ? `ठीक है — ${target.name}${target.service ? ` (${target.service})` : ""}। अब बताएं, क्या समस्या हुई?`
+                : `Got it — ${target.name}${target.service ? ` (${target.service})` : ""}. Now, what's the problem?`,
+          },
+        ]);
+        setChatTyping(false);
+      }, 500);
+      return;
+    }
+
+    // Step 3: this message is the actual problem description — file the
+    // complaint straight to the Federation's Complaints queue (same
+    // Firestore collection the booking-side "File a complaint" buttons
+    // use), carrying the target's real profile info collected in step 2.
+    if (chatComplaintStage === "awaitingReason") {
+      const target = chatComplaintTarget;
+      setChatComplaintStage("idle");
+      setChatComplaintTarget(null);
+      setChatTyping(true);
       const complaint: Omit<Complaint, "id"> = {
         bookingId: `chatbot-${Date.now()}`,
-        service: "General complaint (via chatbot)",
+        service: target?.service ? `${target.service} (via chatbot)` : "General complaint (via chatbot)",
         filedByRole,
         filedByName: currentUser?.name ?? "Website visitor",
         filedByEmail: currentUser?.email,
         againstRole: filedByRole === "customer" ? "worker" : "customer",
-        againstName: "Not specified (filed via chatbot)",
+        againstName: target?.name || "Not specified (filed via chatbot)",
+        againstEmail: target?.email,
         reason: message,
         status: "open",
         createdAt: serverTimestamp(),
@@ -1503,13 +1546,24 @@ export default function App() {
     setChatTyping(true);
     setTimeout(() => {
       const reply = getBotReply(message, chatLang);
-      setChatMessages((prev) => [...prev, { sender: "bot", text: reply }]);
-      setChatTyping(false);
-      // The reply we just showed was the "please describe what happened"
-      // prompt — remember to file the user's next message as a complaint.
+      // The generic reply was just "I'm sorry to hear that." — follow it
+      // immediately with the "who is this about?" question, worded for
+      // whichever side (customer/worker) the signed-in person is on.
       if (isComplaintIntent(message, chatLang)) {
-        setChatAwaitingComplaint(true);
+        setChatComplaintStage("awaitingTarget");
+        const askWho =
+          chatLang === "hi"
+            ? filedByRole === "worker"
+              ? " यह शिकायत किस ग्राहक के बारे में है? कृपया उनका नाम टाइप करें।"
+              : " यह शिकायत किस कामगार के बारे में है? कृपया उनका नाम टाइप करें (जैसा प्रोफ़ाइल पर लिखा है)।"
+            : filedByRole === "worker"
+              ? " Which customer is this complaint about? Please type their name."
+              : " Which worker is this complaint about? Please type their name (as shown on their profile).";
+        setChatMessages((prev) => [...prev, { sender: "bot", text: reply + askWho }]);
+      } else {
+        setChatMessages((prev) => [...prev, { sender: "bot", text: reply }]);
       }
+      setChatTyping(false);
     }, 600);
   }
 
