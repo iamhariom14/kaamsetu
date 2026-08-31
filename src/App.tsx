@@ -3732,15 +3732,24 @@ export default function App() {
                     <div className="text-center py-16 text-white/50 bg-white/5 rounded-2xl">No complaints filed. 🎉</div>
                   ) : (
                     complaints.map((c) => {
-                      const accusedWorker = c.againstRole === "worker"
-                        ? communityWorkers.find((w) => w.email && c.againstEmail && w.email === c.againstEmail)
-                        : undefined;
+                      // Split into "customer side" / "worker side" regardless
+                      // of which one filed and which one is accused, so the
+                      // admin card can show two clearly separate contact
+                      // boxes instead of mixing "filed by" and "accused"
+                      // fields together.
+                      const customerSide = c.filedByRole === "customer"
+                        ? { name: c.filedByName, email: c.filedByEmail, filedThis: true }
+                        : { name: c.againstName, email: c.againstEmail, filedThis: false };
+                      const workerSide = c.filedByRole === "worker"
+                        ? { name: c.filedByName, email: c.filedByEmail, filedThis: true }
+                        : { name: c.againstName, email: c.againstEmail, filedThis: false };
+                      const workerRecord = allWorkers.find((w) => w.email && workerSide.email && w.email === workerSide.email);
                       return (
                         <div key={c.id} className="bg-white/10 rounded-xl p-5 flex flex-col gap-4">
                           <div className="flex items-start justify-between gap-3 flex-wrap">
                             <div className="flex items-center gap-4">
-                              {accusedWorker ? (
-                                <img src={accusedWorker.image} alt={accusedWorker.name} className="w-14 h-14 rounded-lg object-cover" onError={(e) => handleImgError(e, personImgFallback(accusedWorker.name, "D97840"))} />
+                              {workerRecord ? (
+                                <img src={workerRecord.image} alt={workerRecord.name} className="w-14 h-14 rounded-lg object-cover" onError={(e) => handleImgError(e, personImgFallback(workerRecord.name, "D97840"))} />
                               ) : (
                                 <div className="w-14 h-14 rounded-lg bg-white/10 flex items-center justify-center text-xl shrink-0">
                                   {c.againstRole === "worker" ? "🧑‍🔧" : "🧑"}
@@ -3780,39 +3789,53 @@ export default function App() {
                             <p className="mt-1">{c.reason}</p>
                           </div>
 
-                          {/* Accused member's profile, so the Federation has everything on
-                              hand to investigate without hunting through other tabs. */}
-                          <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm bg-black/20 rounded-lg p-4">
-                            <div className="flex justify-between sm:block sm:col-span-2">
-                              <span className="text-white/50 text-xs uppercase tracking-wide">Filed by ({c.filedByRole})</span>
-                              <div className="sm:mt-0.5 break-all">
-                                {c.filedByName}{c.filedByEmail ? ` — ${c.filedByEmail}` : " — no email on file"}
+                          {/* Customer and worker each get their own clearly
+                              separated box — whichever side filed the
+                              complaint gets a "Filed this" badge — so the
+                              Federation never has to guess which details
+                              belong to which person. */}
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="bg-black/20 rounded-lg p-4 text-sm flex flex-col gap-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-white/50 text-xs uppercase tracking-wide font-semibold">🧑 Customer</span>
+                                {customerSide.filedThis && (
+                                  <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full text-blue-300 bg-blue-500/10 border border-blue-400/30 shrink-0">
+                                    Filed this complaint
+                                  </span>
+                                )}
                               </div>
+                              <div className="font-semibold">{customerSide.name || "Not specified"}</div>
+                              <div className="text-white/70 break-all">{customerSide.email || "No email on file"}</div>
                             </div>
-                            <div className="flex justify-between sm:block">
-                              <span className="text-white/50 text-xs uppercase tracking-wide">Accused ({c.againstRole}) email</span>
-                              <div className="sm:mt-0.5 break-all">{c.againstEmail || accusedWorker?.email || "—"}</div>
+
+                            <div className="bg-black/20 rounded-lg p-4 text-sm flex flex-col gap-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-white/50 text-xs uppercase tracking-wide font-semibold">🧑‍🔧 Worker</span>
+                                {workerSide.filedThis && (
+                                  <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full text-blue-300 bg-blue-500/10 border border-blue-400/30 shrink-0">
+                                    Filed this complaint
+                                  </span>
+                                )}
+                              </div>
+                              <div className="font-semibold">{workerSide.name || "Not specified"}{workerRecord ? ` · ${workerRecord.role}` : ""}</div>
+                              <div className="text-white/70 break-all">{workerSide.email || "No email on file"}</div>
+                              {workerRecord && (
+                                <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-1 pt-2 border-t border-white/10">
+                                  <div>
+                                    <span className="text-white/50 text-xs uppercase tracking-wide">Phone</span>
+                                    <div>{workerRecord.phone || "—"}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-white/50 text-xs uppercase tracking-wide">Verified</span>
+                                    <div>{workerRecord.verified ? "Yes ✓" : "No — pending"}</div>
+                                  </div>
+                                  <div className="col-span-2">
+                                    <span className="text-white/50 text-xs uppercase tracking-wide">Address</span>
+                                    <div>{workerRecord.address || "—"}</div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            {accusedWorker && (
-                              <>
-                                <div className="flex justify-between sm:block">
-                                  <span className="text-white/50 text-xs uppercase tracking-wide">Phone</span>
-                                  <div className="sm:mt-0.5">{accusedWorker.phone || "—"}</div>
-                                </div>
-                                <div className="flex justify-between sm:block">
-                                  <span className="text-white/50 text-xs uppercase tracking-wide">Skill</span>
-                                  <div className="sm:mt-0.5">{accusedWorker.role}</div>
-                                </div>
-                                <div className="flex justify-between sm:block">
-                                  <span className="text-white/50 text-xs uppercase tracking-wide">Address</span>
-                                  <div className="sm:mt-0.5">{accusedWorker.address || "—"}</div>
-                                </div>
-                                <div className="flex justify-between sm:block">
-                                  <span className="text-white/50 text-xs uppercase tracking-wide">Federation verified</span>
-                                  <div className="sm:mt-0.5">{accusedWorker.verified ? "Yes ✓" : "No — still pending"}</div>
-                                </div>
-                              </>
-                            )}
                           </div>
                         </div>
                       );
