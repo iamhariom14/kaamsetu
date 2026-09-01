@@ -588,7 +588,7 @@ type WorkerRequest = {
 // `recipientEmail` routes a notification to one signed-in person live via
 // Firestore; `forRole` is kept as a fallback for the shared demo roster
 // (static/seed workers who have no real account to route to).
-type AppNotification = { id: string; text: string; time: string; forRole: "customer" | "worker"; recipientEmail?: string; bookingId?: string };
+type AppNotification = { id: string; text: string; time: string; forRole: "customer" | "worker"; recipientEmail?: string; bookingId?: string; kind?: "offlineSms"; smsPhone?: string; smsWorkerName?: string };
 
 // A complaint one side of a booking files against the other. Filing one
 // routes the accused person's details straight into the Federation admin's
@@ -1332,6 +1332,16 @@ export default function App() {
   // shared booking record or affects what the other side / admin sees.
   const [clearedRequestIds, setClearedRequestIds] = useState<Set<string>>(new Set());
 
+  // Drives the "offline SMS" demo toast — shown when an urgent booking
+  // fires, simulating the text message a worker with no internet would
+  // receive on their phone. Piggybacks on the `notifications` Firestore
+  // listener below (see the docChanges handling there) so it actually
+  // reaches the WORKER's own signed-in session in real time — not just
+  // flash on the customer's screen that made the booking. Auto-clears
+  // itself a few seconds after appearing.
+  const [offlineSmsDemo, setOfflineSmsDemo] = useState<{ workerName: string; phone: string; text: string } | null>(null);
+  const [seenSmsSimIds, setSeenSmsSimIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     if (!isSignedIn || !currentUser?.email) {
       setNotifications([]);
@@ -1342,38 +1352,28 @@ export default function App() {
       const loaded = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<AppNotification, "id">) }));
       loaded.sort((a, b) => (a.id < b.id ? 1 : -1));
       setNotifications(loaded);
+      // Same-collection "offline SMS" demo toast — reuses the notifications
+      // collection (already permitted by Firestore rules) instead of a new
+      // collection, so it isn't silently blocked by rules that only allow
+      // known collection names. Only newly-ADDED docs of kind "offlineSms"
+      // trigger the toast; everything else still shows in the normal
+      // notification bell as before.
+      snap.docChanges().forEach((change) => {
+        if (change.type !== "added") return;
+        const data = change.doc.data() as Omit<AppNotification, "id">;
+        if (data.kind !== "offlineSms") return;
+        const id = change.doc.id;
+        if (seenSmsSimIds.has(id)) return;
+        setSeenSmsSimIds((prev) => new Set(prev).add(id));
+        setOfflineSmsDemo({ workerName: data.smsWorkerName || "", phone: data.smsPhone || "", text: data.text });
+        setTimeout(() => setOfflineSmsDemo(null), 7000);
+      });
     }, (err) => console.error("Failed to sync notifications:", err));
     return () => unsub();
   }, [isSignedIn, currentUser?.email]);
 
   // Worker dashboard bottom tabs (Jobs / Earnings / Profile) + mock "withdraw
   // to bank" flow — no real payments backend, just a demo confirmation.
-  // Drives the "offline SMS" demo toast — shown when an urgent booking
-  // fires, simulating the text message a worker with no internet would
-  // receive on their phone. Backed by Firestore (like `notifications`
-  // above) so it actually reaches the WORKER's own signed-in session in
-  // real time — not just flash on the customer's screen that made the
-  // booking. Auto-clears itself a few seconds after appearing.
-  const [offlineSmsDemo, setOfflineSmsDemo] = useState<{ workerName: string; phone: string; text: string } | null>(null);
-  const [seenSmsSimIds, setSeenSmsSimIds] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    if (!isSignedIn || !currentUser?.email) return;
-    const q = query(collection(db, "smsSimulations"), where("recipientEmail", "==", currentUser.email));
-    const unsub = onSnapshot(q, (snap) => {
-      snap.docChanges().forEach((change) => {
-        if (change.type !== "added") return;
-        const id = change.doc.id;
-        if (seenSmsSimIds.has(id)) return;
-        setSeenSmsSimIds((prev) => new Set(prev).add(id));
-        const data = change.doc.data() as { workerName: string; phone: string; text: string };
-        setOfflineSmsDemo(data);
-        setTimeout(() => setOfflineSmsDemo(null), 7000);
-        // Clean up so the collection doesn't grow forever across demo runs.
-        deleteDoc(doc(db, "smsSimulations", id)).catch(() => {});
-      });
-    }, (err) => console.error("Failed to sync SMS simulation:", err));
-    return () => unsub();
-  }, [isSignedIn, currentUser?.email]);
   const [workerTab, setWorkerTab] = useState<"jobs" | "earnings" | "profile">("jobs");
   const [withdrawStatus, setWithdrawStatus] = useState<string | null>(null);
   const [hoveredIncomeIdx, setHoveredIncomeIdx] = useState<number | null>(null);
@@ -1390,7 +1390,15 @@ export default function App() {
   // kept for display purposes; `recipientEmail` is what actually routes it.
   // Static/seed demo workers have no real account/email, so notifications
   // aimed at them are skipped — there's no one signed in to receive them.
-  async function pushNotification(forRole: "customer" | "worker", text: string, recipientEmail?: string, bookingId?: string) {
+  // `extra` carries optional fields (e.g. the "offlineSms" kind + phone/name
+  // used to drive the SMS-simulation toast) without needing a new collection.
+  async function pushNotification(
+    forRole: "customer" | "worker",
+    text: string,
+    recipientEmail?: string,
+    bookingId?: string,
+    extra?: { kind?: "offlineSms"; smsPhone?: string; smsWorkerName?: string }
+  ) {
     if (!recipientEmail) return;
     try {
       await addDoc(collection(db, "notifications"), {
@@ -1399,6 +1407,7 @@ export default function App() {
         forRole,
         recipientEmail,
         ...(bookingId ? { bookingId } : {}),
+        ...(extra || {}),
         createdAt: serverTimestamp(),
       });
     } catch (err) {
@@ -1737,20 +1746,20 @@ export default function App() {
       );
     }
     // In-app/push notifications only reach the worker if their phone has
-    // internet. Urgent bookings also simulate an SMS — written to Firestore
-    // so it lands on the WORKER's own signed-in session (see the
-    // smsSimulations listener above), the same way real-time notifications
-    // do — instead of only flashing on the customer's own screen.
+    // internet. Urgent bookings also simulate an SMS — written to the same
+    // `notifications` collection (already permitted by Firestore rules,
+    // unlike a brand-new collection which rules may silently block) so it
+    // lands on the WORKER's own signed-in session, exactly like a real-time
+    // notification does — instead of only flashing on the customer's own
+    // screen that made the booking.
     if (bookingForm.urgent && workerEmail) {
       const phone = bookingWorker.phone || "+91 98XXX XXXXX";
       const text = buildOfflineMessage(customerName, bookingWorker.role, fullAddress);
-      addDoc(collection(db, "smsSimulations"), {
-        recipientEmail: workerEmail,
-        workerName: bookingWorker.name,
-        phone,
-        text,
-        createdAt: serverTimestamp(),
-      }).catch((err) => console.error("Failed to simulate offline SMS:", err));
+      pushNotification("worker", text, workerEmail, id, {
+        kind: "offlineSms",
+        smsPhone: phone,
+        smsWorkerName: bookingWorker.name,
+      });
     }
   }
 
