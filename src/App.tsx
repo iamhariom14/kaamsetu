@@ -667,6 +667,10 @@ const translations: Record<Lang, Record<string, string>> = {
     needAccount: "New here? Create an account",
     signInBtn: "Sign In",
     signUpBtn: "Sign Up",
+    registerCreateAccount: "Register / Create Account",
+    alreadyHaveAccountBtn: "I Already Have an Account",
+    imACustomer: "I'm a Customer",
+    imAWorker: "I'm a Worker",
 
     // Customer / Worker / Federation tri-toggle
     customerTab: "Customer",
@@ -799,6 +803,10 @@ const translations: Record<Lang, Record<string, string>> = {
     needAccount: "नए हैं? खाता बनाएं",
     signInBtn: "साइन इन करें",
     signUpBtn: "साइन अप करें",
+    registerCreateAccount: "पंजीकरण करें / खाता बनाएं",
+    alreadyHaveAccountBtn: "मेरे पास पहले से खाता है",
+    imACustomer: "मैं एक ग्राहक हूं",
+    imAWorker: "मैं एक कामगार हूं",
 
     // Customer / Worker / Federation tri-toggle
     customerTab: "ग्राहक",
@@ -2918,27 +2926,53 @@ export default function App() {
                 <p className="text-sm text-[#5B6B60]">
                   {authMode === "signup"
                     ? (authRole === "worker" ? t("createWorkerAccount") : t("createCustomerAccount"))
-                    : (authRole === "worker" ? t("logInAsWorker") : t("logInToAccount"))}
+                    : t("logInToAccount")}
                 </p>
               </div>
 
               <div className="bg-white border border-[#E4DEC9] rounded-3xl p-6 shadow-[0_10px_30px_-12px_rgba(27,107,74,0.18)]">
+                {/* Primary choice: register a new account, or sign in to an
+                    existing one. This applies the same way whether the
+                    person is a customer or a worker — which of the two they
+                    are is chosen just below, only when registering. */}
                 <div className="grid grid-cols-2 gap-2 bg-[#F3F0E4] rounded-xl p-1 mb-4">
                   <button
                     type="button"
-                    onClick={() => setAuthRole("customer")}
-                    className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authRole === "customer" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
+                    onClick={() => { setAuthMode("signup"); setAuthError(""); }}
+                    className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authMode === "signup" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
                   >
-                    {t("joinAsCustomer")}
+                    {t("registerCreateAccount")}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAuthRole("worker")}
-                    className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authRole === "worker" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
+                    onClick={() => { setAuthMode("signin"); setAuthError(""); }}
+                    className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authMode === "signin" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
                   >
-                    {t("joinAsWorker")}
+                    {t("alreadyHaveAccountBtn")}
                   </button>
                 </div>
+
+                {/* Role only matters when creating a new account — an
+                    existing account's role is looked up automatically from
+                    its saved profile when signing in. */}
+                {authMode === "signup" && (
+                  <div className="grid grid-cols-2 gap-2 bg-[#F3F0E4] rounded-xl p-1 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setAuthRole("customer")}
+                      className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authRole === "customer" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
+                    >
+                      {t("imACustomer")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthRole("worker")}
+                      className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authRole === "worker" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
+                    >
+                      {t("imAWorker")}
+                    </button>
+                  </div>
+                )}
 
                 {authError && (
                   <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{authError}</div>
@@ -2990,15 +3024,6 @@ export default function App() {
               </div>
 
               <div className="text-center mt-6">
-                <button
-                  onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setAuthError(""); }}
-                  className="text-sm text-[#1B6B4A] font-semibold hover:underline"
-                >
-                  {authMode === "signup" ? t("alreadyHaveAccount") : t("needAccount")}
-                </button>
-              </div>
-
-              <div className="text-center mt-4">
                 <button onClick={goHome} className="text-xs text-[#8A8570] hover:text-[#173B2B] underline underline-offset-2">
                   Continue browsing without an account →
                 </button>
