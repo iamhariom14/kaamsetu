@@ -1301,9 +1301,15 @@ export default function App() {
       console.error("Failed to read profile photo:", err);
     }
   }
-  // Registers a new customer, saves their profile to Firestore ("customers"
-  // collection), then signs them straight in so their profile is what they
-  // land on next — matching the flow for "Join as Worker".
+  // Registers a new customer, saves their profile to Firestore, then signs
+  // them straight in so their profile is what they land on next — matching
+  // the flow for "Join as Worker". When this is reached from the email/
+  // Google sign-in flow (so a real Firebase Auth account already exists),
+  // the profile is saved keyed by that account's uid — same pattern as
+  // workers — so a later login can look up whether this account already
+  // has a completed customer profile on file. The standalone pre-login
+  // "Join as Customer" button never creates a Firebase Auth account, so
+  // that path still falls back to a plain (unkeyed) record.
   async function submitJoinCustomer() {
     const refId = "CUST-" + Math.floor(100000 + Math.random() * 900000);
     const name = joinCustomerForm.name.trim();
@@ -1312,8 +1318,9 @@ export default function App() {
     const address = joinCustomerForm.address.trim();
     setJoinCustomerRefId(refId);
     setJoinCustomerStep(2);
+    const uid = auth.currentUser?.uid;
     try {
-      await addDoc(collection(db, "customers"), {
+      const data = {
         name,
         email,
         phone,
@@ -1321,13 +1328,30 @@ export default function App() {
         photoFileName: joinCustomerPhotoName,
         refId,
         createdAt: serverTimestamp(),
-      });
+      };
+      if (uid) {
+        await setDoc(doc(db, "customers", uid), { uid, ...data }, { merge: true });
+      } else {
+        await addDoc(collection(db, "customers"), data);
+      }
     } catch (err) {
       console.error("Failed to save customer profile:", err);
     }
     setCurrentUser({ name: name || "Member", email, photoURL: joinCustomerPhotoPreview || null });
     setUserRole("customer");
     setIsSignedIn(true);
+  }
+
+  // When someone signs up/in as a customer straight from the Sign In popup
+  // (rather than the dedicated "Join as Customer" button), send them into
+  // the same customer intake form — pre-filled with the name/email they
+  // just used — instead of a bare "signed in" screen with no phone/address
+  // on file. Mirrors redirectToWorkerOnboarding below.
+  function redirectToCustomerOnboarding(name: string, email: string) {
+    setJoinCustomerForm((prev) => ({ ...prev, name, email }));
+    setJoinCustomerStep(1);
+    setShowSignIn(false);
+    setShowJoinCustomer(true);
   }
 
   // Workers who registered via "Join as Worker" or worker sign-up, persisted
@@ -1731,26 +1755,38 @@ export default function App() {
       setCurrentUser({ name, email, photoURL: user.photoURL });
       setIsSignedIn(true);
 
-      // Returning members already have a profile saved under their uid —
-      // detect that (regardless of which tab is selected) so signing back
-      // in with the same Google account always reopens the same profile,
-      // whether it's a customer or a worker one.
-      let resolvedRole: "customer" | "worker" = authRole;
-      if (authMode !== "signup") {
-        try {
-          const workerSnap = await getDoc(doc(db, "workers", user.uid));
-          resolvedRole = workerSnap.exists() ? "worker" : "customer";
-        } catch (err) {
-          console.error("Failed to check existing profile:", err);
-        }
+      // Returning members already have a *completed* profile saved under
+      // their uid (phone on file) — detect that directly from Firestore
+      // (regardless of which tab is selected, and regardless of signup vs
+      // signin) so signing back in with the same Google account always
+      // reopens the same profile. Checking Firestore directly — rather
+      // than gating on signup-vs-signin — also means a Firestore reset
+      // (Auth account still present, worker doc missing/incomplete) still
+      // sends a Worker-tab sign-in back into onboarding instead of
+      // silently landing as a customer.
+      let hasCompletedWorkerProfile = false;
+      try {
+        const workerSnap = await getDoc(doc(db, "workers", user.uid));
+        hasCompletedWorkerProfile = workerSnap.exists() && !!(workerSnap.data() as { phone?: string })?.phone;
+      } catch (err) {
+        console.error("Failed to check existing profile:", err);
       }
+      const resolvedRole: "customer" | "worker" = hasCompletedWorkerProfile ? "worker" : authRole;
       applyUserRole(resolvedRole);
-      if (authMode === "signup" && resolvedRole === "worker") {
-        // Skip onboarding if this Google account already has a completed
-        // worker profile (phone on file) from a previous sign-up.
-        const existingProfile = email ? allWorkers.find((w) => w.email && w.email === email && w.phone) : undefined;
-        if (!existingProfile) {
-          redirectToWorkerOnboarding(name, email);
+      if (authRole === "worker" && !hasCompletedWorkerProfile) {
+        redirectToWorkerOnboarding(name, email);
+        return;
+      }
+      if (authRole === "customer" && !hasCompletedWorkerProfile) {
+        let hasCompletedCustomerProfile = false;
+        try {
+          const customerSnap = await getDoc(doc(db, "customers", user.uid));
+          hasCompletedCustomerProfile = customerSnap.exists() && !!(customerSnap.data() as { phone?: string })?.phone;
+        } catch (err) {
+          console.error("Failed to check existing customer profile:", err);
+        }
+        if (!hasCompletedCustomerProfile) {
+          redirectToCustomerOnboarding(name, email);
           return;
         }
       }
@@ -1814,23 +1850,45 @@ export default function App() {
       setCurrentUser({ name, email: cred.user.email || email, photoURL: cred.user.photoURL });
       setIsSignedIn(true);
 
-      // Returning workers already have a profile saved under their uid —
-      // detect that and send them straight to their dashboard instead of
-      // the onboarding form.
-      let resolvedRole: "customer" | "worker" = authRole;
-      if (!isNewAccount) {
-        try {
-          const workerSnap = await getDoc(doc(db, "workers", cred.user.uid));
-          resolvedRole = workerSnap.exists() ? "worker" : "customer";
-        } catch (err) {
-          console.error("Failed to check existing profile:", err);
-        }
+      // Whether this account has an actually-completed worker profile on
+      // file (phone present) is what should decide whether onboarding is
+      // needed — NOT whether the Firebase Auth account itself is "new".
+      // An Auth account can already exist (so isNewAccount is false) while
+      // its Firestore worker doc is missing/incomplete — e.g. Firestore
+      // data was wiped/reset without also deleting the Auth user. Always
+      // check Firestore directly so that case still lands back in the
+      // Join as Worker form instead of silently becoming a customer.
+      let hasCompletedWorkerProfile = false;
+      try {
+        const workerSnap = await getDoc(doc(db, "workers", cred.user.uid));
+        hasCompletedWorkerProfile = workerSnap.exists() && !!(workerSnap.data() as { phone?: string })?.phone;
+      } catch (err) {
+        console.error("Failed to check existing profile:", err);
       }
+      const resolvedRole: "customer" | "worker" = hasCompletedWorkerProfile ? "worker" : authRole;
       applyUserRole(resolvedRole);
 
-      if (isNewAccount && resolvedRole === "worker") {
+      if (authRole === "worker" && !hasCompletedWorkerProfile) {
         redirectToWorkerOnboarding(name, cred.user.email || email);
         return;
+      }
+
+      // Same idea, mirrored for the Customer tab: check Firestore directly
+      // rather than assuming a signed-in account already has a completed
+      // customer profile (phone on file) — a Firestore reset should still
+      // send them back into the Join as Customer form.
+      if (authRole === "customer" && !hasCompletedWorkerProfile) {
+        let hasCompletedCustomerProfile = false;
+        try {
+          const customerSnap = await getDoc(doc(db, "customers", cred.user.uid));
+          hasCompletedCustomerProfile = customerSnap.exists() && !!(customerSnap.data() as { phone?: string })?.phone;
+        } catch (err) {
+          console.error("Failed to check existing customer profile:", err);
+        }
+        if (!hasCompletedCustomerProfile) {
+          redirectToCustomerOnboarding(name, cred.user.email || email);
+          return;
+        }
       }
       setSignInStep(2);
       setTimeout(() => setShowSignIn(false), 1000);
