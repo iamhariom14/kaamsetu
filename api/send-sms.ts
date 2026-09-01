@@ -1,20 +1,19 @@
 // Vercel Serverless Function — runs on the server, never in the browser.
-// The Fast2SMS API key stays here (process.env.FAST2SMS_API_KEY) and is
-// never sent to the client, unlike the old VITE_FAST2SMS_API_KEY approach.
+//
+// Uses Textbelt's free tier (key="textbelt") — no signup, no recharge, no
+// DLT registration. Limit: 1 free SMS per day, shared across everyone using
+// the public "textbelt" key worldwide, so it's meant for demos, not
+// production. For real usage later, swap TEXTBELT_KEY for a paid key from
+// textbelt.com (set as an env var) or move back to a DLT-registered gateway.
 //
 // Deployed automatically by Vercel at: /api/send-sms
 
-const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY;
+const TEXTBELT_KEY = process.env.TEXTBELT_KEY || "textbelt";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  if (!FAST2SMS_API_KEY) {
-    console.warn("FAST2SMS_API_KEY not set on the server — skipping urgent SMS.");
-    return res.status(200).json({ skipped: true, reason: "SMS not configured" });
   }
 
   const { workerPhone, customerName, service, address } = (req.body ?? {}) as {
@@ -32,24 +31,22 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: "customerName, service, and address are required" });
   }
 
+  // Textbelt needs E.164 format outside the US — prefix with India's +91.
+  const phone = `+91${digits}`;
   const message = `Kaamsetu URGENT: ${customerName} needs a ${service} right now at ${address}. Open the Kaamsetu app to accept.`;
 
-  const url = new URL("https://www.fast2sms.com/dev/bulkV2");
-  url.searchParams.set("authorization", FAST2SMS_API_KEY);
-  url.searchParams.set("route", "q");
-  url.searchParams.set("message", message);
-  url.searchParams.set("language", "english");
-  url.searchParams.set("flash", "0");
-  url.searchParams.set("numbers", digits);
-
   try {
-    const fast2smsRes = await fetch(url.toString());
-    const data = await fast2smsRes.json();
-    if (data.return !== true) {
-      console.error("Fast2SMS rejected the SMS:", data);
-      return res.status(502).json({ error: "Fast2SMS rejected the message", details: data });
+    const textbeltRes = await fetch("https://textbelt.com/text", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, message, key: TEXTBELT_KEY }),
+    });
+    const data = await textbeltRes.json();
+    if (!data.success) {
+      console.error("Textbelt rejected the SMS:", data);
+      return res.status(502).json({ error: "Textbelt rejected the message", details: data });
     }
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, textId: data.textId, quotaRemaining: data.quotaRemaining });
   } catch (err) {
     console.error("Failed to send urgent SMS:", err);
     return res.status(500).json({ error: "Failed to send SMS" });
