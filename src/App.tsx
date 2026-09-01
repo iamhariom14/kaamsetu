@@ -12,6 +12,7 @@ import {
   addDoc,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -1172,8 +1173,13 @@ export default function App() {
   const [signInStep, setSignInStep] = useState(1); // 1 = form, 2 = success
   const [authRole, setAuthRole] = useState<"customer" | "worker">("customer");
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  // Which of the two sign-in methods is active — only used while
+  // authMode === "signin". Registering always happens by email.
+  const [loginMethod, setLoginMethod] = useState<"email" | "mobile">("email");
   const [signInName, setSignInName] = useState("");
   const [signInEmail, setSignInEmail] = useState("");
+  const [signInMobile, setSignInMobile] = useState("");
+  const [signInPassword, setSignInPassword] = useState("");
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
@@ -1999,9 +2005,12 @@ export default function App() {
     setShowSignIn(true);
     setAuthRole(role);
     setAuthMode("signin");
+    setLoginMethod("email");
     setSignInStep(1);
     setSignInName("");
     setSignInEmail("");
+    setSignInMobile("");
+    setSignInPassword("");
     setAuthError("");
   }
   function closeSignIn() {
@@ -2105,99 +2114,127 @@ export default function App() {
     }
   }
 
-  // No password field is shown anywhere in the UI anymore — the person only
-  // ever types their email. Under the hood we still use Firebase's email/
-  // password auth (so the rest of the app — uid-keyed worker profiles,
-  // Firestore rules, etc. — needs no changes), but the "password" is derived
-  // from the email itself. That means typing the same email again always
-  // resolves to the same Firebase account, so the same profile just opens
-  // automatically — no form to refill, nothing to remember beyond the email.
-  function deriveEmailSecret(email: string): string {
-    const normalized = email.trim().toLowerCase();
-    let hash = 0;
-    for (let i = 0; i < normalized.length; i++) {
-      hash = (hash * 31 + normalized.charCodeAt(i)) >>> 0;
+  // Shared "what happens after a successful sign-in/sign-up" step, used by
+  // both the Email Login and Mobile Number Login paths below (and by
+  // Google sign-in, which does the same checks inline). Looks at Firestore
+  // directly to decide whether this account already has a *completed*
+  // profile (phone on file) rather than trusting isNewAccount — an Auth
+  // account can already exist while its Firestore doc is missing/
+  // incomplete (e.g. after a Firestore reset), and that case should still
+  // land back in the Join as Worker/Customer form.
+  async function finishAuthSuccess(cred: { user: { uid: string; email: string | null; displayName: string | null; photoURL: string | null } }, fallbackName: string, fallbackEmail: string) {
+    const email = cred.user.email || fallbackEmail;
+    const name = cred.user.displayName || fallbackName || email.split("@")[0] || "Member";
+    setCurrentUser({ name, email, photoURL: cred.user.photoURL });
+    setIsSignedIn(true);
+
+    let hasCompletedWorkerProfile = false;
+    try {
+      const workerSnap = await getDoc(doc(db, "workers", cred.user.uid));
+      hasCompletedWorkerProfile = workerSnap.exists() && !!(workerSnap.data() as { phone?: string })?.phone;
+    } catch (err) {
+      console.error("Failed to check existing profile:", err);
     }
-    return `ks-${hash.toString(36)}-${normalized.length}!Aa1`;
+    const resolvedRole: "customer" | "worker" = hasCompletedWorkerProfile ? "worker" : authRole;
+    applyUserRole(resolvedRole);
+
+    if (authRole === "worker" && !hasCompletedWorkerProfile) {
+      redirectToWorkerOnboarding(name, email);
+      return;
+    }
+
+    if (authRole === "customer" && !hasCompletedWorkerProfile) {
+      let hasCompletedCustomerProfile = false;
+      try {
+        const customerSnap = await getDoc(doc(db, "customers", cred.user.uid));
+        hasCompletedCustomerProfile = customerSnap.exists() && !!(customerSnap.data() as { phone?: string })?.phone;
+      } catch (err) {
+        console.error("Failed to check existing customer profile:", err);
+      }
+      if (!hasCompletedCustomerProfile) {
+        redirectToCustomerOnboarding(name, email);
+        return;
+      }
+    }
+    setSignInStep(2);
+    setTimeout(() => setShowSignIn(false), 1000);
   }
 
+  // Email Login (signin) / Register with email (signup) — a real password,
+  // typed by the person, is used both ways: signInWithEmailAndPassword to
+  // log an existing account in, createUserWithEmailAndPassword to register
+  // a brand-new one.
   async function submitEmailAuth() {
     if (authLoading) return;
     const email = signInEmail.trim();
-    if (!email) return;
+    const password = signInPassword;
+    if (!email || !password) return;
+    if (authMode === "signup" && password.length < 6) {
+      setAuthError("Password must be at least 6 characters.");
+      return;
+    }
     setAuthError("");
     setAuthLoading(true);
     try {
-      const secret = deriveEmailSecret(email);
       let cred;
-      let isNewAccount = false;
-      try {
-        // Same email as before → this succeeds and hands back the exact
-        // same account (and uid) as last time.
-        cred = await signInWithEmailAndPassword(auth, email, secret);
-      } catch (signInErr: unknown) {
-        const code = (signInErr as { code?: string })?.code || "";
-        if (code.includes("user-not-found") || code.includes("invalid-credential") || code.includes("wrong-password")) {
-          // First time seeing this email → create the account.
-          cred = await createUserWithEmailAndPassword(auth, email, secret);
-          isNewAccount = true;
-        } else {
-          throw signInErr;
+      if (authMode === "signup") {
+        cred = await createUserWithEmailAndPassword(auth, email, password);
+        if (signInName.trim()) {
+          await updateProfile(cred.user, { displayName: signInName.trim() });
         }
+      } else {
+        cred = await signInWithEmailAndPassword(auth, email, password);
       }
-      if (isNewAccount && signInName.trim()) {
-        await updateProfile(cred.user, { displayName: signInName.trim() });
-      }
-      const name = cred.user.displayName || signInName.trim() || email.split("@")[0] || "Member";
-      setCurrentUser({ name, email: cred.user.email || email, photoURL: cred.user.photoURL });
-      setIsSignedIn(true);
-
-      // Whether this account has an actually-completed worker profile on
-      // file (phone present) is what should decide whether onboarding is
-      // needed — NOT whether the Firebase Auth account itself is "new".
-      // An Auth account can already exist (so isNewAccount is false) while
-      // its Firestore worker doc is missing/incomplete — e.g. Firestore
-      // data was wiped/reset without also deleting the Auth user. Always
-      // check Firestore directly so that case still lands back in the
-      // Join as Worker form instead of silently becoming a customer.
-      let hasCompletedWorkerProfile = false;
-      try {
-        const workerSnap = await getDoc(doc(db, "workers", cred.user.uid));
-        hasCompletedWorkerProfile = workerSnap.exists() && !!(workerSnap.data() as { phone?: string })?.phone;
-      } catch (err) {
-        console.error("Failed to check existing profile:", err);
-      }
-      const resolvedRole: "customer" | "worker" = hasCompletedWorkerProfile ? "worker" : authRole;
-      applyUserRole(resolvedRole);
-
-      if (authRole === "worker" && !hasCompletedWorkerProfile) {
-        redirectToWorkerOnboarding(name, cred.user.email || email);
-        return;
-      }
-
-      // Same idea, mirrored for the Customer tab: check Firestore directly
-      // rather than assuming a signed-in account already has a completed
-      // customer profile (phone on file) — a Firestore reset should still
-      // send them back into the Join as Customer form.
-      if (authRole === "customer" && !hasCompletedWorkerProfile) {
-        let hasCompletedCustomerProfile = false;
-        try {
-          const customerSnap = await getDoc(doc(db, "customers", cred.user.uid));
-          hasCompletedCustomerProfile = customerSnap.exists() && !!(customerSnap.data() as { phone?: string })?.phone;
-        } catch (err) {
-          console.error("Failed to check existing customer profile:", err);
-        }
-        if (!hasCompletedCustomerProfile) {
-          redirectToCustomerOnboarding(name, cred.user.email || email);
-          return;
-        }
-      }
-      setSignInStep(2);
-      setTimeout(() => setShowSignIn(false), 1000);
+      await finishAuthSuccess(cred, signInName.trim(), email);
     } catch (err: unknown) {
       console.error(err);
       const code = (err as { code?: string })?.code || "";
       if (code.includes("invalid-email")) setAuthError("Please enter a valid email address.");
+      else if (code.includes("email-already-in-use")) setAuthError("An account with this email already exists — try logging in instead.");
+      else if (code.includes("wrong-password") || code.includes("invalid-credential")) setAuthError("Incorrect email or password.");
+      else if (code.includes("user-not-found")) setAuthError("No account found with this email.");
+      else if (code.includes("weak-password")) setAuthError("Password must be at least 6 characters.");
+      else setAuthError("Something went wrong. Please try again.");
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  // Mobile Number Login — there's no phone/OTP auth wired up in this app,
+  // so instead we look the number up against the phone field saved on
+  // "customers" and "workers" profiles in Firestore, find the matching
+  // account's email, and sign that account in with Firebase email/password
+  // auth underneath (same mechanism Email Login uses). Only used for
+  // signing in to an existing account — registering is always by email.
+  async function submitMobileAuth() {
+    if (authLoading) return;
+    const mobile = signInMobile.trim();
+    const password = signInPassword;
+    if (!mobile || !password) return;
+    setAuthError("");
+    setAuthLoading(true);
+    try {
+      const [workerMatch, customerMatch] = await Promise.all([
+        (async () => {
+          const snap = await getDocs(query(collection(db, "workers"), where("phone", "==", mobile)));
+          return snap.docs[0]?.data() as { email?: string; name?: string } | undefined;
+        })(),
+        (async () => {
+          const snap = await getDocs(query(collection(db, "customers"), where("phone", "==", mobile)));
+          return snap.docs[0]?.data() as { email?: string; name?: string } | undefined;
+        })(),
+      ]);
+      const match = workerMatch || customerMatch;
+      if (!match?.email) {
+        setAuthError("No account found with this mobile number.");
+        return;
+      }
+      const cred = await signInWithEmailAndPassword(auth, match.email, password);
+      await finishAuthSuccess(cred, match.name || "", match.email);
+    } catch (err: unknown) {
+      console.error(err);
+      const code = (err as { code?: string })?.code || "";
+      if (code.includes("wrong-password") || code.includes("invalid-credential")) setAuthError("Incorrect mobile number or password.");
       else setAuthError("Something went wrong. Please try again.");
     } finally {
       setAuthLoading(false);
@@ -2967,27 +3004,6 @@ export default function App() {
               </div>
 
               <div className="bg-white border border-[#E4DEC9] rounded-3xl p-6 shadow-[0_10px_30px_-12px_rgba(27,107,74,0.18)]">
-                {/* Primary choice: register a new account, or sign in to an
-                    existing one. This applies the same way whether the
-                    person is a customer or a worker — which of the two they
-                    are is chosen just below, only when registering. */}
-                <div className="grid grid-cols-2 gap-2 bg-[#F3F0E4] rounded-xl p-1 mb-4">
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode("signup"); setAuthError(""); }}
-                    className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authMode === "signup" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
-                  >
-                    {t("registerCreateAccount")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode("signin"); setAuthError(""); }}
-                    className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authMode === "signin" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
-                  >
-                    {t("alreadyHaveAccountBtn")}
-                  </button>
-                </div>
-
                 {/* Role only matters when creating a new account — an
                     existing account's role is looked up automatically from
                     its saved profile when signing in. */}
@@ -3010,53 +3026,136 @@ export default function App() {
                   </div>
                 )}
 
+                {/* Logging in: choose Email Login or Mobile Number Login.
+                    Registering is always by email, so this only shows for
+                    signin. */}
+                {authMode === "signin" && (
+                  <div className="grid grid-cols-2 gap-2 bg-[#F3F0E4] rounded-xl p-1 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMethod("email"); setAuthError(""); }}
+                      className={`text-sm font-semibold py-2 rounded-lg transition-colors ${loginMethod === "email" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
+                    >
+                      Email Login
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMethod("mobile"); setAuthError(""); }}
+                      className={`text-sm font-semibold py-2 rounded-lg transition-colors ${loginMethod === "mobile" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
+                    >
+                      Mobile Number Login
+                    </button>
+                  </div>
+                )}
+
                 {authError && (
                   <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{authError}</div>
                 )}
 
-                <button
-                  onClick={signInWithGoogle}
-                  disabled={authLoading}
-                  className="w-full flex items-center justify-center gap-2 border border-[#E4DEC9] bg-white text-[#173B2B] font-semibold py-3 rounded-xl hover:bg-[#F6F2E6] transition-colors disabled:opacity-50 mb-4"
-                >
-                  <span className="text-base font-bold" style={{ color: "#4285F4" }}>G</span> {t("continueWithGoogle")}
-                </button>
+                {/* Google sign-in and Mobile Number Login are mutually
+                    exclusive on the signin screen — Google covers the
+                    email-based account, so hide it while the Mobile Number
+                    tab is active to avoid mixing two different identifiers. */}
+                {!(authMode === "signin" && loginMethod === "mobile") && (
+                  <>
+                    <button
+                      onClick={signInWithGoogle}
+                      disabled={authLoading}
+                      className="w-full flex items-center justify-center gap-2 border border-[#E4DEC9] bg-white text-[#173B2B] font-semibold py-3 rounded-xl hover:bg-[#F6F2E6] transition-colors disabled:opacity-50 mb-4"
+                    >
+                      <span className="text-base font-bold" style={{ color: "#4285F4" }}>G</span> {t("continueWithGoogle")}
+                    </button>
 
-                <div className="flex items-center gap-3 text-xs text-[#8A8570] mb-4">
-                  <div className="flex-1 h-px bg-[#E4DEC9]" /> {t("orEmail")} <div className="flex-1 h-px bg-[#E4DEC9]" />
-                </div>
+                    <div className="flex items-center gap-3 text-xs text-[#8A8570] mb-4">
+                      <div className="flex-1 h-px bg-[#E4DEC9]" /> {t("orEmail")} <div className="flex-1 h-px bg-[#E4DEC9]" />
+                    </div>
+                  </>
+                )}
 
-                <div className="flex flex-col gap-4">
-                  {authMode === "signup" && (
+                {authMode === "signin" && loginMethod === "mobile" ? (
+                  <div className="flex flex-col gap-4">
                     <div>
-                      <label className="text-sm font-semibold text-[#173B2B] mb-1.5 block">{t("fullName")}</label>
+                      <label className="text-sm font-semibold text-[#173B2B] mb-1.5 block">Mobile Number</label>
                       <input
-                        type="text"
-                        value={signInName}
-                        onChange={(e) => setSignInName(e.target.value)}
-                        placeholder="Your full name"
+                        type="tel"
+                        value={signInMobile}
+                        onChange={(e) => setSignInMobile(e.target.value)}
+                        placeholder="10-digit mobile number"
                         className="w-full px-4 py-2.5 rounded-lg border border-[#E4DEC9] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B4A]/30"
                       />
                     </div>
-                  )}
-                  <div>
-                    <label className="text-sm font-semibold text-[#173B2B] mb-1.5 block">{t("email")}</label>
-                    <input
-                      type="email"
-                      value={signInEmail}
-                      onChange={(e) => setSignInEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#E4DEC9] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B4A]/30"
-                    />
+                    <div>
+                      <label className="text-sm font-semibold text-[#173B2B] mb-1.5 block">{t("password")}</label>
+                      <input
+                        type="password"
+                        value={signInPassword}
+                        onChange={(e) => setSignInPassword(e.target.value)}
+                        placeholder="Your password"
+                        className="w-full px-4 py-2.5 rounded-lg border border-[#E4DEC9] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B4A]/30"
+                      />
+                    </div>
+                    <button
+                      disabled={authLoading || !signInMobile.trim() || !signInPassword}
+                      onClick={submitMobileAuth}
+                      className="bg-[#1B6B4A] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#155838] transition-colors"
+                    >
+                      {authLoading ? "Please wait…" : "Login"}
+                    </button>
                   </div>
-                  <button
-                    disabled={authLoading || !signInEmail.trim() || (authMode === "signup" && !signInName.trim())}
-                    onClick={submitEmailAuth}
-                    className="bg-[#1B6B4A] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#155838] transition-colors"
-                  >
-                    {authLoading ? "Please wait…" : "Continue"}
-                  </button>
-                </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {authMode === "signup" && (
+                      <div>
+                        <label className="text-sm font-semibold text-[#173B2B] mb-1.5 block">{t("fullName")}</label>
+                        <input
+                          type="text"
+                          value={signInName}
+                          onChange={(e) => setSignInName(e.target.value)}
+                          placeholder="Your full name"
+                          className="w-full px-4 py-2.5 rounded-lg border border-[#E4DEC9] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B4A]/30"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-sm font-semibold text-[#173B2B] mb-1.5 block">{t("email")}</label>
+                      <input
+                        type="email"
+                        value={signInEmail}
+                        onChange={(e) => setSignInEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="w-full px-4 py-2.5 rounded-lg border border-[#E4DEC9] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B4A]/30"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-[#173B2B] mb-1.5 block">{t("password")}</label>
+                      <input
+                        type="password"
+                        value={signInPassword}
+                        onChange={(e) => setSignInPassword(e.target.value)}
+                        placeholder={authMode === "signup" ? "Create a password" : "Your password"}
+                        className="w-full px-4 py-2.5 rounded-lg border border-[#E4DEC9] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B4A]/30"
+                      />
+                    </div>
+                    <button
+                      disabled={authLoading || !signInEmail.trim() || !signInPassword || (authMode === "signup" && !signInName.trim())}
+                      onClick={submitEmailAuth}
+                      className="bg-[#1B6B4A] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#155838] transition-colors"
+                    >
+                      {authLoading ? "Please wait…" : authMode === "signup" ? "Create Account" : "Login"}
+                    </button>
+                  </div>
+                )}
+
+                {/* Single toggle between registering and signing in — kept
+                    to one link instead of duplicating both actions as
+                    persistent tabs above. */}
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setLoginMethod("email"); setAuthError(""); }}
+                  className="w-full text-sm text-center text-[#1B6B4A] font-semibold hover:underline mt-5"
+                >
+                  {authMode === "signup" ? t("alreadyHaveAccount") : t("needAccount")}
+                </button>
               </div>
 
               <div className="text-center mt-6">
@@ -5168,53 +5267,120 @@ export default function App() {
                     </button>
                   </div>
                 )}
+                {authMode === "signin" && (
+                  <div className="grid grid-cols-2 gap-2 bg-[#F3F7FE] rounded-xl p-1">
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMethod("email"); setAuthError(""); }}
+                      className={`text-sm font-semibold py-2 rounded-lg transition-colors ${loginMethod === "email" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}
+                    >
+                      Email Login
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMethod("mobile"); setAuthError(""); }}
+                      className={`text-sm font-semibold py-2 rounded-lg transition-colors ${loginMethod === "mobile" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}
+                    >
+                      Mobile Number Login
+                    </button>
+                  </div>
+                )}
+
                 {authError && (
                   <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{authError}</div>
                 )}
 
-                <button
-                  onClick={signInWithGoogle}
-                  disabled={authLoading}
-                  className="flex items-center justify-center gap-2 border border-[#CBD9EE] bg-white text-[#0F1E3D] font-semibold py-3 rounded-xl hover:bg-[#E6EEFB] transition-colors disabled:opacity-50"
-                >
-                  <span className="text-base font-bold" style={{ color: "#4285F4" }}>G</span> {t("continueWithGoogle")}
-                </button>
+                {!(authMode === "signin" && loginMethod === "mobile") && (
+                  <>
+                    <button
+                      onClick={signInWithGoogle}
+                      disabled={authLoading}
+                      className="flex items-center justify-center gap-2 border border-[#CBD9EE] bg-white text-[#0F1E3D] font-semibold py-3 rounded-xl hover:bg-[#E6EEFB] transition-colors disabled:opacity-50"
+                    >
+                      <span className="text-base font-bold" style={{ color: "#4285F4" }}>G</span> {t("continueWithGoogle")}
+                    </button>
 
-                <div className="flex items-center gap-3 text-xs text-[#64748B]">
-                  <div className="flex-1 h-px bg-[#CBD9EE]" /> {t("orEmail")} <div className="flex-1 h-px bg-[#CBD9EE]" />
-                </div>
-
-                {authMode === "signup" && (
-                  <div>
-                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">{t("fullName")}</label>
-                    <input
-                      type="text"
-                      value={signInName}
-                      onChange={(e) => setSignInName(e.target.value)}
-                      placeholder="Your full name"
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
-                    />
-                  </div>
+                    <div className="flex items-center gap-3 text-xs text-[#64748B]">
+                      <div className="flex-1 h-px bg-[#CBD9EE]" /> {t("orEmail")} <div className="flex-1 h-px bg-[#CBD9EE]" />
+                    </div>
+                  </>
                 )}
-                <div>
-                  <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">{t("email")}</label>
-                  <input
-                    type="email"
-                    value={signInEmail}
-                    onChange={(e) => setSignInEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
-                  />
-                </div>
+
+                {authMode === "signin" && loginMethod === "mobile" ? (
+                  <>
+                    <div>
+                      <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Mobile Number</label>
+                      <input
+                        type="tel"
+                        value={signInMobile}
+                        onChange={(e) => setSignInMobile(e.target.value)}
+                        placeholder="10-digit mobile number"
+                        className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">{t("password")}</label>
+                      <input
+                        type="password"
+                        value={signInPassword}
+                        onChange={(e) => setSignInPassword(e.target.value)}
+                        placeholder="Your password"
+                        className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                      />
+                    </div>
+                    <button
+                      disabled={authLoading || !signInMobile.trim() || !signInPassword}
+                      onClick={submitMobileAuth}
+                      className="bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1E3A8A] transition-colors"
+                    >
+                      {authLoading ? "Please wait…" : "Login"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {authMode === "signup" && (
+                      <div>
+                        <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">{t("fullName")}</label>
+                        <input
+                          type="text"
+                          value={signInName}
+                          onChange={(e) => setSignInName(e.target.value)}
+                          placeholder="Your full name"
+                          className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">{t("email")}</label>
+                      <input
+                        type="email"
+                        value={signInEmail}
+                        onChange={(e) => setSignInEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">{t("password")}</label>
+                      <input
+                        type="password"
+                        value={signInPassword}
+                        onChange={(e) => setSignInPassword(e.target.value)}
+                        placeholder={authMode === "signup" ? "Create a password" : "Your password"}
+                        className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                      />
+                    </div>
+                    <button
+                      disabled={authLoading || !signInEmail.trim() || !signInPassword || (authMode === "signup" && !signInName.trim())}
+                      onClick={submitEmailAuth}
+                      className="bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1E3A8A] transition-colors"
+                    >
+                      {authLoading ? "Please wait…" : authMode === "signup" ? "Create Account" : "Login"}
+                    </button>
+                  </>
+                )}
                 <button
-                  disabled={authLoading || !signInEmail.trim() || (authMode === "signup" && !signInName.trim())}
-                  onClick={submitEmailAuth}
-                  className="bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1E3A8A] transition-colors"
-                >
-                  {authLoading ? "Please wait…" : "Continue"}
-                </button>
-                <button
-                  onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setAuthError(""); }}
+                  onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setLoginMethod("email"); setAuthError(""); }}
                   className="text-sm text-center text-[#1D4ED8] font-semibold hover:underline"
                 >
                   {authMode === "signup" ? t("alreadyHaveAccount") : t("needAccount")}
