@@ -1533,10 +1533,42 @@ export default function App() {
   const [joinCustomerPhotoName, setJoinCustomerPhotoName] = useState("");
   const [joinCustomerRefId, setJoinCustomerRefId] = useState("");
 
-  function openJoinCustomer() {
+  // Mirrors openJoinWorker: a real account (password-protected) must exist
+  // before the customer intake form opens, so every customer — same as
+  // every worker — can log back in later via Email/Mobile Login. Clicking
+  // "Join as Customer" while signed out sends them to sign up first; they
+  // land back here automatically once that's done (see
+  // redirectToCustomerOnboarding).
+  async function openJoinCustomer() {
+    if (!authChecked) return;
+    if (!auth.currentUser) {
+      setAuthMode("signup");
+      setAuthRole("customer");
+      setAuthError("");
+      setSignInStep(1);
+      setShowSignIn(true);
+      return;
+    }
+    // Already a fully onboarded customer (profile has a phone number on
+    // file)? Skip straight to browsing instead of asking them to fill in
+    // the same details again.
+    try {
+      const customerSnap = await getDoc(doc(db, "customers", auth.currentUser.uid));
+      if (customerSnap.exists() && (customerSnap.data() as { phone?: string })?.phone) {
+        applyUserRole("customer");
+        return;
+      }
+    } catch (err) {
+      console.error("Failed to check existing customer profile:", err);
+    }
     setShowJoinCustomer(true);
     setJoinCustomerStep(1);
-    setJoinCustomerForm({ name: "", email: "", phone: "", address: "" });
+    setJoinCustomerForm({
+      name: auth.currentUser.displayName || "",
+      email: auth.currentUser.email || "",
+      phone: "",
+      address: "",
+    });
     setJoinCustomerPhotoPreview("");
     setJoinCustomerPhotoName("");
   }
@@ -1555,24 +1587,33 @@ export default function App() {
   }
   // Registers a new customer, saves their profile to Firestore, then signs
   // them straight in so their profile is what they land on next — matching
-  // the flow for "Join as Worker". When this is reached from the email/
-  // Google sign-in flow (so a real Firebase Auth account already exists),
-  // the profile is saved keyed by that account's uid — same pattern as
-  // workers — so a later login can look up whether this account already
-  // has a completed customer profile on file. The standalone pre-login
-  // "Join as Customer" button never creates a Firebase Auth account, so
-  // that path still falls back to a plain (unkeyed) record.
+  // the flow for "Join as Worker". Getting here always means the person is
+  // already signed in (openJoinCustomer sends anyone who isn't to the Sign
+  // Up modal first, same as openJoinWorker), so this just fills in the rest
+  // of that account's profile, keyed by its uid.
   async function submitJoinCustomer() {
     const refId = "CUST-" + Math.floor(100000 + Math.random() * 900000);
     const name = joinCustomerForm.name.trim();
     const email = joinCustomerForm.email.trim();
     const phone = joinCustomerForm.phone.trim();
     const address = joinCustomerForm.address.trim();
+    const uid = auth.currentUser?.uid;
+    if (!uid) {
+      openJoinCustomer();
+      return;
+    }
+    if (name && auth.currentUser && auth.currentUser.displayName !== name) {
+      try {
+        await updateProfile(auth.currentUser, { displayName: name });
+      } catch (err) {
+        console.error("Failed to update display name:", err);
+      }
+    }
     setJoinCustomerRefId(refId);
     setJoinCustomerStep(2);
-    const uid = auth.currentUser?.uid;
     try {
       const data = {
+        uid,
         name,
         email,
         phone,
@@ -1581,11 +1622,7 @@ export default function App() {
         refId,
         createdAt: serverTimestamp(),
       };
-      if (uid) {
-        await setDoc(doc(db, "customers", uid), { uid, ...data }, { merge: true });
-      } else {
-        await addDoc(collection(db, "customers"), data);
-      }
+      await setDoc(doc(db, "customers", uid), data, { merge: true });
     } catch (err) {
       console.error("Failed to save customer profile:", err);
     }
