@@ -4,11 +4,9 @@
 //
 // Deployed automatically by Vercel at: /api/send-sms
 
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-
 const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method not allowed" });
