@@ -339,26 +339,17 @@ const timeSlots = ["9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "3:
 // navigating there directly.
 const FEDERATION_ADMIN_EMAIL = "hariomprajapati6393@gmail.com";
 
-// Urgent-booking SMS — reaches a worker even if their phone is fully
-// offline (no data/wifi), since SMS only needs a cellular signal, unlike
-// in-app/push notifications. Sent via our own /api/send-sms serverless
-// function (see api/send-sms.ts), which holds the Fast2SMS API key
-// server-side so it's never exposed to the browser. Fast2SMS's "q" (Quick
-// SMS) test route — per India's TRAI/DLT rules — only delivers to your own
-// Fast2SMS-verified number. That's fine for demoing the flow; a real
-// production rollout to arbitrary workers needs DLT registration.
-async function sendUrgentBookingSms(workerPhone: string | undefined, customerName: string, service: string, address: string) {
-  try {
-    const res = await fetch("/api/send-sms", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workerPhone, customerName, service, address }),
-    });
-    const data = await res.json();
-    if (!res.ok) console.error("Urgent SMS request failed:", data);
-  } catch (err) {
-    console.error("Failed to send urgent SMS:", err);
-  }
+// Urgent-booking "offline message" — a real deployment would fire this as
+// an SMS (reaches a worker even with zero data/wifi, since SMS only needs
+// a cellular signal) via a serverless function holding a provider API key
+// server-side. That real SMS call has been removed here since it depends
+// on backend + provider config this build doesn't have. In its place,
+// buildOfflineMessage() below just formats the exact text that SMS would
+// contain — the component uses it to drive an on-screen "SMS simulation"
+// toast (see offlineSmsDemo state) so the urgent → offline-notify flow is
+// still fully demoable end-to-end without a working SMS backend.
+function buildOfflineMessage(customerName: string, service: string, address: string) {
+  return `KAAMSETU URGENT: ${customerName} needs a ${service} right now. Address: ${address}. Open the Kaamsetu app to accept.`;
 }
 
 // Demo earnings & welfare data for the worker dashboard's Earnings tab —
@@ -1357,6 +1348,10 @@ export default function App() {
 
   // Worker dashboard bottom tabs (Jobs / Earnings / Profile) + mock "withdraw
   // to bank" flow — no real payments backend, just a demo confirmation.
+  // Drives the "offline SMS" demo toast — shown when an urgent booking
+  // fires, simulating the text message a worker with no internet would
+  // receive on their phone. Auto-clears itself after a few seconds.
+  const [offlineSmsDemo, setOfflineSmsDemo] = useState<{ workerName: string; phone: string; text: string } | null>(null);
   const [workerTab, setWorkerTab] = useState<"jobs" | "earnings" | "profile">("jobs");
   const [withdrawStatus, setWithdrawStatus] = useState<string | null>(null);
   const [hoveredIncomeIdx, setHoveredIncomeIdx] = useState<number | null>(null);
@@ -1720,10 +1715,14 @@ export default function App() {
       );
     }
     // In-app/push notifications only reach the worker if their phone has
-    // internet. Urgent bookings also fire an SMS so an offline worker's
-    // phone gets it through the regular Messages app instead.
+    // internet. Urgent bookings also simulate an SMS so an offline worker's
+    // phone getting it through the regular Messages app is visible in the
+    // demo, even without a live SMS backend wired up.
     if (bookingForm.urgent) {
-      sendUrgentBookingSms(bookingWorker.phone, customerName, bookingWorker.role, fullAddress);
+      const phone = bookingWorker.phone || "+91 98XXX XXXXX";
+      const text = buildOfflineMessage(customerName, bookingWorker.role, fullAddress);
+      setOfflineSmsDemo({ workerName: bookingWorker.name, phone, text });
+      setTimeout(() => setOfflineSmsDemo(null), 7000);
     }
   }
 
@@ -5601,6 +5600,37 @@ export default function App() {
               >
                 {complaintSubmitting ? "Submitting…" : "Submit complaint to Federation"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── OFFLINE SMS DEMO TOAST ──
+          Shown right after an urgent booking, simulating the text message
+          that would land on an offline worker's phone. Purely visual — no
+          real SMS is sent — but it makes the "urgent booking → offline
+          worker still gets notified" flow visible end-to-end for a demo. */}
+      {offlineSmsDemo && (
+        <div className="fixed top-5 right-5 z-[110] w-[90vw] max-w-sm animate-modal-pop">
+          <div className="bg-[#0F1E3D] text-white rounded-2xl shadow-2xl border border-[#1D4ED8] overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2 bg-[#1D4ED8]">
+              <span className="text-lg">📴</span>
+              <span className="text-xs font-bold tracking-wide uppercase">Offline SMS sent (no internet needed)</span>
+              <button
+                onClick={() => setOfflineSmsDemo(null)}
+                className="ml-auto text-white/70 hover:text-white text-sm leading-none"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="px-4 py-3">
+              <div className="text-xs text-[#93C5FD] mb-1">
+                To: {offlineSmsDemo.workerName} · {offlineSmsDemo.phone}
+              </div>
+              <div className="bg-white text-[#0F1E3D] text-sm rounded-xl px-3 py-2 leading-relaxed">
+                {offlineSmsDemo.text}
+              </div>
             </div>
           </div>
         </div>
