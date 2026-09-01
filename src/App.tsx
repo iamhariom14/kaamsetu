@@ -4319,6 +4319,7 @@ export default function App() {
                         <input
                           type="date"
                           value={bookingForm.date}
+                          min={new Date().toISOString().split("T")[0]}
                           onChange={(e) => setBookingForm({ ...bookingForm, date: e.target.value })}
                           className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
                         />
@@ -4344,7 +4345,10 @@ export default function App() {
                     </>
                   )}
                   <button
-                    disabled={!bookingForm.date || !bookingForm.time}
+                    disabled={
+                      !bookingForm.urgent &&
+                      (!bookingForm.date || !bookingForm.time || bookingForm.date < new Date().toISOString().split("T")[0])
+                    }
                     onClick={() => setBookingStep(2)}
                     className="mt-2 bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1E3A8A] transition-colors"
                   >
