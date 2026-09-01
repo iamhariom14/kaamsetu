@@ -1645,7 +1645,19 @@ export default function App() {
       // Wait for the write to actually succeed before telling the user it's
       // filed — a fire-and-forget addDoc() would show a false "done!" even
       // if Firestore silently rejected it (e.g. security rules).
-      addDoc(collection(db, "complaints"), complaint)
+      //
+      // A Firestore write's promise only resolves once the backend
+      // acknowledges it — if the client is offline, blocked by a firewall,
+      // or misconfigured, that acknowledgment can simply never arrive, and
+      // the promise never resolves OR rejects. Without a timeout, that
+      // leaves `chatTyping` stuck true forever (the exact "typing..."
+      // freeze this fixes), since neither .then() nor .catch() ever fires.
+      // Racing against a timeout guarantees SOME outcome within 8s.
+      const TIMEOUT_MS = 8000;
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), TIMEOUT_MS)
+      );
+      Promise.race([addDoc(collection(db, "complaints"), complaint), timeout])
         .then(() => {
           setChatMessages((prev) => [
             ...prev,
@@ -1660,12 +1672,16 @@ export default function App() {
         })
         .catch((err) => {
           console.error("Failed to file chatbot complaint:", err);
+          const timedOut = err instanceof Error && err.message === "timeout";
           setChatMessages((prev) => [
             ...prev,
             {
               sender: "bot",
-              text:
-                chatLang === "hi"
+              text: timedOut
+                ? chatLang === "hi"
+                  ? "माफ़ करें, Federation से कनेक्ट होने में बहुत समय लग रहा है — शायद नेटवर्क की दिक्कत है। कृपया दोबारा कोशिश करें या 'किसी व्यक्ति से बात करें' चुनें।"
+                  : "Sorry, connecting to the Federation is taking too long — might be a network issue. Please try again, or tap 'Talk to a human'."
+                : chatLang === "hi"
                   ? "माफ़ करें, आपकी शिकायत भेजने में कोई तकनीकी दिक्कत आ गई। कृपया 'किसी व्यक्ति से बात करें' चुनें या दोबारा कोशिश करें।"
                   : "Sorry, something went wrong sending this to the Federation. Please try again, or tap 'Talk to a human' and our team will help directly.",
             },
