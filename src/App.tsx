@@ -1064,14 +1064,18 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Account/hamburger menu, notifications panel, and UI language
+  // Account/hamburger menu, notifications panel, chat widget, and UI language
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [notifPanelOpen, setNotifPanelOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const notifPanelRef = useRef<HTMLDivElement | null>(null);
-  // Clicking anywhere outside an open dropdown (account menu or
-  // notifications panel) closes it — instead of it staying open until the
-  // same button is tapped again.
+  const chatWindowRef = useRef<HTMLDivElement | null>(null);
+  const chatToggleRef = useRef<HTMLButtonElement | null>(null);
+  // Clicking anywhere outside an open dropdown (account menu, notifications
+  // panel, or the chat widget) closes it — instead of it staying open until
+  // the same button is tapped again. The chat toggle button itself is
+  // excluded from the "outside" check so tapping it to close doesn't first
+  // get treated as an outside click and then immediately reopen it.
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (accountMenuOpen && accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
@@ -1080,10 +1084,19 @@ export default function App() {
       if (notifPanelOpen && notifPanelRef.current && !notifPanelRef.current.contains(e.target as Node)) {
         setNotifPanelOpen(false);
       }
+      if (
+        chatOpen &&
+        chatWindowRef.current &&
+        !chatWindowRef.current.contains(e.target as Node) &&
+        chatToggleRef.current &&
+        !chatToggleRef.current.contains(e.target as Node)
+      ) {
+        setChatOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [accountMenuOpen, notifPanelOpen]);
+  }, [accountMenuOpen, notifPanelOpen, chatOpen]);
   const [lang, setLang] = useState<Lang>("en");
   function t(key: string) {
     return translations[lang][key] ?? key;
@@ -2364,6 +2377,24 @@ export default function App() {
       return { ...cat, requests: catRequests, workerCount: catWorkerCount, level };
     })
     .sort((a, b) => b.requests - a.requests);
+
+  // Firebase's session check is async — for a returning, already-signed-in
+  // visitor, `page` still starts as "login" until `onAuthStateChanged`
+  // fires and flips it to "home". Without this gate, that gap made every
+  // refresh flash the login page first (looking like "asking to log in
+  // again") even though the session was actually restored a moment later.
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F3F7FE]">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-[#1D4ED8] flex items-center justify-center animate-pulse">
+            <span className="text-white text-xs font-bold">KS</span>
+          </div>
+          <span className="text-sm text-[#64748B]">Loading…</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-[#F3F7FE] text-[#0F1E3D]" style={{ fontFamily: "'Outfit', sans-serif" }}>
@@ -5019,6 +5050,7 @@ export default function App() {
 
       {/* ── CHATBOT ── */}
       <button
+        ref={chatToggleRef}
         onClick={() => setChatOpen(!chatOpen)}
         className="fixed bottom-5 right-5 z-[90] w-14 h-14 rounded-full bg-[#1D4ED8] text-white text-2xl shadow-xl hover:bg-[#1E3A8A] transition-colors flex items-center justify-center"
         aria-label="Open support chat"
@@ -5027,7 +5059,7 @@ export default function App() {
       </button>
 
       {chatOpen && (
-        <div className="fixed bottom-24 right-5 z-[90] w-[90vw] max-w-sm h-[28rem] bg-[#FFFFFF] border border-[#CBD9EE] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div ref={chatWindowRef} className="fixed bottom-24 right-5 z-[90] w-[90vw] max-w-sm h-[28rem] bg-[#FFFFFF] border border-[#CBD9EE] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
           <div className="bg-[#1D4ED8] text-white px-4 py-3 flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm">KS</div>
             <div className="flex-1 min-w-0">
