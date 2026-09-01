@@ -1022,6 +1022,14 @@ export default function App() {
   // If the browser still has a valid Firebase session (returning visitor),
   // skip straight past the login page instead of showing it every time.
   useEffect(() => {
+    // Firebase's client SDK often restores a cached user optimistically
+    // (this callback fires once immediately with it) before it has
+    // actually confirmed the session/account is still valid. If that
+    // account or its data was deleted/reset, a second callback then fires
+    // with `null` shortly after. Track whether we were signed in a moment
+    // ago so we can tell "never signed in" apart from "was signed in, but
+    // that just got invalidated".
+    let wasSignedIn = false;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser({ name: user.displayName || user.email?.split("@")[0] || "Member", email: user.email || "", photoURL: user.photoURL });
@@ -1036,10 +1044,20 @@ export default function App() {
           console.error("Failed to resolve restored session's role:", err);
         }
         setPage((prev) => (prev === "login" ? "home" : prev));
+        wasSignedIn = true;
       } else {
         setCurrentUser(null);
         setIsSignedIn(false);
         setUserRole(null);
+        if (wasSignedIn) {
+          // The session we just showed as "signed in" turned out to be
+          // invalid — send them back to the first login page rather than
+          // leaving them on the home page with no path back to signing
+          // in/up (the nav's Join buttons only ever show once we're
+          // confirmed signed out, so this closes that gap).
+          setPage("login");
+        }
+        wasSignedIn = false;
       }
       setAuthChecked(true);
     });
