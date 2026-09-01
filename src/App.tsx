@@ -1642,6 +1642,14 @@ export default function App() {
         status: "open",
         createdAt: serverTimestamp(),
       };
+      // Firestore rejects any field whose value is `undefined` (it must be
+      // omitted entirely, or use `null`). `filedByEmail`/`againstEmail`
+      // above are `undefined` whenever we don't have that person's email
+      // (e.g. the typed name didn't match a known worker) — so strip any
+      // undefined field before writing, instead of sending it as-is.
+      const sanitizedComplaint = Object.fromEntries(
+        Object.entries(complaint).filter(([, v]) => v !== undefined)
+      ) as Omit<Complaint, "id">;
       // Wait for the write to actually succeed before telling the user it's
       // filed — a fire-and-forget addDoc() would show a false "done!" even
       // if Firestore silently rejected it (e.g. security rules).
@@ -1650,14 +1658,29 @@ export default function App() {
       // acknowledges it — if the client is offline, blocked by a firewall,
       // or misconfigured, that acknowledgment can simply never arrive, and
       // the promise never resolves OR rejects. Without a timeout, that
-      // leaves `chatTyping` stuck true forever (the exact "typing..."
-      // freeze this fixes), since neither .then() nor .catch() ever fires.
-      // Racing against a timeout guarantees SOME outcome within 8s.
+      // leaves `chatTyping` stuck true forever, since neither .then() nor
+      // .catch() ever fires. Racing against a timeout guarantees SOME
+      // outcome within 8s.
+      //
+      // Separately: addDoc() validates the data client-side and can throw
+      // SYNCHRONOUSLY (before any promise even exists) for bad data like an
+      // undefined field — that's what was actually causing the permanent
+      // "typing..." freeze here. A synchronous throw happens before
+      // .then()/.catch() ever get attached, so it skips straight past
+      // them as an uncaught exception, leaving chatTyping stuck true. The
+      // sanitize step above prevents that specific cause; the try/catch
+      // below is a backstop for any other synchronous validation error.
       const TIMEOUT_MS = 8000;
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("timeout")), TIMEOUT_MS)
       );
-      Promise.race([addDoc(collection(db, "complaints"), complaint), timeout])
+      let writePromise: Promise<unknown>;
+      try {
+        writePromise = addDoc(collection(db, "complaints"), sanitizedComplaint);
+      } catch (err) {
+        writePromise = Promise.reject(err);
+      }
+      Promise.race([writePromise, timeout])
         .then(() => {
           setChatMessages((prev) => [
             ...prev,
