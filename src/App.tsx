@@ -2924,12 +2924,17 @@ export default function App() {
         </div>
       )}
       {/* ── HERO ── */}
-      <section className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-5 md:px-10 pt-12 pb-16 md:pt-24 md:pb-28 grid md:grid-cols-2 gap-12 items-center">
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#E6EEFB] to-[#F3F7FE]">
+        <div className="max-w-7xl mx-auto px-5 md:px-10 pt-12 pb-16 md:pt-20 md:pb-24 grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <span className="inline-block text-xs font-semibold tracking-widest uppercase text-[#0EA5E9] mb-5 border border-[#0EA5E9]/40 bg-[#0EA5E9]/10 px-3 py-1 rounded-full">
-              {t("heroTag")}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap mb-6">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1D4ED8] bg-white px-3.5 py-1.5 rounded-full shadow-sm border border-[#CBD9EE]">
+                <span className="text-[#0EA5E9]">★</span> 4.9 Rated
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1D4ED8] bg-white px-3.5 py-1.5 rounded-full shadow-sm border border-[#CBD9EE]">
+                🛡️ {t("heroTag")}
+              </span>
+            </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.05] font-semibold mb-6 text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>
               {t("heroHeadline1")}
               <br />
@@ -2937,9 +2942,23 @@ export default function App() {
               <br />
               {t("heroHeadline2")}
             </h1>
-            <p className="text-[#64748B] text-lg leading-relaxed max-w-md mb-8">
+            <p className="text-[#64748B] text-lg leading-relaxed max-w-md mb-6">
               {t("heroSubtext")}
             </p>
+
+            {/* Trust badge pills — Snabbit-style feature chips */}
+            <div className="flex flex-wrap gap-2.5 mb-8">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-[#1D4ED8] text-white px-3.5 py-2 rounded-full">
+                ⭐ Top Rated Workers
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-[#1D4ED8] text-white px-3.5 py-2 rounded-full">
+                ✓ Verified Background
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-[#1D4ED8] text-white px-3.5 py-2 rounded-full">
+                ✓ Cooperative Trained
+              </span>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => handleServiceClick("all")}
@@ -2947,11 +2966,11 @@ export default function App() {
               >
                 {t("findAService")}
               </button>
-              <button onClick={openJoinWorker} className="border border-[#CBD9EE] text-[#0F1E3D] font-medium px-7 py-3.5 rounded-xl hover:bg-[#E6EEFB] transition-colors">
+              <button onClick={openJoinWorker} className="bg-white border border-[#CBD9EE] text-[#0F1E3D] font-medium px-7 py-3.5 rounded-xl hover:bg-[#E6EEFB] transition-colors">
                 {t("becomeAMember")}
               </button>
             </div>
-            <div className="mt-10 grid grid-cols-3 gap-3 text-sm">
+            <div className="mt-10 grid grid-cols-3 gap-3 text-sm max-w-md">
               <div>
                 <div className="text-2xl font-semibold text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>2,400+</div>
                 <div className="text-[#64748B] text-xs sm:text-sm">{t("statVerifiedWorkers")}</div>
@@ -2966,31 +2985,31 @@ export default function App() {
               </div>
             </div>
           </div>
+
+          {/* Single dominant hero image with floating info cards — Snabbit-style */}
           <div className="relative hidden md:block">
-            <div className="absolute -top-4 -right-4 w-72 h-72 rounded-3xl overflow-hidden shadow-2xl bg-[#DCE7F8]">
+            <span className="absolute top-4 right-4 z-10 inline-flex items-center gap-1.5 text-xs font-bold bg-white text-[#1D4ED8] px-3.5 py-2 rounded-full shadow-lg">
+              <span className="text-[#0EA5E9]">★</span> 4.9 Rated
+            </span>
+            <div className="w-full aspect-[4/5] max-h-[560px] rounded-3xl overflow-hidden shadow-2xl bg-[#1D4ED8] relative">
               <img
-                src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=600&fit=crop&auto=format"
-                alt="Cleaner at work"
+                src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&h=1000&fit=crop&auto=format"
+                alt="Cooperative worker at a customer's home"
                 className="w-full h-full object-cover"
                 onError={(e) => handleImgError(e, categoryImgFallback("cleaner-hero"))}
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0F1E3D]/40 via-transparent to-transparent" />
             </div>
-            <div className="absolute top-40 -left-8 w-52 h-52 rounded-2xl overflow-hidden shadow-xl border-4 border-[#F3F7FE] bg-[#DCE7F8]">
-              <img
-                src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop&auto=format"
-                alt="Home cooking"
-                className="w-full h-full object-cover"
-                onError={(e) => handleImgError(e, categoryImgFallback("home-cooking-hero"))}
-              />
-            </div>
-            <div className="absolute bottom-4 right-12 bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3 border border-[#CBD9EE]">
-              <div className="w-10 h-10 rounded-full bg-[#1D4ED8] flex items-center justify-center text-white font-bold text-sm">4.9</div>
-              <div>
-                <div className="font-semibold text-sm">Top rated workers</div>
-                <div className="text-xs text-[#64748B]">Community verified ✓</div>
+            <div className="absolute -bottom-5 left-6 right-6 bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3 border border-[#CBD9EE]">
+              <div className="w-10 h-10 rounded-full bg-[#0EA5E9] flex items-center justify-center text-white shrink-0">⚡</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm text-[#0F1E3D]">Worker on the way</div>
+                <div className="text-xs text-[#64748B]">ETA: ~15 minutes</div>
+                <div className="w-full h-1 bg-[#E6EEFB] rounded-full mt-1.5 overflow-hidden">
+                  <div className="h-full w-2/3 bg-[#1D4ED8] rounded-full" />
+                </div>
               </div>
             </div>
-            <div className="w-full h-80" />
           </div>
         </div>
         <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
