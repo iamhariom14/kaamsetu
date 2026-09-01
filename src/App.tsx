@@ -2924,7 +2924,7 @@ export default function App() {
         </div>
       )}
       {/* ── HERO ── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#E6EEFB] to-[#F3F7FE]">
+      <section className="relative overflow-hidden bg-[#DCE7FB]">
         <div className="max-w-7xl mx-auto px-5 md:px-10 pt-12 pb-16 md:pt-20 md:pb-24 grid md:grid-cols-2 gap-12 items-center">
           <div>
             <div className="flex items-center gap-2 flex-wrap mb-6">
