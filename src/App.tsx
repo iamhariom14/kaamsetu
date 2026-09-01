@@ -1350,8 +1350,30 @@ export default function App() {
   // to bank" flow — no real payments backend, just a demo confirmation.
   // Drives the "offline SMS" demo toast — shown when an urgent booking
   // fires, simulating the text message a worker with no internet would
-  // receive on their phone. Auto-clears itself after a few seconds.
+  // receive on their phone. Backed by Firestore (like `notifications`
+  // above) so it actually reaches the WORKER's own signed-in session in
+  // real time — not just flash on the customer's screen that made the
+  // booking. Auto-clears itself a few seconds after appearing.
   const [offlineSmsDemo, setOfflineSmsDemo] = useState<{ workerName: string; phone: string; text: string } | null>(null);
+  const [seenSmsSimIds, setSeenSmsSimIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!isSignedIn || !currentUser?.email) return;
+    const q = query(collection(db, "smsSimulations"), where("recipientEmail", "==", currentUser.email));
+    const unsub = onSnapshot(q, (snap) => {
+      snap.docChanges().forEach((change) => {
+        if (change.type !== "added") return;
+        const id = change.doc.id;
+        if (seenSmsSimIds.has(id)) return;
+        setSeenSmsSimIds((prev) => new Set(prev).add(id));
+        const data = change.doc.data() as { workerName: string; phone: string; text: string };
+        setOfflineSmsDemo(data);
+        setTimeout(() => setOfflineSmsDemo(null), 7000);
+        // Clean up so the collection doesn't grow forever across demo runs.
+        deleteDoc(doc(db, "smsSimulations", id)).catch(() => {});
+      });
+    }, (err) => console.error("Failed to sync SMS simulation:", err));
+    return () => unsub();
+  }, [isSignedIn, currentUser?.email]);
   const [workerTab, setWorkerTab] = useState<"jobs" | "earnings" | "profile">("jobs");
   const [withdrawStatus, setWithdrawStatus] = useState<string | null>(null);
   const [hoveredIncomeIdx, setHoveredIncomeIdx] = useState<number | null>(null);
@@ -1715,14 +1737,20 @@ export default function App() {
       );
     }
     // In-app/push notifications only reach the worker if their phone has
-    // internet. Urgent bookings also simulate an SMS so an offline worker's
-    // phone getting it through the regular Messages app is visible in the
-    // demo, even without a live SMS backend wired up.
-    if (bookingForm.urgent) {
+    // internet. Urgent bookings also simulate an SMS — written to Firestore
+    // so it lands on the WORKER's own signed-in session (see the
+    // smsSimulations listener above), the same way real-time notifications
+    // do — instead of only flashing on the customer's own screen.
+    if (bookingForm.urgent && workerEmail) {
       const phone = bookingWorker.phone || "+91 98XXX XXXXX";
       const text = buildOfflineMessage(customerName, bookingWorker.role, fullAddress);
-      setOfflineSmsDemo({ workerName: bookingWorker.name, phone, text });
-      setTimeout(() => setOfflineSmsDemo(null), 7000);
+      addDoc(collection(db, "smsSimulations"), {
+        recipientEmail: workerEmail,
+        workerName: bookingWorker.name,
+        phone,
+        text,
+        createdAt: serverTimestamp(),
+      }).catch((err) => console.error("Failed to simulate offline SMS:", err));
     }
   }
 
