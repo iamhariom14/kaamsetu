@@ -3983,10 +3983,10 @@ export default function App() {
           this shows demo jobs/requests data behind the modal before the
           person has actually finished/submitted onboarding. */}
       {page === "workerDashboard" && !showJoinWorker && (
-        <section className="pb-24 md:pb-28 animate-page-in">
+        <section className="pb-14 md:pb-20 animate-page-in">
           <div className="max-w-5xl mx-auto px-5 md:px-10 py-14 md:py-20">
 
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center gap-4 mb-6">
               <img
                 src={currentUser?.photoURL || personImgFallback(currentUser?.name || "Worker", "1B6B5E")}
                 alt={currentUser?.name || "Worker"}
@@ -3997,6 +3997,33 @@ export default function App() {
                 <h2 className="text-2xl md:text-3xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{currentUser?.name}</h2>
                 <p className="text-sm text-[#64748B]">{currentUser?.email}</p>
               </div>
+            </div>
+
+            {/* Segmented tab bar — sits right under the profile header instead
+                of floating at the bottom of the screen, so it never collides
+                with the chat launcher button. */}
+            <div className="mb-8 inline-flex w-full sm:w-auto rounded-xl border border-[#CBD9EE] bg-white p-1 gap-1">
+              <button
+                onClick={() => setWorkerTab("jobs")}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2 rounded-lg text-sm font-medium transition-colors ${workerTab === "jobs" ? "bg-[#1D4ED8] text-white" : "text-[#64748B] hover:bg-[#E6EEFB]"}`}
+              >
+                <span className="text-base leading-none">💼</span>
+                Jobs
+              </button>
+              <button
+                onClick={() => setWorkerTab("earnings")}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2 rounded-lg text-sm font-medium transition-colors ${workerTab === "earnings" ? "bg-[#1D4ED8] text-white" : "text-[#64748B] hover:bg-[#E6EEFB]"}`}
+              >
+                <span className="text-base leading-none">💳</span>
+                Earnings
+              </button>
+              <button
+                onClick={() => setWorkerTab("profile")}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2 rounded-lg text-sm font-medium transition-colors ${workerTab === "profile" ? "bg-[#1D4ED8] text-white" : "text-[#64748B] hover:bg-[#E6EEFB]"}`}
+              >
+                <span className="text-base leading-none">👤</span>
+                Profile
+              </button>
             </div>
 
             {/* ── JOBS TAB ── */}
@@ -4368,32 +4395,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Bottom tab bar */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#CBD9EE] z-40">
-            <div className="max-w-5xl mx-auto grid grid-cols-3 text-center">
-              <button
-                onClick={() => setWorkerTab("jobs")}
-                className={`py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${workerTab === "jobs" ? "text-[#1D4ED8]" : "text-[#64748B]"}`}
-              >
-                <span className="text-lg leading-none">💼</span>
-                Jobs
-              </button>
-              <button
-                onClick={() => setWorkerTab("earnings")}
-                className={`py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${workerTab === "earnings" ? "text-[#1D4ED8]" : "text-[#64748B]"}`}
-              >
-                <span className="text-lg leading-none">💳</span>
-                Earnings
-              </button>
-              <button
-                onClick={() => setWorkerTab("profile")}
-                className={`py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${workerTab === "profile" ? "text-[#1D4ED8]" : "text-[#64748B]"}`}
-              >
-                <span className="text-lg leading-none">👤</span>
-                Profile
-              </button>
-            </div>
-          </div>
         </section>
       )}
 
