@@ -1380,7 +1380,7 @@ export default function App() {
 
   // Worker dashboard bottom tabs (Jobs / Earnings / Profile) + mock "withdraw
   // to bank" flow — no real payments backend, just a demo confirmation.
-  const [workerTab, setWorkerTab] = useState<"jobs" | "earnings" | "profile">("jobs");
+  const [workerTab, setWorkerTab] = useState<"jobs" | "bookings" | "earnings" | "profile">("jobs");
   const [withdrawStatus, setWithdrawStatus] = useState<string | null>(null);
   const [hoveredIncomeIdx, setHoveredIncomeIdx] = useState<number | null>(null);
   const [hoveredPayoutIdx, setHoveredPayoutIdx] = useState<number | null>(null);
@@ -3999,32 +3999,40 @@ export default function App() {
               </div>
             </div>
 
-            {/* Pill-style tab row — separate rounded buttons with a gap
-                between them (not one connected box), so it reads like a
-                proper dashboard nav instead of a segmented control. */}
+            {/* Rectangular pill-style tab row, matching the reference
+                dashboard: separate rounded-lg buttons with a gap between
+                them, one solid-color active tab. */}
             <div className="mb-8 flex flex-wrap gap-2.5">
               <button
                 onClick={() => setWorkerTab("jobs")}
-                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors ${workerTab === "jobs" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
+                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${workerTab === "jobs" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
               >
                 <span className="text-base leading-none">💼</span>
                 Jobs
               </button>
               <button
+                onClick={() => setWorkerTab("bookings")}
+                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${workerTab === "bookings" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
+              >
+                <span className="text-base leading-none">📋</span>
+                My Bookings
+              </button>
+              <button
                 onClick={() => setWorkerTab("earnings")}
-                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors ${workerTab === "earnings" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
+                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${workerTab === "earnings" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
               >
                 <span className="text-base leading-none">💳</span>
                 Earnings
               </button>
               <button
                 onClick={() => setWorkerTab("profile")}
-                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors ${workerTab === "profile" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
+                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${workerTab === "profile" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
               >
                 <span className="text-base leading-none">👤</span>
                 Profile
               </button>
             </div>
+
 
 
 
@@ -4161,6 +4169,72 @@ export default function App() {
                   ))}
                 </div>
               </>
+            )}
+
+            {/* ── MY BOOKINGS TAB ── */}
+            {/* Reuses the same booking data/card layout as the dedicated
+                Work History page, so a worker who has also booked other
+                workers' services can see those bookings without leaving
+                the dashboard. */}
+            {workerTab === "bookings" && (
+              <div className="flex flex-col gap-4">
+                {visibleMyBookings.some((r) => r.status === "completed" || r.status === "rejected") && (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setClearedRequestIds((prev) => {
+                        const updated = new Set(prev);
+                        visibleMyBookings.forEach((r) => { if (r.status === "completed" || r.status === "rejected") updated.add(String(r.id)); });
+                        return updated;
+                      })}
+                      className="text-xs font-semibold text-[#64748B] hover:text-[#0F1E3D] hover:underline"
+                    >
+                      🗑 Clear finished
+                    </button>
+                  </div>
+                )}
+                {visibleMyBookings.length === 0 ? (
+                  <div className="text-center py-12 text-[#64748B] bg-white border border-[#CBD9EE] rounded-xl">No bookings yet.</div>
+                ) : (
+                  visibleMyBookings.map((b) => (
+                    <div key={b.id} className="bg-white border border-[#CBD9EE] rounded-xl p-5 flex flex-col gap-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          {b.urgent && (
+                            <span className="inline-block mb-1 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-50 px-2 py-0.5 rounded-full">🔴 Urgent</span>
+                          )}
+                          <div className="font-semibold text-[#0F1E3D]">{b.workerName} · {b.service}</div>
+                          <div className="text-xs text-[#64748B] mt-1">{b.date} · {b.time}</div>
+                          <div className="text-xs text-[#64748B]">{b.address}</div>
+                          {b.lat != null && b.lng != null && (
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${b.lat},${b.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-semibold text-[#1D4ED8] hover:underline"
+                            >
+                              📍 View on map
+                            </a>
+                          )}
+                          {b.status === "accepted" && b.etaMinutes != null && (
+                            <div className="text-xs font-semibold text-[#1D4ED8] mt-1">Arriving in ~{b.etaMinutes} minutes</div>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                            b.status === "pending" ? "bg-[#EAF2FE] text-[#0EA5E9]" :
+                            b.status === "accepted" ? "bg-[#E4EEFC] text-[#1D4ED8]" :
+                            b.status === "completed" ? "bg-green-50 text-green-700" :
+                            "bg-red-50 text-red-600"
+                          }`}>
+                            {b.status === "pending" ? t("pending") : b.status === "accepted" ? t("accepted") : b.status === "completed" ? "Completed" : t("rejected")}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold text-[#1D4ED8]">₹{b.rate}/hr</div>
+                    </div>
+                  ))
+                )}
+              </div>
             )}
 
             {/* ── EARNINGS TAB ── */}
