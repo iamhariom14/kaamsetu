@@ -3999,6 +3999,24 @@ export default function App() {
               </div>
             </div>
 
+            {/* Stat cards — kept visible above the tabs (not inside the
+                Jobs tab only), matching the reference dashboard where the
+                summary numbers stay put no matter which tab is open. */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+              <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
+                <div className="text-2xl font-semibold text-[#1D4ED8]" style={{ fontFamily: "'Fraunces', serif" }}>{acceptedJobs.length}</div>
+                <div className="text-xs text-[#64748B]">{t("jobsCompleted")}</div>
+              </div>
+              <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
+                <div className="text-2xl font-semibold text-[#1D4ED8]" style={{ fontFamily: "'Fraunces', serif" }}>₹{totalEarnings}</div>
+                <div className="text-xs text-[#64748B]">{t("totalEarnings")}</div>
+              </div>
+              <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
+                <div className="text-2xl font-semibold text-[#0EA5E9]" style={{ fontFamily: "'Fraunces', serif" }}>{pendingRequestsCount}</div>
+                <div className="text-xs text-[#64748B]">Pending requests</div>
+              </div>
+            </div>
+
             {/* Rectangular pill-style tab row, matching the reference
                 dashboard: separate rounded-lg buttons with a gap between
                 them, one solid-color active tab. */}
@@ -4033,27 +4051,9 @@ export default function App() {
               </button>
             </div>
 
-
-
-
             {/* ── JOBS TAB ── */}
             {workerTab === "jobs" && (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
-                  <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
-                    <div className="text-2xl font-semibold text-[#1D4ED8]" style={{ fontFamily: "'Fraunces', serif" }}>{acceptedJobs.length}</div>
-                    <div className="text-xs text-[#64748B]">{t("jobsCompleted")}</div>
-                  </div>
-                  <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
-                    <div className="text-2xl font-semibold text-[#1D4ED8]" style={{ fontFamily: "'Fraunces', serif" }}>₹{totalEarnings}</div>
-                    <div className="text-xs text-[#64748B]">{t("totalEarnings")}</div>
-                  </div>
-                  <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
-                    <div className="text-2xl font-semibold text-[#0EA5E9]" style={{ fontFamily: "'Fraunces', serif" }}>{pendingRequestsCount}</div>
-                    <div className="text-xs text-[#64748B]">Pending requests</div>
-                  </div>
-                </div>
-
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-xl" style={{ fontFamily: "'Fraunces', serif" }}>{t("incomingRequests")}</h3>
                   {visibleIncomingRequests.some((r) => r.status !== "pending" && r.status !== "accepted") && (
