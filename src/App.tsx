@@ -41,11 +41,11 @@ function handleImgError(
 
 const serviceCategories = [
   { id: "cleaning",        label: "Cleaning",         icon: "🧹", count: 5, color: "#E4EEFC", photo: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=450&fit=crop&auto=format" },
-  { id: "plumbing",        label: "Plumbing",          icon: "🔧", count: 4, color: "#EAF2FE", photo: "https://images.unsplash.com/photo-1607472829760-9a3494b8e59d?w=600&h=450&fit=crop&auto=format" },
-  { id: "carpentry",       label: "Carpentry",         icon: "🪚", count: 4, color: "#E0EAFC", photo: "https://images.unsplash.com/photo-1601058268499-e52e2e2a8e77?w=600&h=450&fit=crop&auto=format" },
+  { id: "plumbing",        label: "Plumbing",          icon: "🔧", count: 4, color: "#EAF2FE", photo: categoryImgFallback("plumbing") },
+  { id: "carpentry",       label: "Carpentry",         icon: "🪚", count: 4, color: "#E0EAFC", photo: categoryImgFallback("carpentry") },
   { id: "painting",        label: "Painting",          icon: "🖌️", count: 5, color: "#E8EEFE", photo: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=600&h=450&fit=crop&auto=format" },
   { id: "domestic",        label: "Domestic Help",     icon: "🏠", count: 5, color: "#E4EEFC", photo: "https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&h=450&fit=crop&auto=format" },
-  { id: "caregiver",       label: "Caregiver",         icon: "🤝", count: 4, color: "#EAF2FE", photo: "https://images.unsplash.com/photo-1576765607924-3f7b1e1b3d0f?w=600&h=450&fit=crop&auto=format" },
+  { id: "caregiver",       label: "Caregiver",         icon: "🤝", count: 4, color: "#EAF2FE", photo: categoryImgFallback("caregiver") },
   { id: "driver",          label: "Driver",            icon: "🚗", count: 5, color: "#E0EAFC", photo: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=600&h=450&fit=crop&auto=format" },
   { id: "gardening",       label: "Gardening",         icon: "🌿", count: 4, color: "#E4EEFC", photo: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=450&fit=crop&auto=format" },
   { id: "electrician",     label: "Electrician",       icon: "⚡", count: 5, color: "#EFF6FE", photo: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&h=450&fit=crop&auto=format" },
@@ -2771,12 +2771,6 @@ export default function App() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => handleImgError(e, categoryImgFallback(cat.id))}
                   />
-                  <span
-                    className="absolute top-2 left-2 w-9 h-9 rounded-lg flex items-center justify-center text-lg shadow"
-                    style={{ backgroundColor: cat.color }}
-                  >
-                    {cat.icon}
-                  </span>
                 </div>
                 <div className="p-4">
                   <div className="font-semibold text-sm text-[#0F1E3D]">{cat.label}</div>
@@ -3159,12 +3153,6 @@ export default function App() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       onError={(e) => handleImgError(e, categoryImgFallback(cat.id))}
                     />
-                    <span
-                      className="absolute top-2 left-2 w-9 h-9 rounded-lg flex items-center justify-center text-lg shadow"
-                      style={{ backgroundColor: cat.color }}
-                    >
-                      {cat.icon}
-                    </span>
                   </div>
                   <div className="p-4">
                     <div className="font-semibold text-sm text-[#0F1E3D]">{cat.label}</div>
