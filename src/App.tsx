@@ -3999,34 +3999,33 @@ export default function App() {
               </div>
             </div>
 
-            {/* Segmented tab bar — sits right under the profile header instead
-                of floating at the bottom of the screen, so it never collides
-                with the chat launcher button. Unselected tabs get a visible
-                background too (not just the selected one), so all three
-                segments read as equal thirds instead of one big blue box. */}
-            <div className="mb-8 grid grid-cols-3 w-full rounded-xl border border-[#CBD9EE] bg-[#F1F5F9] overflow-hidden divide-x divide-[#CBD9EE]">
+            {/* Pill-style tab row — separate rounded buttons with a gap
+                between them (not one connected box), so it reads like a
+                proper dashboard nav instead of a segmented control. */}
+            <div className="mb-8 flex flex-wrap gap-2.5">
               <button
                 onClick={() => setWorkerTab("jobs")}
-                className={`flex items-center justify-center gap-1.5 px-5 py-3 text-sm font-medium transition-colors ${workerTab === "jobs" ? "bg-[#1D4ED8] text-white" : "bg-white text-[#64748B] hover:bg-[#E6EEFB]"}`}
+                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors ${workerTab === "jobs" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
               >
                 <span className="text-base leading-none">💼</span>
                 Jobs
               </button>
               <button
                 onClick={() => setWorkerTab("earnings")}
-                className={`flex items-center justify-center gap-1.5 px-5 py-3 text-sm font-medium transition-colors ${workerTab === "earnings" ? "bg-[#1D4ED8] text-white" : "bg-white text-[#64748B] hover:bg-[#E6EEFB]"}`}
+                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors ${workerTab === "earnings" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
               >
                 <span className="text-base leading-none">💳</span>
                 Earnings
               </button>
               <button
                 onClick={() => setWorkerTab("profile")}
-                className={`flex items-center justify-center gap-1.5 px-5 py-3 text-sm font-medium transition-colors ${workerTab === "profile" ? "bg-[#1D4ED8] text-white" : "bg-white text-[#64748B] hover:bg-[#E6EEFB]"}`}
+                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors ${workerTab === "profile" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
               >
                 <span className="text-base leading-none">👤</span>
                 Profile
               </button>
             </div>
+
 
 
             {/* ── JOBS TAB ── */}
