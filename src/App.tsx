@@ -1175,7 +1175,7 @@ export default function App() {
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   // Which of the two sign-in methods is active — only used while
   // authMode === "signin". Registering always happens by email.
-  const [loginMethod, setLoginMethod] = useState<"email" | "mobile">("email");
+  const [loginMethod, setLoginMethod] = useState<"email" | "mobile" | null>(null);
   const [signInName, setSignInName] = useState("");
   const [signInEmail, setSignInEmail] = useState("");
   const [signInMobile, setSignInMobile] = useState("");
@@ -2042,7 +2042,7 @@ export default function App() {
     setShowSignIn(true);
     setAuthRole(role);
     setAuthMode("signin");
-    setLoginMethod("email");
+    setLoginMethod(null);
     setSignInStep(1);
     setSignInName("");
     setSignInEmail("");
@@ -3041,6 +3041,32 @@ export default function App() {
               </div>
 
               <div className="bg-white border border-[#E4DEC9] rounded-3xl p-6 shadow-[0_10px_30px_-12px_rgba(27,107,74,0.18)]">
+                {/* Logging in: choose Email Login or Mobile Number Login
+                    first — no fields are shown until one is picked.
+                    Registering is always by email, so this only applies to
+                    signin. */}
+                {authMode === "signin" && loginMethod === null && (
+                  <div className="flex flex-col gap-3">
+                    {authError && (
+                      <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{authError}</div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMethod("email"); setAuthError(""); }}
+                      className="w-full border border-[#E4DEC9] bg-white text-[#173B2B] font-semibold py-3 rounded-xl hover:bg-[#F6F2E6] transition-colors"
+                    >
+                      Email Login
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMethod("mobile"); setAuthError(""); }}
+                      className="w-full border border-[#E4DEC9] bg-white text-[#173B2B] font-semibold py-3 rounded-xl hover:bg-[#F6F2E6] transition-colors"
+                    >
+                      Mobile Number Login
+                    </button>
+                  </div>
+                )}
+
                 {/* Role only matters when creating a new account — an
                     existing account's role is looked up automatically from
                     its saved profile when signing in. */}
@@ -3063,29 +3089,17 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Logging in: choose Email Login or Mobile Number Login.
-                    Registering is always by email, so this only shows for
-                    signin. */}
-                {authMode === "signin" && (
-                  <div className="grid grid-cols-2 gap-2 bg-[#F3F0E4] rounded-xl p-1 mb-4">
-                    <button
-                      type="button"
-                      onClick={() => { setLoginMethod("email"); setAuthError(""); }}
-                      className={`text-sm font-semibold py-2 rounded-lg transition-colors ${loginMethod === "email" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
-                    >
-                      Email Login
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setLoginMethod("mobile"); setAuthError(""); }}
-                      className={`text-sm font-semibold py-2 rounded-lg transition-colors ${loginMethod === "mobile" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
-                    >
-                      Mobile Number Login
-                    </button>
-                  </div>
+                {authMode === "signin" && loginMethod !== null && (
+                  <button
+                    type="button"
+                    onClick={() => { setLoginMethod(null); setAuthError(""); }}
+                    className="text-xs text-[#8A8570] hover:text-[#173B2B] mb-4 inline-flex items-center gap-1"
+                  >
+                    ← Back
+                  </button>
                 )}
 
-                {authError && (
+                {authError && !(authMode === "signin" && loginMethod === null) && (
                   <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{authError}</div>
                 )}
 
@@ -3093,7 +3107,7 @@ export default function App() {
                     exclusive on the signin screen — Google covers the
                     email-based account, so hide it while the Mobile Number
                     tab is active to avoid mixing two different identifiers. */}
-                {!(authMode === "signin" && loginMethod === "mobile") && (
+                {authMode === "signup" || loginMethod === "email" ? (
                   <>
                     <button
                       onClick={signInWithGoogle}
@@ -3107,9 +3121,9 @@ export default function App() {
                       <div className="flex-1 h-px bg-[#E4DEC9]" /> {t("orEmail")} <div className="flex-1 h-px bg-[#E4DEC9]" />
                     </div>
                   </>
-                )}
+                ) : null}
 
-                {authMode === "signin" && loginMethod === "mobile" ? (
+                {authMode === "signin" && loginMethod === "mobile" && (
                   <div className="flex flex-col gap-4">
                     <div>
                       <label className="text-sm font-semibold text-[#173B2B] mb-1.5 block">Mobile Number</label>
@@ -3139,7 +3153,9 @@ export default function App() {
                       {authLoading ? "Please wait…" : "Login"}
                     </button>
                   </div>
-                ) : (
+                )}
+
+                {(authMode === "signup" || loginMethod === "email") && (
                   <div className="flex flex-col gap-4">
                     {authMode === "signup" && (
                       <div>
@@ -3188,11 +3204,12 @@ export default function App() {
                     persistent tabs above. */}
                 <button
                   type="button"
-                  onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setLoginMethod("email"); setAuthError(""); }}
+                  onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setLoginMethod(null); setAuthError(""); }}
                   className="w-full text-sm text-center text-[#1B6B4A] font-semibold hover:underline mt-5"
                 >
                   {authMode === "signup" ? t("alreadyHaveAccount") : t("needAccount")}
                 </button>
+
               </div>
 
               <div className="text-center mt-6">
@@ -5286,6 +5303,28 @@ export default function App() {
 
             {signInStep === 1 && (
               <div className="p-6 flex flex-col gap-4">
+                {authMode === "signin" && loginMethod === null && (
+                  <>
+                    {authError && (
+                      <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{authError}</div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMethod("email"); setAuthError(""); }}
+                      className="w-full border border-[#CBD9EE] bg-white text-[#0F1E3D] font-semibold py-3 rounded-xl hover:bg-[#E6EEFB] transition-colors"
+                    >
+                      Email Login
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMethod("mobile"); setAuthError(""); }}
+                      className="w-full border border-[#CBD9EE] bg-white text-[#0F1E3D] font-semibold py-3 rounded-xl hover:bg-[#E6EEFB] transition-colors"
+                    >
+                      Mobile Number Login
+                    </button>
+                  </>
+                )}
+
                 {authMode === "signup" && (
                   <div className="grid grid-cols-2 gap-2 bg-[#F3F7FE] rounded-xl p-1">
                     <button
@@ -5304,30 +5343,22 @@ export default function App() {
                     </button>
                   </div>
                 )}
-                {authMode === "signin" && (
-                  <div className="grid grid-cols-2 gap-2 bg-[#F3F7FE] rounded-xl p-1">
-                    <button
-                      type="button"
-                      onClick={() => { setLoginMethod("email"); setAuthError(""); }}
-                      className={`text-sm font-semibold py-2 rounded-lg transition-colors ${loginMethod === "email" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}
-                    >
-                      Email Login
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setLoginMethod("mobile"); setAuthError(""); }}
-                      className={`text-sm font-semibold py-2 rounded-lg transition-colors ${loginMethod === "mobile" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}
-                    >
-                      Mobile Number Login
-                    </button>
-                  </div>
+
+                {authMode === "signin" && loginMethod !== null && (
+                  <button
+                    type="button"
+                    onClick={() => { setLoginMethod(null); setAuthError(""); }}
+                    className="text-xs text-[#64748B] hover:text-[#0F1E3D] inline-flex items-center gap-1 -mb-1"
+                  >
+                    ← Back
+                  </button>
                 )}
 
-                {authError && (
+                {authError && !(authMode === "signin" && loginMethod === null) && (
                   <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{authError}</div>
                 )}
 
-                {!(authMode === "signin" && loginMethod === "mobile") && (
+                {authMode === "signup" || loginMethod === "email" ? (
                   <>
                     <button
                       onClick={signInWithGoogle}
@@ -5341,9 +5372,9 @@ export default function App() {
                       <div className="flex-1 h-px bg-[#CBD9EE]" /> {t("orEmail")} <div className="flex-1 h-px bg-[#CBD9EE]" />
                     </div>
                   </>
-                )}
+                ) : null}
 
-                {authMode === "signin" && loginMethod === "mobile" ? (
+                {authMode === "signin" && loginMethod === "mobile" && (
                   <>
                     <div>
                       <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Mobile Number</label>
@@ -5373,7 +5404,9 @@ export default function App() {
                       {authLoading ? "Please wait…" : "Login"}
                     </button>
                   </>
-                ) : (
+                )}
+
+                {(authMode === "signup" || loginMethod === "email") && (
                   <>
                     {authMode === "signup" && (
                       <div>
@@ -5417,7 +5450,7 @@ export default function App() {
                   </>
                 )}
                 <button
-                  onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setLoginMethod("email"); setAuthError(""); }}
+                  onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setLoginMethod(null); setAuthError(""); }}
                   className="text-sm text-center text-[#1D4ED8] font-semibold hover:underline"
                 >
                   {authMode === "signup" ? t("alreadyHaveAccount") : t("needAccount")}
