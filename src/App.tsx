@@ -341,36 +341,21 @@ const FEDERATION_ADMIN_EMAIL = "hariomprajapati6393@gmail.com";
 
 // Urgent-booking SMS — reaches a worker even if their phone is fully
 // offline (no data/wifi), since SMS only needs a cellular signal, unlike
-// in-app/push notifications. Sent directly from the browser (no backend)
-// via Fast2SMS's "q" (Quick SMS) test route, which — per India's TRAI/DLT
-// rules — only delivers to your own Fast2SMS-verified number. That's fine
-// for demoing the flow; a real production rollout to arbitrary workers
-// needs DLT registration and a server-side call instead (see
-// functions/README.md for that upgrade path).
-const FAST2SMS_API_KEY = import.meta.env.VITE_FAST2SMS_API_KEY as string | undefined;
-
+// in-app/push notifications. Sent via our own /api/send-sms serverless
+// function (see api/send-sms.ts), which holds the Fast2SMS API key
+// server-side so it's never exposed to the browser. Fast2SMS's "q" (Quick
+// SMS) test route — per India's TRAI/DLT rules — only delivers to your own
+// Fast2SMS-verified number. That's fine for demoing the flow; a real
+// production rollout to arbitrary workers needs DLT registration.
 async function sendUrgentBookingSms(workerPhone: string | undefined, customerName: string, service: string, address: string) {
-  if (!FAST2SMS_API_KEY) {
-    console.warn("VITE_FAST2SMS_API_KEY not set — skipping urgent SMS. See functions/README.md.");
-    return;
-  }
-  const digits = String(workerPhone || "").replace(/\D/g, "").slice(-10);
-  if (digits.length !== 10) {
-    console.warn("No valid worker phone on file — skipping urgent SMS.");
-    return;
-  }
-  const message = `Kaamsetu URGENT: ${customerName} needs a ${service} right now at ${address}. Open the Kaamsetu app to accept.`;
-  const url = new URL("https://www.fast2sms.com/dev/bulkV2");
-  url.searchParams.set("authorization", FAST2SMS_API_KEY);
-  url.searchParams.set("route", "q");
-  url.searchParams.set("message", message);
-  url.searchParams.set("language", "english");
-  url.searchParams.set("flash", "0");
-  url.searchParams.set("numbers", digits);
   try {
-    const res = await fetch(url.toString());
+    const res = await fetch("/api/send-sms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workerPhone, customerName, service, address }),
+    });
     const data = await res.json();
-    if (data.return !== true) console.error("Fast2SMS rejected the SMS:", data);
+    if (!res.ok) console.error("Urgent SMS request failed:", data);
   } catch (err) {
     console.error("Failed to send urgent SMS:", err);
   }
