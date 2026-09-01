@@ -3012,8 +3012,6 @@ export default function App() {
             </div>
           </div>
         </div>
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
-          style={{ backgroundImage: "repeating-linear-gradient(45deg,#0F1E3D 0,#0F1E3D 1px,transparent 0,transparent 50%)", backgroundSize: "12px 12px" }} />
       </section>
 
       {/* ── SERVICE CATEGORIES ── */}
