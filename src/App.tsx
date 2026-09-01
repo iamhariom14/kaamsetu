@@ -4001,25 +4001,26 @@ export default function App() {
 
             {/* Segmented tab bar — sits right under the profile header instead
                 of floating at the bottom of the screen, so it never collides
-                with the chat launcher button. */}
-            <div className="mb-8 inline-flex w-full sm:w-auto rounded-xl border border-[#CBD9EE] bg-white p-1 gap-1">
+                with the chat launcher button. Full width on all screen
+                sizes so it doesn't look like a small, cramped box. */}
+            <div className="mb-8 grid grid-cols-3 w-full rounded-xl border border-[#CBD9EE] bg-white p-1 gap-1">
               <button
                 onClick={() => setWorkerTab("jobs")}
-                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2 rounded-lg text-sm font-medium transition-colors ${workerTab === "jobs" ? "bg-[#1D4ED8] text-white" : "text-[#64748B] hover:bg-[#E6EEFB]"}`}
+                className={`flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors ${workerTab === "jobs" ? "bg-[#1D4ED8] text-white" : "text-[#64748B] hover:bg-[#E6EEFB]"}`}
               >
                 <span className="text-base leading-none">💼</span>
                 Jobs
               </button>
               <button
                 onClick={() => setWorkerTab("earnings")}
-                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2 rounded-lg text-sm font-medium transition-colors ${workerTab === "earnings" ? "bg-[#1D4ED8] text-white" : "text-[#64748B] hover:bg-[#E6EEFB]"}`}
+                className={`flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors ${workerTab === "earnings" ? "bg-[#1D4ED8] text-white" : "text-[#64748B] hover:bg-[#E6EEFB]"}`}
               >
                 <span className="text-base leading-none">💳</span>
                 Earnings
               </button>
               <button
                 onClick={() => setWorkerTab("profile")}
-                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2 rounded-lg text-sm font-medium transition-colors ${workerTab === "profile" ? "bg-[#1D4ED8] text-white" : "text-[#64748B] hover:bg-[#E6EEFB]"}`}
+                className={`flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors ${workerTab === "profile" ? "bg-[#1D4ED8] text-white" : "text-[#64748B] hover:bg-[#E6EEFB]"}`}
               >
                 <span className="text-base leading-none">👤</span>
                 Profile
