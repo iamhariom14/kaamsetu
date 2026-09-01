@@ -2586,12 +2586,6 @@ export default function App() {
       <nav className="sticky top-0 z-50 bg-[#F3F7FE]/95 backdrop-blur border-b border-[#CBD9EE]">
         <div className="max-w-7xl mx-auto px-5 md:px-10 flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={goHome}>
-              <div className="w-8 h-8 rounded-full bg-[#1D4ED8] flex items-center justify-center">
-                <span className="text-white text-xs font-bold">KS</span>
-              </div>
-              <span className="font-semibold text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Kaamsetu</span>
-            </div>
             {page !== "home" && (
               <button
                 onClick={() => (page === "serviceDetail" ? goToServicesPage() : goHome())}
@@ -2600,6 +2594,12 @@ export default function App() {
                 <span aria-hidden="true">←</span> {t("backToHome")}
               </button>
             )}
+            <div className="flex items-center gap-2 cursor-pointer" onClick={goHome}>
+              <div className="w-8 h-8 rounded-full bg-[#1D4ED8] flex items-center justify-center">
+                <span className="text-white text-xs font-bold">KS</span>
+              </div>
+              <span className="font-semibold text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Kaamsetu</span>
+            </div>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#64748B]">
             <button onClick={goToServicesPage} className="hover:text-[#0F1E3D] transition-colors">{t("services")}</button>
