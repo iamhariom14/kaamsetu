@@ -2835,108 +2835,227 @@ export default function App() {
 
       {/* ── LOGIN PAGE (shown first, before the rest of the app) ── */}
       {page === "login" && (
-        <section className="min-h-screen flex items-center justify-center px-5 py-16 bg-[#F3F7FE] animate-page-in">
-          <div className="w-full max-w-sm">
-            <div className="flex flex-col items-center text-center mb-8">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 rounded-full bg-[#1D4ED8] flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">KS</span>
-                </div>
-                <span className="font-semibold text-lg tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Kaamsetu</span>
-              </div>
-              <div className="w-14 h-14 rounded-2xl bg-[#1D4ED8] flex items-center justify-center text-white text-2xl mb-5 shadow-md">
-                →]
-              </div>
-              <h1 className="text-3xl font-semibold mb-1" style={{ fontFamily: "'Fraunces', serif" }}>
-                {authMode === "signup" ? t("welcomeExclaim") : t("welcomeBack")}
-              </h1>
-              <p className="text-sm text-[#64748B]">
-                {authMode === "signup"
-                  ? (authRole === "worker" ? t("createWorkerAccount") : t("createCustomerAccount"))
-                  : (authRole === "worker" ? t("logInAsWorker") : t("logInToAccount"))}
-              </p>
+        <section className="min-h-screen relative overflow-hidden bg-[#FBF7EE] animate-page-in">
+          {/* Soft decorative backdrop shapes */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-[#DDEEE1]/70 blur-2xl" />
+            <div className="absolute -bottom-32 -right-16 w-[28rem] h-[28rem] rounded-full bg-[#F3E6D0]/70 blur-2xl" />
+          </div>
+
+          <div className="relative max-w-7xl mx-auto min-h-screen grid lg:grid-cols-[1fr_min(24rem,90vw)_1fr] items-center gap-6 px-5 py-12 lg:py-10">
+            {/* ── Left illustration: workers & community ── */}
+            <div className="hidden lg:flex flex-col justify-center h-full">
+              <svg viewBox="0 0 420 480" className="w-full max-w-sm" role="img" aria-label="Illustration of Indian cooperative workers in a village setting">
+                <ellipse cx="210" cy="450" rx="190" ry="18" fill="#EADFC4" />
+                {/* sky-line hills */}
+                <path d="M0 300 Q90 260 180 300 T420 290 V480 H0 Z" fill="#E6EFDD" />
+                {/* houses */}
+                <g>
+                  <rect x="24" y="260" width="70" height="70" rx="4" fill="#F4EBD8" stroke="#1B6B4A" strokeWidth="2" />
+                  <polygon points="14,262 59,228 104,262" fill="#1B6B4A" />
+                  <rect x="50" y="292" width="18" height="38" fill="#1B6B4A" />
+                  <rect x="330" y="270" width="60" height="60" rx="4" fill="#F4EBD8" stroke="#B5652E" strokeWidth="2" />
+                  <polygon points="322,272 360,244 398,272" fill="#B5652E" />
+                </g>
+                {/* tree */}
+                <g>
+                  <rect x="352" y="330" width="10" height="46" rx="3" fill="#8A5A34" />
+                  <circle cx="357" cy="316" r="30" fill="#8FBF8A" />
+                  <circle cx="335" cy="332" r="20" fill="#A3CC9C" />
+                  <circle cx="380" cy="330" r="20" fill="#A3CC9C" />
+                </g>
+                <g>
+                  <rect x="8" y="336" width="8" height="40" rx="3" fill="#8A5A34" />
+                  <circle cx="12" cy="322" r="24" fill="#A3CC9C" />
+                </g>
+
+                {/* Worker 1: electrician */}
+                <g transform="translate(120,300)">
+                  <circle cx="30" cy="18" r="16" fill="#C88355" />
+                  <rect x="12" y="34" width="36" height="52" rx="10" fill="#1B6B4A" />
+                  <rect x="8" y="86" width="18" height="60" rx="6" fill="#3E3226" />
+                  <rect x="34" y="86" width="18" height="60" rx="6" fill="#3E3226" />
+                  <rect x="44" y="40" width="30" height="10" rx="4" fill="#F2B84B" transform="rotate(24 44 40)" />
+                  <circle cx="30" cy="10" r="7" fill="#F2B84B" opacity="0.9" />
+                </g>
+                {/* Worker 2: plumber/carpenter with tool */}
+                <g transform="translate(230,296)">
+                  <circle cx="30" cy="18" r="16" fill="#8A5A3C" />
+                  <rect x="12" y="34" width="36" height="52" rx="10" fill="#B5652E" />
+                  <rect x="8" y="86" width="18" height="60" rx="6" fill="#3E3226" />
+                  <rect x="34" y="86" width="18" height="60" rx="6" fill="#3E3226" />
+                  <rect x="-8" y="44" width="10" height="46" rx="3" fill="#6B7280" transform="rotate(-10 -8 44)" />
+                </g>
+                {/* Worker 3: domestic worker, smaller / further back */}
+                <g transform="translate(60,320) scale(0.82)">
+                  <circle cx="30" cy="18" r="16" fill="#D19A6A" />
+                  <rect x="12" y="34" width="36" height="52" rx="10" fill="#D97F4B" />
+                  <rect x="8" y="86" width="18" height="60" rx="6" fill="#3E3226" />
+                  <rect x="34" y="86" width="18" height="60" rx="6" fill="#3E3226" />
+                </g>
+
+                <text x="210" y="470" textAnchor="middle" fontSize="13" fill="#3F5A46" fontFamily="'Fraunces', serif">
+                  Dignity of labour, together
+                </text>
+              </svg>
             </div>
 
-            <div className="bg-white border border-[#CBD9EE] rounded-3xl p-6 shadow-sm">
-              <div className="grid grid-cols-2 gap-2 bg-[#F3F7FE] rounded-xl p-1 mb-4">
-                <button
-                  type="button"
-                  onClick={() => setAuthRole("customer")}
-                  className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authRole === "customer" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}
-                >
-                  {t("joinAsCustomer")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAuthRole("worker")}
-                  className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authRole === "worker" ? "bg-white shadow-sm text-[#0F1E3D]" : "text-[#64748B]"}`}
-                >
-                  {t("joinAsWorker")}
-                </button>
+            {/* ── Login card ── */}
+            <div className="w-full max-w-sm mx-auto z-10">
+              <div className="flex flex-col items-center text-center mb-7">
+                <div className="flex items-center gap-2 mb-5">
+                  <div className="w-9 h-9 rounded-full bg-[#1B6B4A] flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">KS</span>
+                  </div>
+                  <span className="font-semibold text-lg tracking-tight text-[#173B2B]" style={{ fontFamily: "'Fraunces', serif" }}>Kaamsetu</span>
+                </div>
+                <p className="text-[11px] font-semibold tracking-wide text-[#5B7A65] mb-3">
+                  COOPERATIVE GIG SERVICES · HOUSEHOLD &amp; COMMUNITY
+                </p>
+                <h1 className="text-3xl font-semibold mb-1.5 text-[#173B2B]" style={{ fontFamily: "'Fraunces', serif" }}>
+                  {authMode === "signup" ? t("welcomeExclaim") : t("welcomeBack")}
+                </h1>
+                <p className="text-sm text-[#5B6B60]">
+                  {authMode === "signup"
+                    ? (authRole === "worker" ? t("createWorkerAccount") : t("createCustomerAccount"))
+                    : (authRole === "worker" ? t("logInAsWorker") : t("logInToAccount"))}
+                </p>
               </div>
 
-              {authError && (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{authError}</div>
-              )}
+              <div className="bg-white border border-[#E4DEC9] rounded-3xl p-6 shadow-[0_10px_30px_-12px_rgba(27,107,74,0.18)]">
+                <div className="grid grid-cols-2 gap-2 bg-[#F3F0E4] rounded-xl p-1 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setAuthRole("customer")}
+                    className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authRole === "customer" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
+                  >
+                    {t("joinAsCustomer")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuthRole("worker")}
+                    className={`text-sm font-semibold py-2 rounded-lg transition-colors ${authRole === "worker" ? "bg-white shadow-sm text-[#173B2B]" : "text-[#5B6B60]"}`}
+                  >
+                    {t("joinAsWorker")}
+                  </button>
+                </div>
 
-              <button
-                onClick={signInWithGoogle}
-                disabled={authLoading}
-                className="w-full flex items-center justify-center gap-2 border border-[#CBD9EE] bg-white text-[#0F1E3D] font-semibold py-3 rounded-xl hover:bg-[#E6EEFB] transition-colors disabled:opacity-50 mb-4"
-              >
-                <span className="text-base font-bold" style={{ color: "#4285F4" }}>G</span> {t("continueWithGoogle")}
-              </button>
+                {authError && (
+                  <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{authError}</div>
+                )}
 
-              <div className="flex items-center gap-3 text-xs text-[#64748B] mb-4">
-                <div className="flex-1 h-px bg-[#CBD9EE]" /> {t("orEmail")} <div className="flex-1 h-px bg-[#CBD9EE]" />
-              </div>
+                <button
+                  onClick={signInWithGoogle}
+                  disabled={authLoading}
+                  className="w-full flex items-center justify-center gap-2 border border-[#E4DEC9] bg-white text-[#173B2B] font-semibold py-3 rounded-xl hover:bg-[#F6F2E6] transition-colors disabled:opacity-50 mb-4"
+                >
+                  <span className="text-base font-bold" style={{ color: "#4285F4" }}>G</span> {t("continueWithGoogle")}
+                </button>
 
-              <div className="flex flex-col gap-4">
-                {authMode === "signup" && (
+                <div className="flex items-center gap-3 text-xs text-[#8A8570] mb-4">
+                  <div className="flex-1 h-px bg-[#E4DEC9]" /> {t("orEmail")} <div className="flex-1 h-px bg-[#E4DEC9]" />
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  {authMode === "signup" && (
+                    <div>
+                      <label className="text-sm font-semibold text-[#173B2B] mb-1.5 block">{t("fullName")}</label>
+                      <input
+                        type="text"
+                        value={signInName}
+                        onChange={(e) => setSignInName(e.target.value)}
+                        placeholder="Your full name"
+                        className="w-full px-4 py-2.5 rounded-lg border border-[#E4DEC9] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B4A]/30"
+                      />
+                    </div>
+                  )}
                   <div>
-                    <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">{t("fullName")}</label>
+                    <label className="text-sm font-semibold text-[#173B2B] mb-1.5 block">{t("email")}</label>
                     <input
-                      type="text"
-                      value={signInName}
-                      onChange={(e) => setSignInName(e.target.value)}
-                      placeholder="Your full name"
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                      type="email"
+                      value={signInEmail}
+                      onChange={(e) => setSignInEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#E4DEC9] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B6B4A]/30"
                     />
                   </div>
-                )}
-                <div>
-                  <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">{t("email")}</label>
-                  <input
-                    type="email"
-                    value={signInEmail}
-                    onChange={(e) => setSignInEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full px-4 py-2.5 rounded-lg border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
-                  />
+                  <button
+                    disabled={authLoading || !signInEmail.trim() || (authMode === "signup" && !signInName.trim())}
+                    onClick={submitEmailAuth}
+                    className="bg-[#1B6B4A] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#155838] transition-colors"
+                  >
+                    {authLoading ? "Please wait…" : "Continue"}
+                  </button>
                 </div>
+              </div>
+
+              <div className="text-center mt-6">
                 <button
-                  disabled={authLoading || !signInEmail.trim() || (authMode === "signup" && !signInName.trim())}
-                  onClick={submitEmailAuth}
-                  className="bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1E3A8A] transition-colors"
+                  onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setAuthError(""); }}
+                  className="text-sm text-[#1B6B4A] font-semibold hover:underline"
                 >
-                  {authLoading ? "Please wait…" : "Continue"}
+                  {authMode === "signup" ? t("alreadyHaveAccount") : t("needAccount")}
+                </button>
+              </div>
+
+              <div className="text-center mt-4">
+                <button onClick={goHome} className="text-xs text-[#8A8570] hover:text-[#173B2B] underline underline-offset-2">
+                  Continue browsing without an account →
                 </button>
               </div>
             </div>
 
-            <div className="text-center mt-6">
-              <button
-                onClick={() => { setAuthMode(authMode === "signup" ? "signin" : "signup"); setAuthError(""); }}
-                className="text-sm text-[#1D4ED8] font-semibold hover:underline"
-              >
-                {authMode === "signup" ? t("alreadyHaveAccount") : t("needAccount")}
-              </button>
-            </div>
+            {/* ── Right illustration: household & cooperative app ── */}
+            <div className="hidden lg:flex flex-col justify-center h-full">
+              <svg viewBox="0 0 420 480" className="w-full max-w-sm ml-auto" role="img" aria-label="Illustration of a household requesting services through the Kaamsetu app and a cooperative society building">
+                <ellipse cx="210" cy="450" rx="190" ry="18" fill="#EADFC4" />
+                {/* household */}
+                <g>
+                  <rect x="46" y="240" width="120" height="90" rx="4" fill="#F4EBD8" stroke="#1B6B4A" strokeWidth="2" />
+                  <polygon points="34,242 106,196 178,242" fill="#1B6B4A" />
+                  <rect x="90" y="278" width="30" height="52" fill="#1B6B4A" />
+                  <rect x="60" y="256" width="20" height="20" fill="#CDE4D4" stroke="#1B6B4A" strokeWidth="1.5" />
+                  <rect x="132" y="256" width="20" height="20" fill="#CDE4D4" stroke="#1B6B4A" strokeWidth="1.5" />
+                </g>
+                {/* cooperative society building */}
+                <g transform="translate(280,232)">
+                  <rect x="0" y="0" width="96" height="98" rx="4" fill="#F4EBD8" stroke="#B5652E" strokeWidth="2" />
+                  <rect x="10" y="14" width="16" height="20" fill="#EADFC4" stroke="#B5652E" strokeWidth="1.2" />
+                  <rect x="40" y="14" width="16" height="20" fill="#EADFC4" stroke="#B5652E" strokeWidth="1.2" />
+                  <rect x="70" y="14" width="16" height="20" fill="#EADFC4" stroke="#B5652E" strokeWidth="1.2" />
+                  <rect x="40" y="60" width="16" height="38" fill="#B5652E" />
+                  <path d="M-6 0 L48 -26 L102 0 Z" fill="#B5652E" />
+                  <text x="48" y="-6" textAnchor="middle" fontSize="9" fill="#F4EBD8" fontFamily="'Fraunces', serif">Cooperative</text>
+                </g>
+                {/* tree */}
+                <g>
+                  <rect x="200" y="330" width="9" height="42" rx="3" fill="#8A5A34" />
+                  <circle cx="204" cy="316" r="26" fill="#8FBF8A" />
+                </g>
 
-            <div className="text-center mt-4">
-              <button onClick={goHome} className="text-xs text-[#64748B] hover:text-[#0F1E3D] underline underline-offset-2">
-                Continue browsing without an account →
-              </button>
+                {/* smartphone with services */}
+                <g transform="translate(150,330)">
+                  <rect x="0" y="0" width="120" height="150" rx="18" fill="#173B2B" />
+                  <rect x="7" y="10" width="106" height="130" rx="10" fill="#FBF7EE" />
+                  <circle cx="60" cy="16" r="2" fill="#5B6B60" />
+                  <rect x="16" y="22" width="88" height="14" rx="7" fill="#1B6B4A" />
+                  <text x="60" y="32" textAnchor="middle" fontSize="8" fill="#FBF7EE" fontFamily="'Fraunces', serif">Kaamsetu</text>
+                  <g fontSize="9" fill="#173B2B">
+                    <rect x="16" y="42" width="88" height="18" rx="6" fill="#EFE9D8" />
+                    <text x="24" y="54">🧹 Cleaning</text>
+                    <rect x="16" y="64" width="88" height="18" rx="6" fill="#EFE9D8" />
+                    <text x="24" y="76">🔧 Plumbing</text>
+                    <rect x="16" y="86" width="88" height="18" rx="6" fill="#EFE9D8" />
+                    <text x="24" y="98">⚡ Electrical</text>
+                    <rect x="16" y="108" width="88" height="18" rx="6" fill="#1B6B4A" />
+                    <text x="24" y="120" fill="#FBF7EE">✓ Book a worker</text>
+                  </g>
+                </g>
+
+                <text x="210" y="470" textAnchor="middle" fontSize="13" fill="#3F5A46" fontFamily="'Fraunces', serif">
+                  Trusted help, right at home
+                </text>
+              </svg>
             </div>
           </div>
         </section>
