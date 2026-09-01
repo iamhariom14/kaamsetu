@@ -2654,7 +2654,7 @@ export default function App() {
         </section>
       )}
 
-      {page === "home" && (
+      {page === "home" && !showJoinCustomer && (
       <div className="animate-page-in">
       {isSignedIn && userRole === "customer" && currentUser && (
         <div className="max-w-7xl mx-auto px-5 md:px-10 pt-6">
@@ -3248,7 +3248,10 @@ export default function App() {
       )}
 
       {/* ── WORKER DASHBOARD PAGE ── */}
-      {page === "workerDashboard" && (
+      {/* Hidden while the Join as Worker form is still open — otherwise
+          this shows demo jobs/requests data behind the modal before the
+          person has actually finished/submitted onboarding. */}
+      {page === "workerDashboard" && !showJoinWorker && (
         <section className="pb-24 md:pb-28 animate-page-in">
           <div className="max-w-5xl mx-auto px-5 md:px-10 py-14 md:py-20">
 
