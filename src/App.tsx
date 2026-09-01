@@ -339,6 +339,43 @@ const timeSlots = ["9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "3:
 // navigating there directly.
 const FEDERATION_ADMIN_EMAIL = "hariomprajapati6393@gmail.com";
 
+// Urgent-booking SMS — reaches a worker even if their phone is fully
+// offline (no data/wifi), since SMS only needs a cellular signal, unlike
+// in-app/push notifications. Sent directly from the browser (no backend)
+// via Fast2SMS's "q" (Quick SMS) test route, which — per India's TRAI/DLT
+// rules — only delivers to your own Fast2SMS-verified number. That's fine
+// for demoing the flow; a real production rollout to arbitrary workers
+// needs DLT registration and a server-side call instead (see
+// functions/README.md for that upgrade path).
+const FAST2SMS_API_KEY = import.meta.env.VITE_FAST2SMS_API_KEY as string | undefined;
+
+async function sendUrgentBookingSms(workerPhone: string | undefined, customerName: string, service: string, address: string) {
+  if (!FAST2SMS_API_KEY) {
+    console.warn("VITE_FAST2SMS_API_KEY not set — skipping urgent SMS. See functions/README.md.");
+    return;
+  }
+  const digits = String(workerPhone || "").replace(/\D/g, "").slice(-10);
+  if (digits.length !== 10) {
+    console.warn("No valid worker phone on file — skipping urgent SMS.");
+    return;
+  }
+  const message = `Kaamsetu URGENT: ${customerName} needs a ${service} right now at ${address}. Open the Kaamsetu app to accept.`;
+  const url = new URL("https://www.fast2sms.com/dev/bulkV2");
+  url.searchParams.set("authorization", FAST2SMS_API_KEY);
+  url.searchParams.set("route", "q");
+  url.searchParams.set("message", message);
+  url.searchParams.set("language", "english");
+  url.searchParams.set("flash", "0");
+  url.searchParams.set("numbers", digits);
+  try {
+    const res = await fetch(url.toString());
+    const data = await res.json();
+    if (data.return !== true) console.error("Fast2SMS rejected the SMS:", data);
+  } catch (err) {
+    console.error("Failed to send urgent SMS:", err);
+  }
+}
+
 // Demo earnings & welfare data for the worker dashboard's Earnings tab —
 // stands in for real payout history until it's wired to a payments backend.
 const demoMonthlyIncomeTrend = [
@@ -550,6 +587,11 @@ type WorkerRequest = {
   customerEmail?: string;
   workerName: string;
   workerEmail?: string;
+  // Kept on the booking (not just looked up later) so a Cloud Function
+  // triggered on booking creation can SMS the worker directly — this is
+  // what reaches a worker who is offline, since SMS needs cellular
+  // signal only, not internet, unlike in-app/push notifications.
+  workerPhone?: string;
   service: string;
   category: string;
   date: string;
@@ -1640,6 +1682,7 @@ export default function App() {
       customerEmail,
       workerName: bookingWorker.name,
       workerEmail,
+      workerPhone: bookingWorker.phone,
       service: bookingWorker.role,
       category: bookingWorker.category,
       date: bookingForm.urgent ? "Today" : bookingForm.date,
@@ -1682,6 +1725,12 @@ export default function App() {
         workerEmail,
         id
       );
+    }
+    // In-app/push notifications only reach the worker if their phone has
+    // internet. Urgent bookings also fire an SMS so an offline worker's
+    // phone gets it through the regular Messages app instead.
+    if (bookingForm.urgent) {
+      sendUrgentBookingSms(bookingWorker.phone, customerName, bookingWorker.role, fullAddress);
     }
   }
 
