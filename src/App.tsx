@@ -222,19 +222,28 @@ const workers = [
 const testimonials = [
   {
     name: "Ananya Gupta", location: "Sector 18, Noida",
-    text: "Meena has been cleaning our home for 8 months. She is thorough, trustworthy and punctual. The cooperative model means she keeps fair wages — I feel good booking here.",
+    text: {
+      en: "Meena has been cleaning our home for 8 months. She is thorough, trustworthy and punctual. The cooperative model means she keeps fair wages — I feel good booking here.",
+      hi: "मीना पिछले 8 महीनों से हमारा घर साफ़ कर रही हैं। वो पूरी तरह से मेहनती, भरोसेमंद और समय की पाबंद हैं। सहकारी मॉडल का मतलब है कि उन्हें उचित मज़दूरी मिलती है — यहाँ बुक करके मुझे अच्छा लगता है।",
+    },
     avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&h=80&fit=crop&auto=format",
     service: "House Cleaning",
   },
   {
     name: "Vikram Singh", location: "Lajpat Nagar, Delhi",
-    text: "Rajan fixed our burst pipe at 10pm on a Sunday. Honest pricing, no surprise charges. The platform held him accountable and he was incredible.",
+    text: {
+      en: "Rajan fixed our burst pipe at 10pm on a Sunday. Honest pricing, no surprise charges. The platform held him accountable and he was incredible.",
+      hi: "रजन ने रविवार रात 10 बजे हमारी फटी हुई पाइप ठीक की। ईमानदार कीमत, कोई अनजान चार्ज नहीं। प्लेटफ़ॉर्म ने उन्हें जवाबदेह बनाया और वो शानदार थे।",
+    },
     avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80&h=80&fit=crop&auto=format",
     service: "Plumbing",
   },
   {
     name: "Deepa Menon", location: "Vasant Vihar, Delhi",
-    text: "Shakuntala has been caring for my father-in-law for 3 months. Her patience and expertise have been a true blessing for our entire family.",
+    text: {
+      en: "Shakuntala has been caring for my father-in-law for 3 months. Her patience and expertise have been a true blessing for our entire family.",
+      hi: "शकुंतला पिछले 3 महीनों से मेरे ससुर की देखभाल कर रही हैं। उनका धैर्य और कुशलता हमारे पूरे परिवार के लिए सच में एक वरदान रही है।",
+    },
     avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop&auto=format",
     service: "Elder Caregiver",
   },
@@ -246,23 +255,38 @@ const testimonials = [
 const customerReviews = [
   {
     name: "Ritu Bansal", location: "Rajouri Garden, Delhi", service: "House Cleaning", rating: 5,
-    text: "Booked a cleaner in the morning and she arrived within the hour. Spotless job, very professional. Loved that most of what I paid went straight to her.",
+    text: {
+      en: "Booked a cleaner in the morning and she arrived within the hour. Spotless job, very professional. Loved that most of what I paid went straight to her.",
+      hi: "सुबह एक क्लीनर बुक किया और वो एक घंटे के अंदर आ गईं। बहुत साफ़ काम, बेहद प्रोफेशनल। अच्छा लगा कि मैंने जो पैसे दिए उसका ज़्यादातर हिस्सा सीधे उन्हीं को मिला।",
+    },
   },
   {
     name: "Arjun Malhotra", location: "Sector 62, Noida", service: "Plumbing", rating: 5,
-    text: "Emergency leak fixed within 40 minutes on a Sunday night. Transparent pricing, no last-minute surcharges. Highly recommend Kaamsetu.",
+    text: {
+      en: "Emergency leak fixed within 40 minutes on a Sunday night. Transparent pricing, no last-minute surcharges. Highly recommend Kaamsetu.",
+      hi: "रविवार रात को इमरजेंसी लीक 40 मिनट में ठीक हो गई। साफ़-साफ़ प्राइसिंग, कोई आख़िरी वक्त का अतिरिक्त चार्ज नहीं। कामसेतु को ज़रूर सुझाऊंगा।",
+    },
   },
   {
     name: "Simran Kaur", location: "Sector 14, Gurugram", service: "Caregiver", rating: 5,
-    text: "Our caregiver for my mother has been wonderful — patient, skilled, and always on time. The cooperative model gives me real peace of mind.",
+    text: {
+      en: "Our caregiver for my mother has been wonderful — patient, skilled, and always on time. The cooperative model gives me real peace of mind.",
+      hi: "मेरी माँ की देखभाल करने वाली हमारी केयरगिवर बहुत अच्छी हैं — धैर्यवान, कुशल और हमेशा समय पर। सहकारी मॉडल से मुझे सच में मन की शांति मिलती है।",
+    },
   },
   {
     name: "Karan Chopra", location: "Dwarka, Delhi", service: "Painting", rating: 5,
-    text: "Got our whole 2BHK painted in two days. Neat work, fair rate, and the worker was a verified cooperative member. Will book again.",
+    text: {
+      en: "Got our whole 2BHK painted in two days. Neat work, fair rate, and the worker was a verified cooperative member. Will book again.",
+      hi: "हमारा पूरा 2BHK सिर्फ दो दिन में पेंट हो गया। साफ़-सुथरा काम, सही रेट, और कामगार एक सत्यापित सहकारी सदस्य थे। दोबारा ज़रूर बुक करूंगा।",
+    },
   },
   {
     name: "Neha Verma", location: "Janakpuri, Delhi", service: "Domestic Help", rating: 4,
-    text: "Reliable and hardworking. The app made scheduling really simple, and I like knowing the platform doesn't take a huge cut from her earnings.",
+    text: {
+      en: "Reliable and hardworking. The app made scheduling really simple, and I like knowing the platform doesn't take a huge cut from her earnings.",
+      hi: "भरोसेमंद और मेहनती। ऐप से शेड्यूल करना बहुत आसान हो गया, और मुझे अच्छा लगता है कि प्लेटफ़ॉर्म उनकी कमाई से बड़ा हिस्सा नहीं काटता।",
+    },
   },
 ];
 
@@ -272,19 +296,31 @@ const customerReviews = [
 const marqueeReviews = [
   {
     name: "Aditi Rao", location: "Malviya Nagar, Delhi", service: "Caregiver", rating: 5,
-    text: "Priya has looked after my son every afternoon for months — patient, warm, and always punctual. Couldn't ask for better care.",
+    text: {
+      en: "Priya has looked after my son every afternoon for months — patient, warm, and always punctual. Couldn't ask for better care.",
+      hi: "प्रिया कई महीनों से हर दोपहर मेरे बेटे की देखभाल कर रही हैं — धैर्यवान, स्नेही और हमेशा समय की पाबंद। इससे बेहतर देखभाल की उम्मीद नहीं कर सकता।",
+    },
   },
   {
     name: "Manish Tiwari", location: "Sector 62, Noida", service: "Electrician", rating: 5,
-    text: "Fixed a tricky wiring issue same-day. Fair pricing and no upselling — exactly what a cooperative platform should feel like.",
+    text: {
+      en: "Fixed a tricky wiring issue same-day. Fair pricing and no upselling — exactly what a cooperative platform should feel like.",
+      hi: "एक मुश्किल वायरिंग समस्या उसी दिन ठीक कर दी। उचित कीमत और कोई अतिरिक्त बिक्री नहीं — बिल्कुल वैसा ही जैसा एक सहकारी प्लेटफ़ॉर्म होना चाहिए।",
+    },
   },
   {
     name: "Pooja Nair", location: "Saket, Delhi", service: "House Cleaning", rating: 5,
-    text: "Booking took two minutes and the cleaner showed up right on time. My apartment hasn't looked this good in months!",
+    text: {
+      en: "Booking took two minutes and the cleaner showed up right on time. My apartment hasn't looked this good in months!",
+      hi: "बुकिंग सिर्फ दो मिनट में हो गई और क्लीनर बिल्कुल समय पर आ गईं। मेरा अपार्टमेंट कई महीनों में इतना अच्छा नहीं दिखा था!",
+    },
   },
   {
     name: "Rohan Kapoor", location: "Sector 14, Gurugram", service: "Carpentry", rating: 4,
-    text: "Great custom wardrobe work, finished a day early. Will definitely book through Kaamsetu again for future projects.",
+    text: {
+      en: "Great custom wardrobe work, finished a day early. Will definitely book through Kaamsetu again for future projects.",
+      hi: "बेहतरीन कस्टम वार्डरोब का काम, एक दिन पहले ही पूरा हो गया। आगे के प्रोजेक्ट्स के लिए फिर से कामसेतु के ज़रिए ज़रूर बुक करूंगा।",
+    },
   },
 ];
 
@@ -554,6 +590,19 @@ type Complaint = {
   createdAt?: unknown;
 };
 
+// A training video/session the Federation publishes for worker-members to
+// learn from — plain link-out (YouTube etc.) rather than hosted video,
+// since this app has no video storage/CDN of its own.
+type SkillCourse = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  videoUrl: string;
+  addedBy: string;
+  createdAt?: unknown;
+};
+
 type Lang = "en" | "hi";
 
 const translations: Record<Lang, Record<string, string>> = {
@@ -666,6 +715,28 @@ const translations: Record<Lang, Record<string, string>> = {
     footerSupport: "Support",
     footerCopyright: "© 2026 Kaamsetu Cooperative. Worker-owned & operated.",
     installApp: "Install App",
+
+    // Customer reviews section + auto-scrolling ticker
+    customerReviewsLabel: "Customer reviews",
+    hearFromCustomers: "Hear from our customers",
+    ratingsCombined: "Ratings Combined",
+    lovedByCommunity: "Loved by the community",
+    whatPeopleSaying: "What people are saying",
+
+    // Skill Courses
+    skillCourses: "Skill Courses",
+    skillCoursesTag: "Learn & grow",
+    skillCoursesHeadline: "Training from the Federation",
+    skillCoursesDesc: "Videos and sessions published by the Federation to help worker-members build new skills and earn more.",
+    noCoursesYet: "No skill courses added yet. Check back soon!",
+    watchNow: "Watch now →",
+    addSkillCourse: "Add a Skill Course",
+    courseTitle: "Title",
+    courseCategory: "Category (e.g. Plumbing, Safety)",
+    courseVideoUrl: "Video link (YouTube, etc.)",
+    courseDescription: "Description",
+    addCourse: "Add Course",
+    remove: "Remove",
   },
   hi: {
     services: "सेवाएं",
@@ -776,6 +847,28 @@ const translations: Record<Lang, Record<string, string>> = {
     footerSupport: "सहायता",
     footerCopyright: "© 2026 कामसेतु सहकारी समिति। कामगारों के स्वामित्व व संचालन में।",
     installApp: "ऐप इंस्टॉल करें",
+
+    // Customer reviews section + auto-scrolling ticker
+    customerReviewsLabel: "ग्राहक समीक्षाएं",
+    hearFromCustomers: "हमारे ग्राहकों की राय",
+    ratingsCombined: "रेटिंग्स मिलाकर",
+    lovedByCommunity: "समुदाय द्वारा पसंद किया गया",
+    whatPeopleSaying: "लोग क्या कह रहे हैं",
+
+    // Skill Courses
+    skillCourses: "कौशल पाठ्यक्रम",
+    skillCoursesTag: "सीखें और आगे बढ़ें",
+    skillCoursesHeadline: "फेडरेशन की ओर से प्रशिक्षण",
+    skillCoursesDesc: "फेडरेशन द्वारा प्रकाशित वीडियो और सत्र, ताकि कामगार-सदस्य नए कौशल सीखें और ज़्यादा कमाएं।",
+    noCoursesYet: "अभी तक कोई कौशल पाठ्यक्रम नहीं जोड़ा गया। जल्द ही फिर देखें!",
+    watchNow: "अभी देखें →",
+    addSkillCourse: "कौशल पाठ्यक्रम जोड़ें",
+    courseTitle: "शीर्षक",
+    courseCategory: "श्रेणी (जैसे प्लंबिंग, सुरक्षा)",
+    courseVideoUrl: "वीडियो लिंक (YouTube आदि)",
+    courseDescription: "विवरण",
+    addCourse: "पाठ्यक्रम जोड़ें",
+    remove: "हटाएं",
   },
 };
 
@@ -1185,6 +1278,19 @@ export default function App() {
       loaded.sort((a, b) => (a.id < b.id ? 1 : -1));
       setComplaints(loaded);
     }, (err) => console.error("Failed to sync complaints:", err));
+    return () => unsub();
+  }, []);
+
+  // Skill-building videos/sessions the Federation publishes — visible to
+  // everyone (mainly aimed at workers), synced live so a newly added
+  // course shows up immediately without a refresh.
+  const [skillCourses, setSkillCourses] = useState<SkillCourse[]>([]);
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "skillCourses"), (snap) => {
+      const loaded = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<SkillCourse, "id">) }));
+      loaded.sort((a, b) => (a.id < b.id ? 1 : -1));
+      setSkillCourses(loaded);
+    }, (err) => console.error("Failed to sync skill courses:", err));
     return () => unsub();
   }, []);
 
@@ -2233,6 +2339,34 @@ export default function App() {
     deleteDoc(doc(db, "complaints", id)).catch((err) => console.error("Failed to clear complaint:", err));
   }
 
+  // Federation Admin: add / remove skill-building videos & sessions for
+  // worker-members. `courseForm` backs the add form in the admin portal.
+  const [courseForm, setCourseForm] = useState({ title: "", description: "", category: "", videoUrl: "" });
+  const [courseSubmitting, setCourseSubmitting] = useState(false);
+  async function submitSkillCourse() {
+    if (!courseForm.title.trim() || !courseForm.videoUrl.trim()) return;
+    setCourseSubmitting(true);
+    const course: Omit<SkillCourse, "id"> = {
+      title: courseForm.title.trim(),
+      description: courseForm.description.trim(),
+      category: courseForm.category.trim() || "General",
+      videoUrl: courseForm.videoUrl.trim(),
+      addedBy: currentUser?.name ?? "Federation",
+      createdAt: serverTimestamp(),
+    };
+    try {
+      await addDoc(collection(db, "skillCourses"), course);
+      setCourseForm({ title: "", description: "", category: "", videoUrl: "" });
+    } catch (err) {
+      console.error("Failed to add skill course:", err);
+    }
+    setCourseSubmitting(false);
+  }
+  function adminDeleteSkillCourse(id: string) {
+    setSkillCourses((prev) => prev.filter((c) => c.id !== id));
+    deleteDoc(doc(db, "skillCourses", id)).catch((err) => console.error("Failed to delete skill course:", err));
+  }
+
   function openNotifPanel() {
     const next = !notifPanelOpen;
     setNotifPanelOpen(next);
@@ -2472,6 +2606,7 @@ export default function App() {
             <button onClick={() => goToSection("how")} className="hover:text-[#0F1E3D] transition-colors">{t("howItWorks")}</button>
             <button onClick={() => goToSection("workers")} className="hover:text-[#0F1E3D] transition-colors">{t("workers")}</button>
             <button onClick={() => goToSection("stories")} className="hover:text-[#0F1E3D] transition-colors">{t("stories")}</button>
+            <button onClick={() => goToSection("skillCourses")} className="hover:text-[#0F1E3D] transition-colors">{t("skillCourses")}</button>
           </div>
           <div className="hidden md:flex items-center gap-3">
             <div className="flex items-center gap-1 bg-[#E6EEFB] rounded-full p-1 mr-1" role="group" aria-label="Portal">
@@ -2624,6 +2759,7 @@ export default function App() {
             <button className="text-left font-medium text-[#1E293B] py-1" onClick={() => goToSection("how")}>{t("howItWorks")}</button>
             <button className="text-left font-medium text-[#1E293B] py-1" onClick={() => goToSection("workers")}>{t("workers")}</button>
             <button className="text-left font-medium text-[#1E293B] py-1" onClick={() => goToSection("stories")}>{t("stories")}</button>
+            <button className="text-left font-medium text-[#1E293B] py-1" onClick={() => goToSection("skillCourses")}>{t("skillCourses")}</button>
 
             <div className="border-t border-[#CBD9EE] pt-3 mt-1 flex flex-col gap-2.5">
               {isSignedIn ? (
@@ -3196,7 +3332,7 @@ export default function App() {
             <div className="bg-[#FFFFFF] border border-[#CBD9EE] rounded-3xl p-8 md:p-12 relative">
               <div className="text-5xl text-[#CBD9EE] font-serif leading-none mb-4">"</div>
               <p className="text-xl md:text-2xl leading-relaxed text-[#0F1E3D] mb-8" style={{ fontFamily: "'Fraunces', serif" }}>
-                {testimonials[activeTestimonial].text}
+                {testimonials[activeTestimonial].text[lang]}
               </p>
               <div className="flex items-center gap-4">
                 <img
@@ -3222,12 +3358,46 @@ export default function App() {
         </div>
       </section>
 
+      {/* ── SKILL COURSES (Federation-published training videos) ── */}
+      <section id="skillCourses" className="py-16 md:py-24 bg-[#F3F7FE]">
+        <div className="max-w-7xl mx-auto px-5 md:px-10">
+          <div className="text-center mb-12 max-w-2xl mx-auto">
+            <span className="text-xs font-semibold tracking-widest uppercase text-[#64748B]">{t("skillCoursesTag")}</span>
+            <h2 className="text-4xl md:text-5xl font-semibold mt-2 mb-3" style={{ fontFamily: "'Fraunces', serif" }}>{t("skillCoursesHeadline")}</h2>
+            <p className="text-[#64748B]">{t("skillCoursesDesc")}</p>
+          </div>
+          {skillCourses.length === 0 ? (
+            <div className="max-w-md mx-auto text-center bg-white border border-[#CBD9EE] rounded-2xl p-8 text-[#64748B]">
+              🎓 {t("noCoursesYet")}
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {skillCourses.map((c) => (
+                <div key={c.id} className="bg-white border border-[#CBD9EE] rounded-2xl p-6 flex flex-col gap-3">
+                  <span className="text-xs font-semibold text-[#1D4ED8] bg-[#DCE7F8] w-fit px-2.5 py-1 rounded-full">{c.category}</span>
+                  <h3 className="font-semibold text-lg text-[#0F1E3D]">{c.title}</h3>
+                  {c.description && <p className="text-sm text-[#64748B] leading-relaxed flex-1">{c.description}</p>}
+                  <a
+                    href={c.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-semibold text-[#1D4ED8] hover:text-[#1E3A8A] transition-colors"
+                  >
+                    ▶ {t("watchNow")}
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* ── CUSTOMER REVIEWS (rating summary + star review cards) ── */}
       <section className="py-16 md:py-24 bg-[#F3F7FE]">
         <div className="max-w-7xl mx-auto px-5 md:px-10">
           <div className="text-center mb-10">
-            <span className="text-xs font-semibold tracking-widest uppercase text-[#64748B]">Customer reviews</span>
-            <h2 className="text-4xl md:text-5xl font-semibold mt-2 mb-6" style={{ fontFamily: "'Fraunces', serif" }}>Hear from our customers</h2>
+            <span className="text-xs font-semibold tracking-widest uppercase text-[#64748B]">{t("customerReviewsLabel")}</span>
+            <h2 className="text-4xl md:text-5xl font-semibold mt-2 mb-6" style={{ fontFamily: "'Fraunces', serif" }}>{t("hearFromCustomers")}</h2>
             <div className="flex items-center justify-center gap-4">
               <span className="text-5xl md:text-6xl font-semibold text-[#1D4ED8]" style={{ fontFamily: "'Fraunces', serif" }}>
                 {(customerReviews.reduce((sum, r) => sum + r.rating, 0) / customerReviews.length).toFixed(1)}
@@ -3236,7 +3406,7 @@ export default function App() {
                 <div className="flex gap-0.5 text-lg text-[#1D4ED8]">
                   {"★★★★★"}
                 </div>
-                <div className="text-sm text-[#64748B]">3,200+ Ratings Combined</div>
+                <div className="text-sm text-[#64748B]">3,200+ {t("ratingsCombined")}</div>
               </div>
             </div>
           </div>
@@ -3247,7 +3417,7 @@ export default function App() {
                   {"★".repeat(r.rating)}
                   <span className="text-[#CBD9EE]">{"★".repeat(5 - r.rating)}</span>
                 </div>
-                <p className="text-sm text-[#1E293B] italic leading-relaxed flex-1">"{r.text}"</p>
+                <p className="text-sm text-[#1E293B] italic leading-relaxed flex-1">"{r.text[lang]}"</p>
                 <div>
                   <div className="font-semibold text-sm text-[#0F1E3D]">{r.name}</div>
                   <div className="text-xs text-[#64748B]">📍 {r.location}</div>
@@ -3273,8 +3443,8 @@ export default function App() {
           }
         `}</style>
         <div className="text-center mb-10 px-5">
-          <span className="text-xs font-semibold tracking-widest uppercase text-[#64748B]">Loved by the community</span>
-          <h2 className="text-3xl md:text-4xl font-semibold mt-2" style={{ fontFamily: "'Fraunces', serif" }}>What people are saying</h2>
+          <span className="text-xs font-semibold tracking-widest uppercase text-[#64748B]">{t("lovedByCommunity")}</span>
+          <h2 className="text-3xl md:text-4xl font-semibold mt-2" style={{ fontFamily: "'Fraunces', serif" }}>{t("whatPeopleSaying")}</h2>
         </div>
         <div className="flex w-max ks-marquee-track">
           {[...marqueeReviews, ...marqueeReviews].map((r, i) => (
@@ -3283,7 +3453,7 @@ export default function App() {
                 {"★".repeat(r.rating)}
                 <span className="text-[#CBD9EE]">{"★".repeat(5 - r.rating)}</span>
               </div>
-              <p className="text-sm text-[#1E293B] italic leading-relaxed">"{r.text}"</p>
+              <p className="text-sm text-[#1E293B] italic leading-relaxed">"{r.text[lang]}"</p>
               <div>
                 <div className="font-semibold text-sm text-[#0F1E3D]">{r.name}</div>
                 <div className="text-xs text-[#64748B]">📍 {r.location} · {r.service}</div>
@@ -4023,6 +4193,7 @@ export default function App() {
                     { id: "verification", label: `${t("adminVerification")}${pendingWorkers.length ? ` (${pendingWorkers.length})` : ""}` },
                     { id: "complaints", label: `🚩 Complaints${openComplaints.length ? ` (${openComplaints.length})` : ""}` },
                     { id: "bookings", label: t("adminBookingsDemand") },
+                    { id: "skillCourses", label: `🎓 ${t("skillCourses")}` },
                   ] as const).map((v) => (
                     <button
                       key={v.id}
@@ -4319,6 +4490,75 @@ export default function App() {
                     ))}
                   </div>
                 </>
+              )}
+
+              {adminView === "skillCourses" && (
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="bg-white/10 rounded-2xl p-6">
+                    <h3 className="font-semibold text-lg mb-4">🎓 {t("addSkillCourse")}</h3>
+                    <div className="flex flex-col gap-3">
+                      <input
+                        type="text"
+                        placeholder={t("courseTitle")}
+                        value={courseForm.title}
+                        onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-lg bg-white/10 border border-white/20 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+                      />
+                      <input
+                        type="text"
+                        placeholder={t("courseCategory")}
+                        value={courseForm.category}
+                        onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-lg bg-white/10 border border-white/20 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+                      />
+                      <input
+                        type="url"
+                        placeholder={t("courseVideoUrl")}
+                        value={courseForm.videoUrl}
+                        onChange={(e) => setCourseForm({ ...courseForm, videoUrl: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-lg bg-white/10 border border-white/20 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+                      />
+                      <textarea
+                        placeholder={t("courseDescription")}
+                        value={courseForm.description}
+                        onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
+                        rows={3}
+                        className="w-full px-4 py-2.5 rounded-lg bg-white/10 border border-white/20 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 resize-none"
+                      />
+                      <button
+                        disabled={courseSubmitting || !courseForm.title.trim() || !courseForm.videoUrl.trim()}
+                        onClick={submitSkillCourse}
+                        className="bg-white text-[#0F1E3D] font-semibold py-2.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/90 transition-colors"
+                      >
+                        {courseSubmitting ? "…" : t("addCourse")}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-4">{t("skillCourses")} ({skillCourses.length})</h3>
+                    {skillCourses.length === 0 ? (
+                      <p className="text-white/60 text-sm">{t("noCoursesYet")}</p>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {skillCourses.map((c) => (
+                          <div key={c.id} className="bg-white/10 rounded-xl p-4 flex items-start justify-between gap-3">
+                            <div>
+                              <span className="text-xs font-semibold text-white/60">{c.category}</span>
+                              <div className="font-semibold text-sm">{c.title}</div>
+                              {c.description && <div className="text-xs text-white/60 mt-1">{c.description}</div>}
+                            </div>
+                            <button
+                              onClick={() => adminDeleteSkillCourse(c.id)}
+                              className="text-xs font-semibold text-red-300 hover:text-red-200 transition-colors shrink-0"
+                            >
+                              {t("remove")}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </section>
