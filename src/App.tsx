@@ -240,6 +240,54 @@ const testimonials = [
   },
 ];
 
+// Snabbit-style ratings strip: an overall score plus a row of individual
+// star-rated review cards. Kept separate from `testimonials` above (which
+// powers the single-quote carousel) since this is a distinct layout.
+const customerReviews = [
+  {
+    name: "Ritu Bansal", location: "Rajouri Garden, Delhi", service: "House Cleaning", rating: 5,
+    text: "Booked a cleaner in the morning and she arrived within the hour. Spotless job, very professional. Loved that most of what I paid went straight to her.",
+  },
+  {
+    name: "Arjun Malhotra", location: "Sector 62, Noida", service: "Plumbing", rating: 5,
+    text: "Emergency leak fixed within 40 minutes on a Sunday night. Transparent pricing, no last-minute surcharges. Highly recommend Kaamsetu.",
+  },
+  {
+    name: "Simran Kaur", location: "Sector 14, Gurugram", service: "Caregiver", rating: 5,
+    text: "Our caregiver for my mother has been wonderful — patient, skilled, and always on time. The cooperative model gives me real peace of mind.",
+  },
+  {
+    name: "Karan Chopra", location: "Dwarka, Delhi", service: "Painting", rating: 5,
+    text: "Got our whole 2BHK painted in two days. Neat work, fair rate, and the worker was a verified cooperative member. Will book again.",
+  },
+  {
+    name: "Neha Verma", location: "Janakpuri, Delhi", service: "Domestic Help", rating: 4,
+    text: "Reliable and hardworking. The app made scheduling really simple, and I like knowing the platform doesn't take a huge cut from her earnings.",
+  },
+];
+
+// Short demo set for the auto-scrolling ticker (kept separate from the
+// static `customerReviews` cards above — this feeds a continuously moving
+// marquee, so a shorter list looks cleaner as it loops).
+const marqueeReviews = [
+  {
+    name: "Aditi Rao", location: "Malviya Nagar, Delhi", service: "Caregiver", rating: 5,
+    text: "Priya has looked after my son every afternoon for months — patient, warm, and always punctual. Couldn't ask for better care.",
+  },
+  {
+    name: "Manish Tiwari", location: "Sector 62, Noida", service: "Electrician", rating: 5,
+    text: "Fixed a tricky wiring issue same-day. Fair pricing and no upselling — exactly what a cooperative platform should feel like.",
+  },
+  {
+    name: "Pooja Nair", location: "Saket, Delhi", service: "House Cleaning", rating: 5,
+    text: "Booking took two minutes and the cleaner showed up right on time. My apartment hasn't looked this good in months!",
+  },
+  {
+    name: "Rohan Kapoor", location: "Sector 14, Gurugram", service: "Carpentry", rating: 4,
+    text: "Great custom wardrobe work, finished a day early. Will definitely book through Kaamsetu again for future projects.",
+  },
+];
+
 const howItWorks = [
   { step: "01", title: "Browse & Filter", desc: "Search verified local workers by service, location, and availability. Every profile is community-reviewed.", icon: "🔍" },
   { step: "02", title: "Book Directly", desc: "Schedule a visit, agree on scope and price — no hidden fees or platform markups eating worker earnings.", icon: "📅" },
@@ -3171,6 +3219,77 @@ export default function App() {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── CUSTOMER REVIEWS (rating summary + star review cards) ── */}
+      <section className="py-16 md:py-24 bg-[#F3F7FE]">
+        <div className="max-w-7xl mx-auto px-5 md:px-10">
+          <div className="text-center mb-10">
+            <span className="text-xs font-semibold tracking-widest uppercase text-[#64748B]">Customer reviews</span>
+            <h2 className="text-4xl md:text-5xl font-semibold mt-2 mb-6" style={{ fontFamily: "'Fraunces', serif" }}>Hear from our customers</h2>
+            <div className="flex items-center justify-center gap-4">
+              <span className="text-5xl md:text-6xl font-semibold text-[#1D4ED8]" style={{ fontFamily: "'Fraunces', serif" }}>
+                {(customerReviews.reduce((sum, r) => sum + r.rating, 0) / customerReviews.length).toFixed(1)}
+              </span>
+              <div className="text-left">
+                <div className="flex gap-0.5 text-lg text-[#1D4ED8]">
+                  {"★★★★★"}
+                </div>
+                <div className="text-sm text-[#64748B]">3,200+ Ratings Combined</div>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+            {customerReviews.map((r) => (
+              <div key={r.name} className="shrink-0 w-72 sm:w-80 bg-white border border-[#CBD9EE] rounded-2xl p-6 flex flex-col gap-3">
+                <div className="text-[#1D4ED8] text-sm tracking-wide">
+                  {"★".repeat(r.rating)}
+                  <span className="text-[#CBD9EE]">{"★".repeat(5 - r.rating)}</span>
+                </div>
+                <p className="text-sm text-[#1E293B] italic leading-relaxed flex-1">"{r.text}"</p>
+                <div>
+                  <div className="font-semibold text-sm text-[#0F1E3D]">{r.name}</div>
+                  <div className="text-xs text-[#64748B]">📍 {r.location}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── AUTO-SCROLLING REVIEWS TICKER ── */}
+      <section className="py-14 md:py-20 bg-white border-y border-[#CBD9EE] overflow-hidden">
+        <style>{`
+          @keyframes ks-marquee {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+          }
+          .ks-marquee-track {
+            animation: ks-marquee 32s linear infinite;
+          }
+          .ks-marquee-track:hover {
+            animation-play-state: paused;
+          }
+        `}</style>
+        <div className="text-center mb-10 px-5">
+          <span className="text-xs font-semibold tracking-widest uppercase text-[#64748B]">Loved by the community</span>
+          <h2 className="text-3xl md:text-4xl font-semibold mt-2" style={{ fontFamily: "'Fraunces', serif" }}>What people are saying</h2>
+        </div>
+        <div className="flex w-max ks-marquee-track">
+          {[...marqueeReviews, ...marqueeReviews].map((r, i) => (
+            <div key={`${r.name}-${i}`} className="shrink-0 w-72 sm:w-80 mx-3 bg-[#F3F7FE] border border-[#CBD9EE] rounded-2xl p-6 flex flex-col gap-3">
+              <div className="text-[#1D4ED8] text-sm tracking-wide">
+                {"★".repeat(r.rating)}
+                <span className="text-[#CBD9EE]">{"★".repeat(5 - r.rating)}</span>
+              </div>
+              <p className="text-sm text-[#1E293B] italic leading-relaxed">"{r.text}"</p>
+              <div>
+                <div className="font-semibold text-sm text-[#0F1E3D]">{r.name}</div>
+                <div className="text-xs text-[#64748B]">📍 {r.location} · {r.service}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
