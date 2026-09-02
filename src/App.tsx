@@ -414,6 +414,17 @@ const timeSlots = ["9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "3:
 // navigating there directly.
 const FEDERATION_ADMIN_EMAIL = "hariomprajapati6393@gmail.com";
 
+// Branch-level Cooperative Admin accounts — the flowchart's "Cooperative
+// Admin Login" is distinct from the Federation-wide login above: each of
+// these maps to exactly one federationBranches entry, and that admin only
+// ever sees their own branch's members, verification queue, complaints and
+// bookings — never the other branches or the federation-wide rollup.
+const COOPERATIVE_ADMIN_EMAILS: Record<string, string> = {
+  "admin.delhicentral@kaamsetu.coop": "delhi-central",
+  "admin.noida@kaamsetu.coop": "noida",
+  "admin.gurugram@kaamsetu.coop": "gurugram",
+};
+
 // Urgent-booking "offline message" — a real deployment would fire this as
 // an SMS (reaches a worker even with zero data/wifi, since SMS only needs
 // a cellular signal) via a serverless function holding a provider API key
@@ -525,6 +536,19 @@ type Worker = Omit<(typeof workers)[number], "id"> & {
   certificateDataUrl?: string;
 };
 
+// Which local cooperative branch a worker belongs to — derived from their
+// address/location since the seed data doesn't store this explicitly. Used
+// by branch-level Cooperative Admins (see COOPERATIVE_ADMIN_EMAILS) so each
+// branch only ever sees its own members, verification queue, complaints and
+// workforce data, instead of the whole federation like the Federation Admin
+// sees. Matches the ids in federationBranches.
+function deriveBranch(w: { location?: string; address?: string }): string {
+  const loc = `${w.location || ""} ${w.address || ""}`.toLowerCase();
+  if (loc.includes("noida")) return "noida";
+  if (loc.includes("gurugram") || loc.includes("gurgaon")) return "gurugram";
+  return "delhi-central";
+}
+
 // Small blue verification badge — shown next to a worker's name once the
 // Federation has approved their application. Deliberately its own component
 // so every place a worker's name appears (search cards, service-detail
@@ -610,7 +634,11 @@ function isVerified(w: Worker) {
 // rating, review volume, real-time availability, experience, cooperative
 // membership and relevance to the customer's search query. Stands in for a
 // full ML ranking model for demo purposes.
-function computeMatchScore(w: Worker, query: string): number {
+function computeMatchScore(
+  w: Worker,
+  query: string,
+  opts?: { keywords?: string[]; pincode?: string }
+): number {
   let score = 0;
   score += (w.rating || 0) * 10; // up to ~50
   score += Math.min(w.reviews || 0, 200) / 10; // up to 20
@@ -623,6 +651,20 @@ function computeMatchScore(w: Worker, query: string): number {
     if (w.name.toLowerCase().includes(q)) score += 12;
     if (w.role.toLowerCase().includes(q)) score += 8;
     if (w.tags?.some((tag) => tag.toLowerCase().includes(q))) score += 6;
+  }
+  // Skill matching — extra weight for workers whose role/tags match the
+  // keywords AI Request Understanding pulled out of a customer's free-text,
+  // voice, or photo service request.
+  if (opts?.keywords?.length) {
+    const kw = opts.keywords.map((k) => k.toLowerCase());
+    if (kw.some((k) => w.role.toLowerCase().includes(k))) score += 10;
+    score += (w.tags?.filter((tag) => kw.some((k) => tag.toLowerCase().includes(k))).length || 0) * 4;
+  }
+  // Geo matching — same postal area as the customer gets a proximity bonus,
+  // standing in for a real lat/long distance calculation (FairMatch AI).
+  if (opts?.pincode && w.pincode) {
+    if (w.pincode === opts.pincode) score += 20;
+    else if (w.pincode.slice(0, 3) === opts.pincode.slice(0, 3)) score += 10;
   }
   return Math.round(score);
 }
@@ -793,6 +835,30 @@ const translations: Record<Lang, Record<string, string>> = {
     workersOnPlatform: "workers on the platform",
     demand: "DEMAND",
     adminReports: "Reports",
+    adminWorkforce: "Workforce",
+    coopAdminSubtitle: "Branch-level cooperative admin — members, verification, workforce and complaints for your branch only.",
+    complaints: "Complaints",
+    branchComplaintsDesc: "Complaints involving workers from your branch, filed by either side, land here for review.",
+    aiAllocationTitle: "AI Workforce Allocation Recommendations",
+    aiAllocationDesc: "Suggested hiring or reallocation moves based on demand vs. worker coverage per category.",
+    recOnboard: "Onboard",
+    recMoreWorkersIn: "more workers in",
+    recSurplus: "Surplus capacity — consider cross-training workers out of",
+    recBalanced: "Demand and worker coverage are balanced for",
+    workloadTitle: "Worker Availability & Workload",
+    workloadDesc: "Live count of each worker's active (accepted/pending) jobs, so assignments can be balanced fairly.",
+    wAvailable: "Available",
+    wBusy: "Busy",
+    wOverloaded: "Overloaded",
+    activeJobs: "active jobs",
+    welfareTitle: "Welfare, Insurance & Benefits",
+    welfareDesc: "Enroll workers in insurance and accident cover, and top up their welfare fund.",
+    fundBalance: "fund balance",
+    insured: "Insured",
+    enrollInsurance: "Enroll in insurance",
+    covered: "Accident cover",
+    enrollAccidentCover: "Enroll accident cover",
+    toFund: "to fund",
     reportsDesc: "Revenue and transaction reports across every cooperative branch, for accounting and audit.",
     exportCSV: "Export CSV",
     completedRevenue: "Revenue from completed jobs",
@@ -952,6 +1018,30 @@ const translations: Record<Lang, Record<string, string>> = {
     workersOnPlatform: "कामगार प्लेटफ़ॉर्म पर",
     demand: "मांग",
     adminReports: "रिपोर्ट्स",
+    adminWorkforce: "कार्यबल",
+    coopAdminSubtitle: "शाखा-स्तरीय सहकारी एडमिन — केवल आपकी शाखा के सदस्य, सत्यापन, कार्यबल व शिकायतें।",
+    complaints: "शिकायतें",
+    branchComplaintsDesc: "आपकी शाखा के कामगारों से जुड़ी शिकायतें, चाहे किसी भी पक्ष ने दर्ज की हों, यहाँ समीक्षा के लिए आती हैं।",
+    aiAllocationTitle: "एआई वर्कफोर्स आवंटन सुझाव",
+    aiAllocationDesc: "प्रत्येक श्रेणी में मांग बनाम कामगार उपलब्धता के आधार पर भर्ती/पुनर्आवंटन सुझाव।",
+    recOnboard: "जोड़ें",
+    recMoreWorkersIn: "और कामगार इस श्रेणी में:",
+    recSurplus: "अधिशेष क्षमता — कामगारों को दूसरी श्रेणी में प्रशिक्षित करने पर विचार करें:",
+    recBalanced: "मांग और उपलब्धता संतुलित है:",
+    workloadTitle: "कामगार उपलब्धता व कार्यभार",
+    workloadDesc: "हर कामगार के सक्रिय (स्वीकृत/लंबित) कार्यों की लाइव गिनती, ताकि काम निष्पक्ष रूप से बाँटा जा सके।",
+    wAvailable: "उपलब्ध",
+    wBusy: "व्यस्त",
+    wOverloaded: "अधिक भारित",
+    activeJobs: "सक्रिय कार्य",
+    welfareTitle: "कल्याण, बीमा व लाभ",
+    welfareDesc: "कामगारों को बीमा व दुर्घटना कवर में शामिल करें, और उनके कल्याण कोष में राशि जोड़ें।",
+    fundBalance: "कोष शेष",
+    insured: "बीमित",
+    enrollInsurance: "बीमा में शामिल करें",
+    covered: "दुर्घटना कवर",
+    enrollAccidentCover: "दुर्घटना कवर जोड़ें",
+    toFund: "कोष में",
     reportsDesc: "हिसाब-किताब और ऑडिट के लिए सभी सहकारी शाखाओं का राजस्व व लेन-देन रिपोर्ट।",
     exportCSV: "CSV डाउनलोड करें",
     completedRevenue: "पूर्ण हुए कार्यों से राजस्व",
@@ -1198,7 +1288,11 @@ export default function App() {
   }
 
   // Cooperative Federation Administration Dashboard
-  const [adminView, setAdminView] = useState<"overview" | "verification" | "complaints" | "bookings" | "reports">("overview");
+  const [adminView, setAdminView] = useState<"overview" | "verification" | "complaints" | "bookings" | "reports" | "workforce">("overview");
+  // Branch-level Cooperative Admin dashboard has its own, smaller tab set —
+  // kept separate from the Federation-wide `adminView` above since a
+  // Cooperative Admin never sees Reports or Skill Courses management.
+  const [coopAdminView, setCoopAdminView] = useState<"overview" | "verification" | "workforce" | "complaints">("overview");
   function goToAdmin() {
     setPage("admin");
     setAdminView("overview");
@@ -1252,6 +1346,142 @@ export default function App() {
   // Search + flexible pricing filter
   const [searchQuery, setSearchQuery] = useState("");
   const [maxPrice, setMaxPrice] = useState(550);
+
+  // Welfare, Insurance & Benefits — admin-managed per worker. Previously a
+  // worker could only see a read-only demo welfare status for themselves;
+  // there was no admin-side screen to actually enroll someone, track their
+  // accident cover, or top up their welfare fund.
+  const [workerWelfare, setWorkerWelfare] = useState<Record<string, { insurance: boolean; accidentCover: boolean; fundBalance: number }>>({});
+
+  function getWelfare(id: string | number) {
+    return workerWelfare[String(id)] || { insurance: false, accidentCover: false, fundBalance: 0 };
+  }
+  function toggleWelfareInsurance(id: string | number) {
+    setWorkerWelfare((prev) => {
+      const cur = prev[String(id)] || { insurance: false, accidentCover: false, fundBalance: 0 };
+      return { ...prev, [String(id)]: { ...cur, insurance: !cur.insurance } };
+    });
+  }
+  function toggleWelfareAccidentCover(id: string | number) {
+    setWorkerWelfare((prev) => {
+      const cur = prev[String(id)] || { insurance: false, accidentCover: false, fundBalance: 0 };
+      return { ...prev, [String(id)]: { ...cur, accidentCover: !cur.accidentCover } };
+    });
+  }
+  function addWelfareFund(id: string | number, amount: number) {
+    setWorkerWelfare((prev) => {
+      const cur = prev[String(id)] || { insurance: false, accidentCover: false, fundBalance: 0 };
+      return { ...prev, [String(id)]: { ...cur, fundBalance: cur.fundBalance + amount } };
+    });
+  }
+
+  // Worker Availability & Workload — how many active (accepted/pending)
+  // jobs a worker currently has, so an admin can see who's free vs
+  // overloaded before assigning more work to them.
+  function getWorkerWorkload(w: Worker) {
+    const active = allRequests.filter((r) => {
+      const sameWorker = w.email && r.workerEmail ? r.workerEmail === w.email : r.workerName === w.name;
+      return sameWorker && (r.status === "accepted" || r.status === "pending");
+    }).length;
+    const level: "available" | "busy" | "overloaded" = active === 0 ? "available" : active <= 2 ? "busy" : "overloaded";
+    return { active, level };
+  }
+
+  // ── AI Service Request intake (Text / Voice / Images) ──────────────────
+  // The flowchart's very first customer-side step after login: describe the
+  // need in free text, by voice, or with a photo. AI Request Understanding
+  // then extracts a structured requirement (category, urgency, budget),
+  // which feeds Geo + Skill Matching (FairMatch AI) to recommend workers —
+  // previously the app skipped straight to manual category browsing.
+  const [showRequestFlow, setShowRequestFlow] = useState(false);
+  const [requestText, setRequestText] = useState("");
+  const [requestPincode, setRequestPincode] = useState("");
+  const [requestImageDataUrl, setRequestImageDataUrl] = useState<string | null>(null);
+  const [requestListening, setRequestListening] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<{ category: string; categoryLabel: string; urgent: boolean; budget: number | null; keywords: string[] } | null>(null);
+
+  // AI Request Understanding & Requirement Extraction — a lightweight
+  // keyword classifier standing in for a full NLP model: guesses the
+  // service category, flags urgency, and pulls out a mentioned budget.
+  function analyzeServiceRequest(text: string) {
+    const lower = text.toLowerCase();
+    const categoryKeywords: Record<string, string[]> = {
+      cleaning: ["clean", "jhadu", "safai", "dust", "sweep", "mop"],
+      plumbing: ["pipe", "tap", "leak", "plumber", "water", "bathroom", "nal", "toilet"],
+      carpentry: ["furniture", "wood", "carpenter", "door", "cabinet", "almirah"],
+      painting: ["paint", "colour", "color", "rang", "whitewash", "wall"],
+      domestic: ["maid", "chores", "utensil", "bartan", "cooking", "pocha", "household"],
+      caregiver: ["baby", "child care", "elder", "caregiver", "nurse", "patient", "old age"],
+      driver: ["driver", "car", "drive", "chauffeur"],
+      gardening: ["garden", "plant", "lawn", "mali", "tree"],
+      electrician: ["electric", "wiring", "switch", "fan", "bijli", "short circuit", "socket"],
+      technician: ["ac", "fridge", "repair", "appliance", "machine", "washing machine"],
+    };
+    let bestCategory = "domestic";
+    let bestHits: string[] = [];
+    Object.entries(categoryKeywords).forEach(([cat, words]) => {
+      const hits = words.filter((w) => lower.includes(w));
+      if (hits.length > bestHits.length) {
+        bestCategory = cat;
+        bestHits = hits;
+      }
+    });
+    const urgent = /urgent|abhi|emergency|jaldi|right now|asap|turant/.test(lower);
+    const budgetMatch = lower.match(/(?:rs\.?|₹|rupees?)\s?(\d{2,6})/);
+    const budget = budgetMatch ? Number(budgetMatch[1]) : null;
+    const cat = serviceCategories.find((c) => c.id === bestCategory);
+    const keywords = bestHits.length ? bestHits : lower.split(/\s+/).filter((w) => w.length > 3).slice(0, 5);
+    return { category: bestCategory, categoryLabel: cat?.label || "Domestic Help", urgent, budget, keywords };
+  }
+
+  function submitServiceRequest() {
+    if (!requestText.trim()) return;
+    setAiAnalysis(analyzeServiceRequest(requestText));
+  }
+
+  // Voice input — uses the browser's Web Speech API when available; falls
+  // back to a realistic demo transcript on browsers/devices without it, so
+  // the voice-input path is still demoable everywhere.
+  function startVoiceRequestInput() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setRequestText((t) => (t ? t + " " : "") + "Mera kitchen ka tap leak kar raha hai, please jaldi plumber bhejo.");
+      return;
+    }
+    const recognition = new SR();
+    recognition.lang = lang === "hi" ? "hi-IN" : "en-IN";
+    recognition.onresult = (e: any) => {
+      const transcript = e.results?.[0]?.[0]?.transcript || "";
+      setRequestText((t) => (t ? t + " " : "") + transcript);
+    };
+    recognition.onerror = () => setRequestListening(false);
+    recognition.onend = () => setRequestListening(false);
+    setRequestListening(true);
+    try {
+      recognition.start();
+    } catch {
+      setRequestListening(false);
+    }
+  }
+
+  function handleRequestImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setRequestImageDataUrl(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  // Routes into Geo + Skill Matching: pushes the AI-extracted keywords and
+  // pincode into the same FairMatch scoring already used for search, then
+  // jumps straight to that category's recommended-worker list.
+  function goToRecommendedWorkers() {
+    if (!aiAnalysis) return;
+    setSearchQuery(aiAnalysis.keywords.join(" "));
+    setSortMode("ai");
+    setShowRequestFlow(false);
+    goToServiceDetail(aiAnalysis.category);
+  }
 
   // Booking flow
   const [bookingWorker, setBookingWorker] = useState<Worker | null>(null);
@@ -1889,7 +2119,7 @@ export default function App() {
       const matchesPrice = w.hourlyRate <= maxPrice;
       return matchesCategory && matchesSearch && matchesPrice;
     })
-    .map((w) => ({ ...w, matchScore: computeMatchScore(w, searchQuery) }))
+    .map((w) => ({ ...w, matchScore: computeMatchScore(w, searchQuery, { keywords: aiAnalysis?.keywords, pincode: requestPincode }) }))
     .sort((a, b) => {
       if (sortMode === "rating") return b.rating - a.rating;
       if (sortMode === "price") return a.hourlyRate - b.hourlyRate;
@@ -4220,6 +4450,80 @@ export default function App() {
             <p className="text-[#64748B] mb-10 max-w-lg">
               Pick a service to see verified cooperative workers with their experience and ratings.
             </p>
+
+            {/* ── SERVICE REQUEST (TEXT / VOICE / IMAGES) → AI REQUEST
+                UNDERSTANDING → GEO + SKILL MATCHING. Describe the problem
+                instead of hunting through categories yourself. ── */}
+            <div className="bg-white border border-[#CBD9EE] rounded-2xl p-6 mb-10">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xl">🤖</span>
+                <h3 className="font-semibold text-lg text-[#0F1E3D]">Not sure who you need? Just describe it</h3>
+              </div>
+              <p className="text-sm text-[#64748B] mb-4">Type, speak, or attach a photo of the problem — our AI will work out the service category and match you with the right workers nearby.</p>
+
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-2">
+                  <textarea
+                    value={requestText}
+                    onChange={(e) => setRequestText(e.target.value)}
+                    placeholder="e.g. My kitchen tap is leaking, need someone urgently…"
+                    rows={2}
+                    className="flex-1 px-4 py-3 rounded-xl border border-[#CBD9EE] bg-[#F8FAFC] text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30 resize-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={startVoiceRequestInput}
+                    className={`shrink-0 w-12 rounded-xl border font-semibold transition-colors ${requestListening ? "bg-red-50 border-red-300 text-red-600 animate-pulse" : "border-[#CBD9EE] text-[#1D4ED8] hover:bg-[#E6EEFB]"}`}
+                    title="Speak your request"
+                  >
+                    🎙️
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="text-xs font-semibold text-[#1D4ED8] border border-[#CBD9EE] rounded-lg px-3 py-2 cursor-pointer hover:bg-[#E6EEFB] transition-colors">
+                    📷 Attach a photo
+                    <input type="file" accept="image/*" onChange={handleRequestImageUpload} className="hidden" />
+                  </label>
+                  {requestImageDataUrl && (
+                    <img src={requestImageDataUrl} alt="Attached" className="h-10 w-10 rounded-lg object-cover border border-[#CBD9EE]" />
+                  )}
+                  <input
+                    type="text"
+                    value={requestPincode}
+                    onChange={(e) => setRequestPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="Pincode (optional)"
+                    className="w-36 px-3 py-2 rounded-lg border border-[#CBD9EE] bg-[#F8FAFC] text-xs focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
+                  />
+                  <button
+                    onClick={submitServiceRequest}
+                    disabled={!requestText.trim()}
+                    className="ml-auto bg-[#1D4ED8] text-white font-semibold px-5 py-2 rounded-lg hover:bg-[#1E3A8A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-sm"
+                  >
+                    Understand my request →
+                  </button>
+                </div>
+
+                {aiAnalysis && (
+                  <div className="bg-[#F3F7FE] border border-[#CBD9EE] rounded-xl p-4 mt-1">
+                    <div className="text-xs font-semibold tracking-wide uppercase text-[#64748B] mb-2">AI understood this as</div>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <span className="text-xs font-semibold bg-white border border-[#CBD9EE] rounded-full px-3 py-1">📂 {aiAnalysis.categoryLabel}</span>
+                      {aiAnalysis.urgent && <span className="text-xs font-semibold bg-red-50 border border-red-200 text-red-600 rounded-full px-3 py-1">⚡ Urgent</span>}
+                      {aiAnalysis.budget != null && <span className="text-xs font-semibold bg-white border border-[#CBD9EE] rounded-full px-3 py-1">₹{aiAnalysis.budget} budget mentioned</span>}
+                      {requestPincode && <span className="text-xs font-semibold bg-white border border-[#CBD9EE] rounded-full px-3 py-1">📍 {requestPincode}</span>}
+                    </div>
+                    <button
+                      onClick={goToRecommendedWorkers}
+                      className="text-sm font-semibold bg-[#16A34A] text-white px-4 py-2 rounded-lg hover:bg-[#15803D] transition-colors"
+                    >
+                      🎯 View recommended workers
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
               {serviceCategories.map((cat) => (
                 <button
@@ -5074,7 +5378,7 @@ export default function App() {
         </section>
       )}
 
-      {page === "admin" && isSignedIn && currentUser?.email !== FEDERATION_ADMIN_EMAIL && (
+      {page === "admin" && isSignedIn && currentUser?.email !== FEDERATION_ADMIN_EMAIL && !COOPERATIVE_ADMIN_EMAILS[currentUser?.email || ""] && (
         <section className="py-14 md:py-20 min-h-[60vh] bg-[#F3F7FE] flex items-center justify-center animate-page-in">
           <div className="max-w-sm bg-white border border-[#CBD9EE] rounded-2xl p-8 text-center">
             <div className="text-4xl mb-3">🤝</div>
@@ -5083,6 +5387,230 @@ export default function App() {
           </div>
         </section>
       )}
+
+      {page === "admin" && currentUser?.email && COOPERATIVE_ADMIN_EMAILS[currentUser.email] && (() => {
+        const myBranchId = COOPERATIVE_ADMIN_EMAILS[currentUser.email];
+        const branch = federationBranches.find((b) => b.id === myBranchId);
+        const branchWorkers = allWorkers.filter((w) => deriveBranch(w) === myBranchId);
+        const pendingBranchWorkers = branchWorkers.filter((w) => !isVerified(w));
+        const verifiedBranchWorkers = branchWorkers.filter((w) => isVerified(w));
+        const branchWorkerKeys = new Set(branchWorkers.flatMap((w) => [w.name, w.email].filter(Boolean) as string[]));
+        const branchBookings = allRequests.filter((r) => branchWorkerKeys.has(r.workerName) || (r.workerEmail && branchWorkerKeys.has(r.workerEmail)));
+        const branchRevenue = branchBookings.reduce((s, r) => s + (Number(r.rate) || 0), 0);
+        const branchComplaints = complaints.filter((c) => branchWorkerKeys.has(c.againstName) || branchWorkerKeys.has(c.filedByName));
+        const branchOpenComplaints = branchComplaints.filter((c) => c.status === "open");
+        // AI Workforce Allocation Recommendations, scoped to this branch only.
+        const branchDemand = serviceCategories
+          .map((cat) => {
+            const catRequests = branchBookings.filter((r) => r.category === cat.id).length;
+            const catWorkerCount = branchWorkers.filter((w) => w.category === cat.id).length;
+            const ratio = catWorkerCount ? catRequests / catWorkerCount : catRequests;
+            const level: "Low" | "Moderate" | "High" = ratio > 1.5 ? "High" : ratio > 0.5 ? "Moderate" : "Low";
+            return { ...cat, requests: catRequests, workerCount: catWorkerCount, level };
+          })
+          .filter((c) => c.requests > 0 || c.workerCount > 0)
+          .sort((a, b) => b.requests - a.requests);
+
+        return (
+          <section className="py-14 md:py-20 bg-[#0F1E3D] text-white min-h-screen animate-page-in">
+            <div className="max-w-6xl mx-auto px-5 md:px-10">
+              <div className="flex items-center justify-between gap-3 mb-8 flex-wrap">
+                <div>
+                  <h2 className="text-3xl md:text-4xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>🏢 {branch?.name || t("adminWorkforce")}</h2>
+                  <p className="text-white/60 text-sm mt-1">{t("coopAdminSubtitle")}</p>
+                </div>
+                <div className="flex gap-2 bg-white/10 rounded-xl p-1 flex-wrap">
+                  {([
+                    { id: "overview", label: t("adminOverview") },
+                    { id: "verification", label: `${t("adminVerification")}${pendingBranchWorkers.length ? ` (${pendingBranchWorkers.length})` : ""}` },
+                    { id: "workforce", label: `👷 ${t("adminWorkforce")}` },
+                    { id: "complaints", label: `🚩 ${t("complaints")}${branchOpenComplaints.length ? ` (${branchOpenComplaints.length})` : ""}` },
+                  ] as const).map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => setCoopAdminView(v.id)}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${coopAdminView === v.id ? "bg-white text-[#0F1E3D]" : "text-white/70 hover:text-white"}`}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {coopAdminView === "overview" && (
+                <div className="grid sm:grid-cols-4 gap-4">
+                  <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{verifiedBranchWorkers.length}</div><div className="text-xs text-white/60 mt-1">{t("memberCooperatives")}</div></div>
+                  <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{branch?.activeMembers ?? "—"}</div><div className="text-xs text-white/60 mt-1">{t("activeThisMonth")}</div></div>
+                  <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{branchBookings.length}</div><div className="text-xs text-white/60 mt-1">{t("totalPlatformBookings")}</div></div>
+                  <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>₹{branchRevenue.toLocaleString("en-IN")}</div><div className="text-xs text-white/60 mt-1">{t("grossBookingValue")}</div></div>
+                </div>
+              )}
+
+              {coopAdminView === "verification" && (
+                <div className="flex flex-col gap-4">
+                  <p className="text-sm text-white/60">{t("verificationQueueDesc")}</p>
+                  {pendingBranchWorkers.length === 0 ? (
+                    <div className="text-center py-16 text-white/50 bg-white/5 rounded-2xl">{t("queueClear")}</div>
+                  ) : (
+                    pendingBranchWorkers.map((w) => (
+                      <div key={w.id} className="bg-white/10 rounded-xl p-5 flex items-center gap-4 flex-wrap">
+                        <img src={w.image} alt={w.name} className="w-14 h-14 rounded-lg object-cover" onError={(e) => handleImgError(e, personImgFallback(w.name, "D97840"))} />
+                        <div className="flex-1 min-w-[160px]">
+                          <div className="font-semibold flex items-center gap-1.5">
+                            {w.name}
+                            <span className="text-[10px] font-bold uppercase tracking-wide text-amber-300 bg-amber-500/10 border border-amber-400/30 px-2 py-0.5 rounded-full">Pending review</span>
+                          </div>
+                          <div className="text-xs text-white/60 mt-0.5">{w.role} · {w.phone || "—"} · {w.address || "—"}</div>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button onClick={() => adminRejectWorker(w.id)} className="text-sm font-semibold border border-white/20 px-4 py-2 rounded-lg hover:bg-white/10 transition-colors">{t("reject")}</button>
+                          <button onClick={() => adminApproveWorker(w.id)} className="text-sm font-semibold bg-[#1D4ED8] px-4 py-2 rounded-lg hover:bg-[#1E3A8A] transition-colors">{t("accept")}</button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {coopAdminView === "workforce" && (
+                <div className="flex flex-col gap-8">
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">🧠 {t("aiAllocationTitle")}</h3>
+                    <p className="text-sm text-white/60 mb-3">{t("aiAllocationDesc")}</p>
+                    {branchDemand.length === 0 ? (
+                      <div className="text-center py-10 text-white/50 bg-white/5 rounded-2xl">{t("noDataYet")}</div>
+                    ) : (
+                      <div className="grid md:grid-cols-2 gap-3">
+                        {branchDemand.map((cat) => {
+                          const gap = cat.requests - cat.workerCount;
+                          const recommendation =
+                            cat.level === "High"
+                              ? `${t("recOnboard")} ${Math.max(1, Math.ceil(gap))} ${t("recMoreWorkersIn")} ${cat.label}`
+                              : cat.level === "Low" && cat.workerCount > 2
+                              ? `${t("recSurplus")} ${cat.label}`
+                              : `${t("recBalanced")} ${cat.label}`;
+                          return (
+                            <div key={cat.id} className="bg-white/10 rounded-xl p-4 flex items-start gap-3">
+                              <span className="text-xl">{cat.icon}</span>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="font-semibold text-sm">{cat.label}</span>
+                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cat.level === "High" ? "bg-red-500/20 text-red-300" : cat.level === "Moderate" ? "bg-yellow-500/20 text-yellow-300" : "bg-green-500/20 text-green-300"}`}>{cat.level}</span>
+                                </div>
+                                <p className="text-xs text-white/60 mt-1">{recommendation}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">📋 {t("workloadTitle")}</h3>
+                    <p className="text-sm text-white/60 mb-3">{t("workloadDesc")}</p>
+                    <div className="flex flex-col gap-2">
+                      {verifiedBranchWorkers.map((w) => {
+                        const { active, level } = getWorkerWorkload(w);
+                        const badge =
+                          level === "available" ? { text: t("wAvailable"), cls: "bg-green-500/20 text-green-300" } :
+                          level === "busy" ? { text: t("wBusy"), cls: "bg-yellow-500/20 text-yellow-300" } :
+                          { text: t("wOverloaded"), cls: "bg-red-500/20 text-red-300" };
+                        return (
+                          <div key={w.id} className="bg-white/10 rounded-xl p-3 flex items-center gap-3">
+                            <img src={w.image} alt={w.name} className="w-9 h-9 rounded-full object-cover" onError={(e) => handleImgError(e, personImgFallback(w.name, "D97840"))} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-semibold truncate">{w.name}</div>
+                              <div className="text-xs text-white/50">{w.role} · {active} {t("activeJobs")}</div>
+                            </div>
+                            <span className={`text-[10px] font-semibold px-2 py-1 rounded-full shrink-0 ${badge.cls}`}>{badge.text}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">🛡️ {t("welfareTitle")}</h3>
+                    <p className="text-sm text-white/60 mb-3">{t("welfareDesc")}</p>
+                    <div className="flex flex-col gap-2">
+                      {verifiedBranchWorkers.map((w) => {
+                        const wf = getWelfare(w.id);
+                        return (
+                          <div key={w.id} className="bg-white/10 rounded-xl p-4 flex flex-wrap items-center gap-3">
+                            <img src={w.image} alt={w.name} className="w-9 h-9 rounded-full object-cover" onError={(e) => handleImgError(e, personImgFallback(w.name, "D97840"))} />
+                            <div className="min-w-[120px]">
+                              <div className="text-sm font-semibold">{w.name}</div>
+                              <div className="text-xs text-white/50">₹{wf.fundBalance.toLocaleString("en-IN")} {t("fundBalance")}</div>
+                            </div>
+                            <button
+                              onClick={() => toggleWelfareInsurance(w.id)}
+                              className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-colors ${wf.insurance ? "bg-green-500/20 border-green-400/40 text-green-300" : "border-white/20 text-white/60 hover:text-white"}`}
+                            >
+                              {wf.insurance ? `✓ ${t("insured")}` : t("enrollInsurance")}
+                            </button>
+                            <button
+                              onClick={() => toggleWelfareAccidentCover(w.id)}
+                              className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-colors ${wf.accidentCover ? "bg-green-500/20 border-green-400/40 text-green-300" : "border-white/20 text-white/60 hover:text-white"}`}
+                            >
+                              {wf.accidentCover ? `✓ ${t("covered")}` : t("enrollAccidentCover")}
+                            </button>
+                            <button
+                              onClick={() => addWelfareFund(w.id, 500)}
+                              className="text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-[#1D4ED8] hover:bg-[#1E3A8A] transition-colors ml-auto"
+                            >
+                              + ₹500 {t("toFund")}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {coopAdminView === "complaints" && (
+                <div className="flex flex-col gap-4">
+                  <p className="text-sm text-white/60">{t("branchComplaintsDesc")}</p>
+                  {branchComplaints.length === 0 ? (
+                    <div className="text-center py-16 text-white/50 bg-white/5 rounded-2xl">No complaints filed. 🎉</div>
+                  ) : (
+                    branchComplaints.map((c) => (
+                      <div key={c.id} className="bg-white/10 rounded-xl p-5 flex flex-col gap-3">
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <div>
+                            <div className="font-semibold flex items-center gap-1.5 flex-wrap">
+                              <span className="text-red-300 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-red-500/10 border border-red-400/30">🚩 Accused</span>
+                              {c.againstName}
+                              <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${c.status === "open" ? "text-amber-300 bg-amber-500/10 border border-amber-400/30" : c.status === "resolved" ? "text-green-300 bg-green-500/10 border border-green-400/30" : "text-white/50 bg-white/5 border border-white/20"}`}>
+                                {c.status === "open" ? "Needs review" : c.status === "resolved" ? "Resolved" : "Dismissed"}
+                              </span>
+                            </div>
+                            <div className="text-xs text-blue-300/90 mt-0.5">📝 Filed by {c.filedByName} ({c.filedByRole})</div>
+                            <div className="text-xs text-white/60 mt-0.5">{c.service} · Booking #{c.bookingId}</div>
+                          </div>
+                          {c.status === "open" ? (
+                            <div className="flex gap-2 shrink-0">
+                              <button onClick={() => adminUpdateComplaintStatus(c.id, "dismissed")} className="text-sm font-semibold border border-white/20 px-4 py-2 rounded-lg hover:bg-white/10 transition-colors">Dismiss</button>
+                              <button onClick={() => adminUpdateComplaintStatus(c.id, "resolved")} className="text-sm font-semibold bg-[#1D4ED8] px-4 py-2 rounded-lg hover:bg-[#1E3A8A] transition-colors">Mark resolved</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => adminClearComplaint(c.id)} className="text-sm font-semibold border border-white/20 px-4 py-2 rounded-lg hover:bg-white/10 transition-colors shrink-0">🗑 Clear</button>
+                          )}
+                        </div>
+                        <div className="bg-black/20 rounded-lg p-4 text-sm">
+                          <span className="text-white/50 text-xs uppercase tracking-wide">Complaint</span>
+                          <p className="mt-1">{c.reason}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })()}
 
       {page === "admin" && currentUser?.email === FEDERATION_ADMIN_EMAIL && (() => {
         const totalMembers = federationBranches.reduce((s, b) => s + b.members, 0);
@@ -5134,6 +5662,7 @@ export default function App() {
                     { id: "complaints", label: `🚩 Complaints${openComplaints.length ? ` (${openComplaints.length})` : ""}` },
                     { id: "bookings", label: t("adminBookingsDemand") },
                     { id: "reports", label: `📊 ${t("adminReports")}` },
+                    { id: "workforce", label: `👷 ${t("adminWorkforce")}` },
                     { id: "skillCourses", label: `🎓 ${t("skillCourses")}` },
                   ] as const).map((v) => (
                     <button
@@ -5539,6 +6068,102 @@ export default function App() {
                         </table>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {adminView === "workforce" && (
+                <div className="flex flex-col gap-8">
+                  {/* AI Workforce Allocation Recommendations */}
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">🧠 {t("aiAllocationTitle")}</h3>
+                    <p className="text-sm text-white/60 mb-3">{t("aiAllocationDesc")}</p>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      {demandByCategory.map((cat) => {
+                        const gap = cat.requests - cat.workerCount;
+                        const recommendation =
+                          cat.level === "High"
+                            ? `${t("recOnboard")} ${Math.max(1, Math.ceil(gap))} ${t("recMoreWorkersIn")} ${cat.label}`
+                            : cat.level === "Low" && cat.workerCount > 2
+                            ? `${t("recSurplus")} ${cat.label}`
+                            : `${t("recBalanced")} ${cat.label}`;
+                        return (
+                          <div key={cat.id} className="bg-white/10 rounded-xl p-4 flex items-start gap-3">
+                            <span className="text-xl">{cat.icon}</span>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-semibold text-sm">{cat.label}</span>
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cat.level === "High" ? "bg-red-500/20 text-red-300" : cat.level === "Moderate" ? "bg-yellow-500/20 text-yellow-300" : "bg-green-500/20 text-green-300"}`}>{cat.level}</span>
+                              </div>
+                              <p className="text-xs text-white/60 mt-1">{recommendation}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Worker Availability & Workload */}
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">📋 {t("workloadTitle")}</h3>
+                    <p className="text-sm text-white/60 mb-3">{t("workloadDesc")}</p>
+                    <div className="flex flex-col gap-2">
+                      {allWorkers.filter((w) => isVerified(w)).map((w) => {
+                        const { active, level } = getWorkerWorkload(w);
+                        const badge =
+                          level === "available" ? { text: t("wAvailable"), cls: "bg-green-500/20 text-green-300" } :
+                          level === "busy" ? { text: t("wBusy"), cls: "bg-yellow-500/20 text-yellow-300" } :
+                          { text: t("wOverloaded"), cls: "bg-red-500/20 text-red-300" };
+                        return (
+                          <div key={w.id} className="bg-white/10 rounded-xl p-3 flex items-center gap-3">
+                            <img src={w.image} alt={w.name} className="w-9 h-9 rounded-full object-cover" onError={(e) => handleImgError(e, personImgFallback(w.name, "D97840"))} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-semibold truncate">{w.name}</div>
+                              <div className="text-xs text-white/50">{w.role} · {active} {t("activeJobs")}</div>
+                            </div>
+                            <span className={`text-[10px] font-semibold px-2 py-1 rounded-full shrink-0 ${badge.cls}`}>{badge.text}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Welfare, Insurance & Benefits — admin managed */}
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">🛡️ {t("welfareTitle")}</h3>
+                    <p className="text-sm text-white/60 mb-3">{t("welfareDesc")}</p>
+                    <div className="flex flex-col gap-2">
+                      {allWorkers.filter((w) => isVerified(w)).map((w) => {
+                        const wf = getWelfare(w.id);
+                        return (
+                          <div key={w.id} className="bg-white/10 rounded-xl p-4 flex flex-wrap items-center gap-3">
+                            <img src={w.image} alt={w.name} className="w-9 h-9 rounded-full object-cover" onError={(e) => handleImgError(e, personImgFallback(w.name, "D97840"))} />
+                            <div className="min-w-[120px]">
+                              <div className="text-sm font-semibold">{w.name}</div>
+                              <div className="text-xs text-white/50">₹{wf.fundBalance.toLocaleString("en-IN")} {t("fundBalance")}</div>
+                            </div>
+                            <button
+                              onClick={() => toggleWelfareInsurance(w.id)}
+                              className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-colors ${wf.insurance ? "bg-green-500/20 border-green-400/40 text-green-300" : "border-white/20 text-white/60 hover:text-white"}`}
+                            >
+                              {wf.insurance ? `✓ ${t("insured")}` : t("enrollInsurance")}
+                            </button>
+                            <button
+                              onClick={() => toggleWelfareAccidentCover(w.id)}
+                              className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-colors ${wf.accidentCover ? "bg-green-500/20 border-green-400/40 text-green-300" : "border-white/20 text-white/60 hover:text-white"}`}
+                            >
+                              {wf.accidentCover ? `✓ ${t("covered")}` : t("enrollAccidentCover")}
+                            </button>
+                            <button
+                              onClick={() => addWelfareFund(w.id, 500)}
+                              className="text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-[#1D4ED8] hover:bg-[#1E3A8A] transition-colors ml-auto"
+                            >
+                              + ₹500 {t("toFund")}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
