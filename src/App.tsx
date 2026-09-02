@@ -4680,15 +4680,15 @@ export default function App() {
       )}
 
       {page === "admin" && !isSignedIn && (
-        <section className="py-14 md:py-20 min-h-[60vh] bg-[#F3F7FE] animate-page-in">
-          <div className="max-w-4xl mx-auto px-5 md:px-10">
+        <section className="py-14 md:py-20 min-h-[60vh] bg-[#F3F7FE] flex items-center justify-center animate-page-in">
+          <div className="max-w-sm w-full px-5 md:px-0 text-center">
             <h2 className="text-3xl md:text-4xl font-semibold leading-tight mb-2" style={{ fontFamily: "'Fraunces', serif" }}>
               {t("federationTab")}
             </h2>
-            <p className="text-[#64748B] mb-8 max-w-lg">
+            <p className="text-[#64748B] mb-8">
               Cooperative membership verification. Sign in with your account email to continue.
             </p>
-            <div className="max-w-sm bg-white border border-[#CBD9EE] rounded-2xl p-6">
+            <div className="text-left bg-white border border-[#CBD9EE] rounded-2xl p-6">
               {fedError && (
                 <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{fedError}</div>
               )}
