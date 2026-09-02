@@ -3378,7 +3378,7 @@ export default function App() {
       <div className="animate-page-in">
       {isSignedIn && userRole === "customer" && currentUser && (
         <div className="max-w-7xl mx-auto px-5 md:px-10 pt-6">
-          <div className="bg-gradient-to-r from-[#E4EEFC] to-[#DCE7FB] border border-[#CBD9EE] rounded-2xl px-5 py-4 flex items-center gap-4 shadow-sm">
+          <div className="inline-flex max-w-full bg-gradient-to-r from-[#E4EEFC] to-[#DCE7FB] border border-[#CBD9EE] rounded-2xl px-5 py-4 items-center gap-4 shadow-sm">
             <span className="w-11 h-11 rounded-full bg-white flex items-center justify-center text-xl shrink-0 shadow-sm">👋</span>
             <div>
               <p className="font-semibold text-lg text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>
