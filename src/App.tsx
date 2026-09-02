@@ -3983,14 +3983,16 @@ export default function App() {
           this shows demo jobs/requests data behind the modal before the
           person has actually finished/submitted onboarding. */}
       {page === "workerDashboard" && !showJoinWorker && (
-        <section className="pb-14 md:pb-20 animate-page-in">
+        <section className="pb-14 md:pb-20 animate-page-in bg-[#0F1E3D]">
           <div className="max-w-5xl mx-auto px-5 md:px-10 py-14 md:py-20">
 
-            {/* Dark panel — brand navy background (same #0F1E3D used
-                elsewhere for headings), so the dashboard has a bit of dark
-                theme feel while staying in the site's own color palette
-                instead of a generic black/slate. */}
-            <div className="bg-[#0F1E3D] rounded-2xl p-6 md:p-8">
+            {/* Dark panel — full-bleed brand navy background (same
+                #0F1E3D used elsewhere for headings) now lives on the whole
+                <section>, not just this inner box, so it spans edge to
+                edge instead of leaving white margins on wide screens. The
+                inner div below just keeps the content itself centered and
+                padded like every other page. */}
+            <div className="p-0 md:p-0">
 
               <div className="flex items-center gap-4 mb-6">
                 <img
