@@ -1430,17 +1430,32 @@ export default function App() {
   // itself a few seconds after appearing.
   const [offlineSmsDemo, setOfflineSmsDemo] = useState<{ workerName: string; phone: string; text: string } | null>(null);
   const [seenSmsSimIds, setSeenSmsSimIds] = useState<Set<string>>(new Set());
+  // General pop-up toast for any new notification (booking accepted, feedback
+  // received, etc.) — separate from the offline-SMS toast above, and from the
+  // bell badge count, which only updates the number and doesn't surface the
+  // notification itself. `hasLoadedNotifsOnce` skips toasting for the batch
+  // of notifications a person already had waiting when they signed in/loaded
+  // the app — only notifications that arrive AFTER that point should pop up.
+  const [notifToast, setNotifToast] = useState<AppNotification | null>(null);
+  const hasLoadedNotifsOnceRef = useRef(false);
 
   useEffect(() => {
     if (!isSignedIn || !currentUser?.email) {
       setNotifications([]);
       return;
     }
+    hasLoadedNotifsOnceRef.current = false;
     const q = query(collection(db, "notifications"), where("recipientEmail", "==", currentUser.email));
     const unsub = onSnapshot(q, (snap) => {
       const loaded = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<AppNotification, "id">) }));
       loaded.sort((a, b) => (a.id < b.id ? 1 : -1));
       setNotifications(loaded);
+      // The first snapshot after signing in reports every existing
+      // notification as "added" too — not just genuinely new ones — so
+      // skip toasting for that first batch and only pop up what arrives
+      // after it, for both the offline-SMS toast and the general one below.
+      const isInitialLoad = !hasLoadedNotifsOnceRef.current;
+      hasLoadedNotifsOnceRef.current = true;
       // Same-collection "offline SMS" demo toast — reuses the notifications
       // collection (already permitted by Firestore rules) instead of a new
       // collection, so it isn't silently blocked by rules that only allow
@@ -1450,12 +1465,20 @@ export default function App() {
       snap.docChanges().forEach((change) => {
         if (change.type !== "added") return;
         const data = change.doc.data() as Omit<AppNotification, "id">;
-        if (data.kind !== "offlineSms") return;
         const id = change.doc.id;
-        if (seenSmsSimIds.has(id)) return;
-        setSeenSmsSimIds((prev) => new Set(prev).add(id));
-        setOfflineSmsDemo({ workerName: data.smsWorkerName || "", phone: data.smsPhone || "", text: data.text });
-        setTimeout(() => setOfflineSmsDemo(null), 7000);
+        if (data.kind === "offlineSms") {
+          if (isInitialLoad || seenSmsSimIds.has(id)) return;
+          setSeenSmsSimIds((prev) => new Set(prev).add(id));
+          setOfflineSmsDemo({ workerName: data.smsWorkerName || "", phone: data.smsPhone || "", text: data.text });
+          setTimeout(() => setOfflineSmsDemo(null), 7000);
+          return;
+        }
+        // Every other notification (booking accepted, job complete, feedback
+        // received, etc.) gets a real pop-up toast, not just a badge-count
+        // bump — the badge alone was easy to miss.
+        if (isInitialLoad) return;
+        setNotifToast({ id, ...(data as Omit<AppNotification, "id">) });
+        setTimeout(() => setNotifToast((cur) => (cur?.id === id ? null : cur)), 6000);
       });
     }, (err) => console.error("Failed to sync notifications:", err));
     return () => unsub();
@@ -2785,6 +2808,12 @@ export default function App() {
   // affects the stats above (jobs completed, earnings, pending count).
   const visibleIncomingRequests = myIncomingRequests.filter((r) => !clearedRequestIds.has(String(r.id)));
   const acceptedJobs = myIncomingRequests.filter((r) => r.status === "accepted");
+  // Once a worker accepts a job it moves out of the Incoming Requests list
+  // into My Bookings (see the "bookings" tab below) as an active job they
+  // can navigate to — Incoming Requests only shows what still needs a
+  // pending decision, plus completed/rejected history.
+  const jobsTabRequests = visibleIncomingRequests.filter((r) => r.status !== "accepted");
+  const visibleAcceptedJobs = acceptedJobs.filter((r) => !clearedRequestIds.has(String(r.id)));
   // The signed-in worker's own profile — matched by the email they signed
   // up/joined with — used to show their real skill/experience/certificate
   // instead of generic placeholder profile content.
@@ -4164,11 +4193,11 @@ export default function App() {
               <>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-xl text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>{t("incomingRequests")}</h3>
-                  {visibleIncomingRequests.some((r) => r.status !== "pending" && r.status !== "accepted") && (
+                  {jobsTabRequests.some((r) => r.status !== "pending") && (
                     <button
                       onClick={() => setClearedRequestIds((prev) => {
                         const updated = new Set(prev);
-                        visibleIncomingRequests.forEach((r) => { if (r.status !== "pending" && r.status !== "accepted") updated.add(String(r.id)); });
+                        jobsTabRequests.forEach((r) => { if (r.status !== "pending") updated.add(String(r.id)); });
                         return updated;
                       })}
                       className="text-xs font-semibold text-[#64748B] hover:text-[#0F1E3D] hover:underline"
@@ -4177,15 +4206,15 @@ export default function App() {
                     </button>
                   )}
                 </div>
-                {visibleIncomingRequests.length === 0 ? (
+                {jobsTabRequests.length === 0 ? (
                   <div className="text-center py-12 text-[#64748B] bg-white border border-[#CBD9EE] rounded-xl">
                     <div className="text-3xl mb-2">✓</div>
                     No new requests
-                    <p className="text-xs text-[#64748B] mt-1">When a customer books you, the request appears here for a one-tap accept.</p>
+                    <p className="text-xs text-[#64748B] mt-1">When a customer books you, the request appears here for a one-tap accept. Once you accept, it moves to My Bookings.</p>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-4">
-                    {visibleIncomingRequests.map((req) => (
+                    {jobsTabRequests.map((req) => (
                       <div key={req.id} className={`bg-white border rounded-xl p-5 ${req.urgent && req.status === "pending" ? "border-red-400 ring-1 ring-red-200" : "border-[#CBD9EE]"}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -4234,14 +4263,6 @@ export default function App() {
                             </button>
                           </div>
                         )}
-                        {req.status === "accepted" && req.etaMinutes != null && (
-                          <div className="mt-3 text-sm text-[#1D4ED8] font-medium">Arriving in ~{req.etaMinutes} minutes</div>
-                        )}
-                        {req.status === "accepted" && (
-                          <button onClick={() => completeJob(req.id)} className="mt-3 w-full bg-green-600 text-white font-semibold py-2 rounded-lg hover:bg-green-700 transition-colors">
-                            ✓ Mark job complete
-                          </button>
-                        )}
                         {req.status === "completed" && (
                           <>
                             <button onClick={() => openFeedback(req.id, "worker")} className="mt-3 w-full border border-[#CBD9EE] text-[#0F1E3D] font-medium py-2 rounded-lg hover:bg-[#E6EEFB] transition-colors">
@@ -4286,6 +4307,49 @@ export default function App() {
                 the dashboard. */}
             {workerTab === "bookings" && (
               <div className="flex flex-col gap-4">
+                {/* Jobs this worker has accepted — the customer's booking
+                    lands here (moved out of Incoming Requests) so it's easy
+                    to find and navigate to. */}
+                {visibleAcceptedJobs.length > 0 && (
+                  <div className="flex flex-col gap-4">
+                    <h3 className="font-semibold text-sm uppercase tracking-widest text-[#64748B]">🔧 Your Active Jobs</h3>
+                    {visibleAcceptedJobs.map((req) => (
+                      <div key={req.id} className="bg-white border border-[#1D4ED8]/30 ring-1 ring-[#E4EEFC] rounded-xl p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            {req.urgent && (
+                              <span className="inline-block mb-1 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-50 px-2 py-0.5 rounded-full">🔴 Urgent</span>
+                            )}
+                            <div className="font-semibold text-[#0F1E3D]">{req.customerName}</div>
+                            <div className="text-sm text-[#64748B]">{req.service}</div>
+                            <div className="text-xs text-[#64748B] mt-1">{req.date} · {req.time}</div>
+                            <div className="text-xs text-[#64748B]">{req.address}</div>
+                            {req.etaMinutes != null && (
+                              <div className="text-xs font-semibold text-[#1D4ED8] mt-1">Arriving in ~{req.etaMinutes} minutes</div>
+                            )}
+                            <div className="text-xs font-semibold text-[#1D4ED8] mt-1">₹{req.rate}/hr</div>
+                          </div>
+                          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#E4EEFC] text-[#1D4ED8] shrink-0">{t("accepted")}</span>
+                        </div>
+                        <a
+                          href={
+                            req.lat != null && req.lng != null
+                              ? `https://www.google.com/maps/dir/?api=1&destination=${req.lat},${req.lng}&travelmode=driving`
+                              : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(req.address || "")}&travelmode=driving`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-4 flex items-center justify-center gap-2 w-full border border-[#1D4ED8] text-[#1D4ED8] font-semibold py-2 rounded-lg hover:bg-[#EAF2FE] transition-colors"
+                        >
+                          🧭 Navigate to customer
+                        </a>
+                        <button onClick={() => completeJob(req.id)} className="mt-2 w-full bg-green-600 text-white font-semibold py-2 rounded-lg hover:bg-green-700 transition-colors">
+                          ✓ Mark job complete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {visibleMyBookings.some((r) => r.status === "completed" || r.status === "rejected") && (
                   <div className="flex justify-end">
                     <button
@@ -6127,6 +6191,43 @@ export default function App() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── GENERAL NOTIFICATION TOAST ──
+          Pops up for any new notification (booking accepted, job complete,
+          feedback, etc.) for both worker and customer — separate from the
+          bell badge count, which alone was easy to miss since it just
+          incremented a number without drawing attention. */}
+      {notifToast && (
+        <div className="fixed top-5 right-5 z-[110] w-[90vw] max-w-sm animate-modal-pop">
+          <button
+            onClick={() => {
+              setNotifToast(null);
+              setNotifPanelOpen(true);
+              setSeenNotifIds((prev) => {
+                const updated = new Set(prev);
+                notifications.forEach((n) => updated.add(n.id));
+                return updated;
+              });
+            }}
+            className="w-full text-left bg-white rounded-2xl shadow-2xl border border-[#CBD9EE] overflow-hidden hover:border-[#1D4ED8] transition-colors"
+          >
+            <div className="flex items-start gap-3 px-4 py-3.5">
+              <span className="w-9 h-9 rounded-full bg-[#EAF2FE] border border-[#CBD9EE] flex items-center justify-center text-lg shrink-0">🔔</span>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-bold uppercase tracking-wide text-[#1D4ED8] mb-0.5">{t("notifications")}</div>
+                <div className="text-sm text-[#0F1E3D] leading-snug">{notifToast.text}</div>
+              </div>
+              <span
+                onClick={(e) => { e.stopPropagation(); setNotifToast(null); }}
+                className="ml-auto text-[#94A3B8] hover:text-[#0F1E3D] text-sm leading-none shrink-0"
+                aria-label="Dismiss"
+              >
+                ✕
+              </span>
+            </div>
+          </button>
         </div>
       )}
 
