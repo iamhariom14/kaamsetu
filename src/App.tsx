@@ -22,6 +22,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { auth, googleProvider, db } from "./firebase";
+import LiveTrackingMap from "./LiveTrackingMap";
 
 // If a photo (e.g. from Unsplash) fails to load, swap it for a reliable
 // placeholder instead of showing a broken-image icon.
@@ -649,6 +650,13 @@ type WorkerRequest = {
   address: string;
   lat?: number;
   lng?: number;
+  // The worker's live GPS position, written continuously (see the
+  // location-sharing effect below) while the job is "accepted" so the
+  // customer — and the worker's own other tabs/devices — can watch it
+  // move in real time via the Live Tracking map.
+  workerLat?: number;
+  workerLng?: number;
+  workerLocationUpdatedAt?: number;
   rate: string;
   urgent?: boolean;
   status: "pending" | "accepted" | "completed" | "rejected";
@@ -1374,6 +1382,10 @@ export default function App() {
   const [liveBookings, setLiveBookings] = useState<WorkerRequest[]>([]);
   const liveBookingIds = new Set(liveBookings.map((b) => b.id));
   const allRequests = [...liveBookings, ...workerRequests];
+  // Id of the booking currently shown in the Live Tracking map modal
+  // (customer + worker location side by side). Null = modal closed.
+  const [trackingBookingId, setTrackingBookingId] = useState<string | null>(null);
+  const trackingBooking = trackingBookingId ? allRequests.find((r) => String(r.id) === trackingBookingId) : undefined;
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "bookings"), (snap) => {
@@ -2814,6 +2826,55 @@ export default function App() {
   // pending decision, plus completed/rejected history.
   const jobsTabRequests = visibleIncomingRequests.filter((r) => r.status !== "accepted");
   const visibleAcceptedJobs = acceptedJobs.filter((r) => !clearedRequestIds.has(String(r.id)));
+
+  // ── Live location sharing (worker → Firestore) ──
+  // While this worker has one or more real (Firestore-backed) jobs in
+  // "accepted" status, keep watching their GPS position and writing it onto
+  // each booking doc. Every signed-in session watching that same "bookings"
+  // collection (see `liveBookings` above) then re-renders with the new
+  // coordinates automatically, which is what makes the Live Tracking map
+  // update in real time for the customer. Throttled so normal GPS jitter
+  // doesn't spam Firestore with writes.
+  const trackedJobIdsKey = visibleAcceptedJobs
+    .filter((r) => liveBookingIds.has(r.id))
+    .map((r) => r.id)
+    .join(",");
+  useEffect(() => {
+    if (!isSignedIn || userRole !== "worker" || !trackedJobIdsKey || !navigator.geolocation) return;
+    const jobIds = trackedJobIdsKey.split(",").filter(Boolean);
+    if (jobIds.length === 0) return;
+
+    let lastSentAt = 0;
+    let lastLat: number | null = null;
+    let lastLng: number | null = null;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const now = Date.now();
+        const movedEnough =
+          lastLat == null ||
+          lastLng == null ||
+          Math.abs(latitude - lastLat) > 0.0002 ||
+          Math.abs(longitude - lastLng) > 0.0002; // roughly 20 metres
+        if (now - lastSentAt < 10000 && !movedEnough) return; // otherwise throttle to ~10s
+        lastSentAt = now;
+        lastLat = latitude;
+        lastLng = longitude;
+        jobIds.forEach((id) => {
+          updateDoc(doc(db, "bookings", id), {
+            workerLat: latitude,
+            workerLng: longitude,
+            workerLocationUpdatedAt: now,
+          }).catch((err) => console.error("Failed to share live location:", err));
+        });
+      },
+      (err) => console.error("Live location watch error:", err),
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [isSignedIn, userRole, trackedJobIdsKey]);
   // The signed-in worker's own profile — matched by the email they signed
   // up/joined with — used to show their real skill/experience/certificate
   // instead of generic placeholder profile content.
@@ -4343,6 +4404,14 @@ export default function App() {
                         >
                           🧭 Navigate to customer
                         </a>
+                        {liveBookingIds.has(req.id) && (
+                          <button
+                            onClick={() => setTrackingBookingId(String(req.id))}
+                            className="mt-2 flex items-center justify-center gap-2 w-full border border-[#16A34A] text-[#16A34A] font-semibold py-2 rounded-lg hover:bg-green-50 transition-colors"
+                          >
+                            📍 Live location
+                          </button>
+                        )}
                         <button onClick={() => completeJob(req.id)} className="mt-2 w-full bg-green-600 text-white font-semibold py-2 rounded-lg hover:bg-green-700 transition-colors">
                           ✓ Mark job complete
                         </button>
@@ -4402,6 +4471,14 @@ export default function App() {
                           </span>
                         </div>
                       </div>
+                      {b.status === "accepted" && liveBookingIds.has(b.id) && (
+                        <button
+                          onClick={() => setTrackingBookingId(String(b.id))}
+                          className="flex items-center justify-center gap-2 border border-[#16A34A] text-[#16A34A] font-semibold py-2 rounded-lg hover:bg-green-50 transition-colors text-sm"
+                        >
+                          📍 Track live location
+                        </button>
+                      )}
                       <div className="text-sm font-semibold text-[#1D4ED8]">₹{b.rate}/hr</div>
                     </div>
                   ))
@@ -4721,6 +4798,14 @@ export default function App() {
                         )}
                       </div>
                     </div>
+                    {b.status === "accepted" && liveBookingIds.has(b.id) && (
+                      <button
+                        onClick={() => setTrackingBookingId(String(b.id))}
+                        className="flex items-center justify-center gap-2 border border-[#16A34A] text-[#16A34A] font-semibold py-2 rounded-lg hover:bg-green-50 transition-colors text-sm"
+                      >
+                        📍 Track live location
+                      </button>
+                    )}
                     {b.status === "completed" && (
                       <div className="border-t border-[#E6EEFB] pt-3 flex flex-col gap-2">
                         <button onClick={() => openFeedback(b.id, "customer")} className="w-full border border-[#CBD9EE] text-[#0F1E3D] font-medium py-2 rounded-lg hover:bg-[#E6EEFB] transition-colors text-sm">
@@ -6308,6 +6393,24 @@ export default function App() {
             </button>
           </form>
         </div>
+      )}
+
+      {/* ── LIVE TRACKING MAP ──
+          Shows the customer's booking location and the worker's live GPS
+          position (written by the location-sharing effect above) on the
+          same map, for either side to open from an accepted booking. */}
+      {trackingBooking && (
+        <LiveTrackingMap
+          customerName={trackingBooking.customerName}
+          workerName={trackingBooking.workerName}
+          service={trackingBooking.service}
+          customerLat={trackingBooking.lat}
+          customerLng={trackingBooking.lng}
+          workerLat={trackingBooking.workerLat}
+          workerLng={trackingBooking.workerLng}
+          workerLocationUpdatedAt={trackingBooking.workerLocationUpdatedAt}
+          onClose={() => setTrackingBookingId(null)}
+        />
       )}
     </div>
   );
