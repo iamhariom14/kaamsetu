@@ -792,6 +792,23 @@ const translations: Record<Lang, Record<string, string>> = {
     requests: "requests",
     workersOnPlatform: "workers on the platform",
     demand: "DEMAND",
+    adminReports: "Reports",
+    reportsDesc: "Revenue and transaction reports across every cooperative branch, for accounting and audit.",
+    exportCSV: "Export CSV",
+    completedRevenue: "Revenue from completed jobs",
+    avgBookingValue: "Average booking value",
+    completedOfTotal: "Completed / total bookings",
+    revenueByCategory: "Revenue by service category",
+    revenueByStatus: "Revenue by booking status",
+    revenueByPayment: "Revenue by payment method",
+    transactionLedger: "Transaction ledger",
+    noDataYet: "No transactions recorded yet.",
+    colDate: "Date",
+    colCustomer: "Customer",
+    colWorker: "Worker",
+    colService: "Service",
+    colAmount: "Amount",
+    colStatus: "Status",
 
     // Hero
     heroTag: "Worker-Owned Cooperative",
@@ -928,6 +945,23 @@ const translations: Record<Lang, Record<string, string>> = {
     requests: "अनुरोध",
     workersOnPlatform: "कामगार प्लेटफ़ॉर्म पर",
     demand: "मांग",
+    adminReports: "रिपोर्ट्स",
+    reportsDesc: "हिसाब-किताब और ऑडिट के लिए सभी सहकारी शाखाओं का राजस्व व लेन-देन रिपोर्ट।",
+    exportCSV: "CSV डाउनलोड करें",
+    completedRevenue: "पूर्ण हुए कार्यों से राजस्व",
+    avgBookingValue: "औसत बुकिंग मूल्य",
+    completedOfTotal: "पूर्ण / कुल बुकिंग",
+    revenueByCategory: "सेवा श्रेणी अनुसार राजस्व",
+    revenueByStatus: "बुकिंग स्थिति अनुसार राजस्व",
+    revenueByPayment: "भुगतान माध्यम अनुसार राजस्व",
+    transactionLedger: "लेन-देन बहीखाता",
+    noDataYet: "अभी तक कोई लेन-देन दर्ज नहीं हुआ।",
+    colDate: "तारीख़",
+    colCustomer: "ग्राहक",
+    colWorker: "कामगार",
+    colService: "सेवा",
+    colAmount: "राशि",
+    colStatus: "स्थिति",
 
     // Hero
     heroTag: "कामगार-स्वामित्व वाली सहकारी समिति",
@@ -1152,7 +1186,7 @@ export default function App() {
   }
 
   // Cooperative Federation Administration Dashboard
-  const [adminView, setAdminView] = useState<"overview" | "verification" | "complaints" | "bookings">("overview");
+  const [adminView, setAdminView] = useState<"overview" | "verification" | "complaints" | "bookings" | "reports">("overview");
   function goToAdmin() {
     setPage("admin");
     setAdminView("overview");
@@ -1165,6 +1199,30 @@ export default function App() {
   }
   function adminRejectWorker(id: string | number) {
     setCommunityWorkers((prev) => prev.filter((w) => w.id !== id));
+  }
+
+  // Federation Reports — exports every booking (across all cooperatives) as
+  // a CSV transaction ledger, so the accounting/reports side of the
+  // federation dashboard has something downloadable, not just on-screen
+  // totals that reset the moment the tab is closed.
+  function exportFederationLedgerCSV() {
+    const header = ["Date", "Time", "Customer", "Worker", "Service", "Category", "Amount (INR)", "Payment Method", "Status"];
+    const rows = allRequests.map((r) => [
+      r.date || "", r.time || "", r.customerName || "", r.workerName || "", r.service || "", r.category || "",
+      String(Number(r.rate) || 0), r.paymentMethod || "Not specified", r.status,
+    ]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `kaamsetu-federation-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   // Federation tab in the nav — jumps straight into the cross-cooperative
@@ -4937,6 +4995,33 @@ export default function App() {
         const pendingWorkers = communityWorkers.filter((w) => !w.verified);
         const platformRevenue = allRequests.reduce((s, r) => s + (Number(r.rate) || 0), 0);
         const openComplaints = complaints.filter((c) => c.status === "open");
+
+        // Reports tab — accounting-style breakdown of every booking on the
+        // platform (this was the piece missing from the flowchart's
+        // Federation Dashboard: no per-category / per-status / per-payment
+        // revenue view, and no exportable ledger).
+        const completedRequests = allRequests.filter((r) => r.status === "completed");
+        const completedRevenue = completedRequests.reduce((s, r) => s + (Number(r.rate) || 0), 0);
+        const avgBookingValue = allRequests.length ? Math.round(platformRevenue / allRequests.length) : 0;
+        const revenueByCategory = serviceCategories
+          .map((cat) => {
+            const catRequests = allRequests.filter((r) => r.category === cat.id);
+            return { ...cat, count: catRequests.length, revenue: catRequests.reduce((s, r) => s + (Number(r.rate) || 0), 0) };
+          })
+          .filter((c) => c.count > 0)
+          .sort((a, b) => b.revenue - a.revenue);
+        const revenueByStatus = (["completed", "accepted", "pending", "rejected"] as const).map((status) => {
+          const reqs = allRequests.filter((r) => r.status === status);
+          return { status, count: reqs.length, revenue: reqs.reduce((s, r) => s + (Number(r.rate) || 0), 0) };
+        });
+        const paymentTotals = new Map<string, { count: number; revenue: number }>();
+        allRequests.forEach((r) => {
+          const key = r.paymentMethod || "Not specified";
+          const prev = paymentTotals.get(key) || { count: 0, revenue: 0 };
+          paymentTotals.set(key, { count: prev.count + 1, revenue: prev.revenue + (Number(r.rate) || 0) });
+        });
+        const revenueByPayment = Array.from(paymentTotals.entries()).map(([method, v]) => ({ method, ...v }));
+        const ledgerRows = [...allRequests].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
         return (
           <section className="py-14 md:py-20 bg-[#0F1E3D] text-white min-h-screen animate-page-in">
             <div className="max-w-6xl mx-auto px-5 md:px-10">
@@ -4951,6 +5036,7 @@ export default function App() {
                     { id: "verification", label: `${t("adminVerification")}${pendingWorkers.length ? ` (${pendingWorkers.length})` : ""}` },
                     { id: "complaints", label: `🚩 Complaints${openComplaints.length ? ` (${openComplaints.length})` : ""}` },
                     { id: "bookings", label: t("adminBookingsDemand") },
+                    { id: "reports", label: `📊 ${t("adminReports")}` },
                     { id: "skillCourses", label: `🎓 ${t("skillCourses")}` },
                   ] as const).map((v) => (
                     <button
@@ -5248,6 +5334,116 @@ export default function App() {
                     ))}
                   </div>
                 </>
+              )}
+
+              {adminView === "reports" && (
+                <div className="flex flex-col gap-8">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <p className="text-sm text-white/60 max-w-lg">{t("reportsDesc")}</p>
+                    <button
+                      onClick={exportFederationLedgerCSV}
+                      className="text-sm font-semibold bg-[#1D4ED8] px-4 py-2 rounded-lg hover:bg-[#1E3A8A] transition-colors shrink-0"
+                    >
+                      ⬇️ {t("exportCSV")}
+                    </button>
+                  </div>
+
+                  <div className="grid sm:grid-cols-4 gap-4">
+                    <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>₹{platformRevenue.toLocaleString("en-IN")}</div><div className="text-xs text-white/60 mt-1">{t("grossBookingValue")}</div></div>
+                    <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>₹{completedRevenue.toLocaleString("en-IN")}</div><div className="text-xs text-white/60 mt-1">{t("completedRevenue")}</div></div>
+                    <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>₹{avgBookingValue.toLocaleString("en-IN")}</div><div className="text-xs text-white/60 mt-1">{t("avgBookingValue")}</div></div>
+                    <div className="bg-white/10 rounded-2xl p-5"><div className="text-2xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{completedRequests.length}/{allRequests.length}</div><div className="text-xs text-white/60 mt-1">{t("completedOfTotal")}</div></div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-lg mb-3">{t("revenueByCategory")}</h3>
+                    <div className="flex flex-col gap-2">
+                      {revenueByCategory.length === 0 ? (
+                        <div className="text-center py-10 text-white/50 bg-white/5 rounded-2xl">{t("noDataYet")}</div>
+                      ) : (
+                        revenueByCategory.map((cat) => (
+                          <div key={cat.id} className="bg-white/10 rounded-xl p-4 flex items-center gap-4">
+                            <span className="text-xl">{cat.icon}</span>
+                            <div className="flex-1">
+                              <div className="font-semibold text-sm">{cat.label}</div>
+                              <div className="text-xs text-white/60">{cat.count} {t("requests")}</div>
+                            </div>
+                            <span className="text-sm font-semibold">₹{cat.revenue.toLocaleString("en-IN")}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="font-semibold text-lg mb-3">{t("revenueByStatus")}</h3>
+                      <div className="flex flex-col gap-2">
+                        {revenueByStatus.map((s) => (
+                          <div key={s.status} className="bg-white/10 rounded-xl p-4 flex items-center justify-between">
+                            <div>
+                              <div className="font-semibold text-sm capitalize">{s.status}</div>
+                              <div className="text-xs text-white/60">{s.count} {t("requests")}</div>
+                            </div>
+                            <span className="text-sm font-semibold">₹{s.revenue.toLocaleString("en-IN")}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg mb-3">{t("revenueByPayment")}</h3>
+                      <div className="flex flex-col gap-2">
+                        {revenueByPayment.length === 0 ? (
+                          <div className="text-center py-10 text-white/50 bg-white/5 rounded-2xl">{t("noDataYet")}</div>
+                        ) : (
+                          revenueByPayment.map((p) => (
+                            <div key={p.method} className="bg-white/10 rounded-xl p-4 flex items-center justify-between">
+                              <div>
+                                <div className="font-semibold text-sm">{p.method}</div>
+                                <div className="text-xs text-white/60">{p.count} {t("requests")}</div>
+                              </div>
+                              <span className="text-sm font-semibold">₹{p.revenue.toLocaleString("en-IN")}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-lg mb-3">{t("transactionLedger")}</h3>
+                    {ledgerRows.length === 0 ? (
+                      <div className="text-center py-10 text-white/50 bg-white/5 rounded-2xl">{t("noDataYet")}</div>
+                    ) : (
+                      <div className="overflow-x-auto bg-white/5 rounded-2xl">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-left text-white/50 text-xs uppercase tracking-wide border-b border-white/10">
+                              <th className="px-4 py-3">{t("colDate")}</th>
+                              <th className="px-4 py-3">{t("colCustomer")}</th>
+                              <th className="px-4 py-3">{t("colWorker")}</th>
+                              <th className="px-4 py-3">{t("colService")}</th>
+                              <th className="px-4 py-3">{t("colAmount")}</th>
+                              <th className="px-4 py-3">{t("colStatus")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {ledgerRows.map((r) => (
+                              <tr key={r.id} className="border-b border-white/5 last:border-0">
+                                <td className="px-4 py-3 whitespace-nowrap">{r.date}{r.time ? ` · ${r.time}` : ""}</td>
+                                <td className="px-4 py-3">{r.customerName}</td>
+                                <td className="px-4 py-3">{r.workerName}</td>
+                                <td className="px-4 py-3">{r.service}</td>
+                                <td className="px-4 py-3 font-semibold">₹{Number(r.rate || 0).toLocaleString("en-IN")}</td>
+                                <td className="px-4 py-3 capitalize">{r.status}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
 
               {adminView === "skillCourses" && (
