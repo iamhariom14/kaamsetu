@@ -2953,12 +2953,15 @@ export default function App() {
 
       {/* ── LOGIN PAGE (shown first, before the rest of the app) ── */}
       {page === "login" && (
-        <section className="min-h-screen relative overflow-hidden bg-[#FBF7EE] animate-page-in">
-          {/* Soft decorative backdrop shapes */}
+        <section className="min-h-screen relative overflow-hidden bg-[#F3F7FE] animate-page-in">
+          {/* Soft decorative backdrop shapes — swapped to blue-tinted
+              shades so the login page matches the site's own light-blue
+              theme instead of a separate cream/green palette. */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-[#DDEEE1]/70 blur-2xl" />
-            <div className="absolute -bottom-32 -right-16 w-[28rem] h-[28rem] rounded-full bg-[#F3E6D0]/70 blur-2xl" />
+            <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-[#DCE7F8]/70 blur-2xl" />
+            <div className="absolute -bottom-32 -right-16 w-[28rem] h-[28rem] rounded-full bg-[#CBD9EE]/70 blur-2xl" />
           </div>
+
 
           <div className="relative max-w-7xl mx-auto min-h-screen grid lg:grid-cols-[1fr_min(24rem,90vw)_1fr] items-center gap-6 px-5 py-12 lg:py-10">
             {/* ── Left illustration: workers & community ── */}
@@ -3983,27 +3986,24 @@ export default function App() {
           this shows demo jobs/requests data behind the modal before the
           person has actually finished/submitted onboarding. */}
       {page === "workerDashboard" && !showJoinWorker && (
-        <section className="pb-14 md:pb-20 animate-page-in bg-[#0F1E3D]">
+        <section className="pb-14 md:pb-20 animate-page-in">
           <div className="max-w-5xl mx-auto px-5 md:px-10 py-14 md:py-20">
 
-            {/* Dark panel — full-bleed brand navy background (same
-                #0F1E3D used elsewhere for headings) now lives on the whole
-                <section>, not just this inner box, so it spans edge to
-                edge instead of leaving white margins on wide screens. The
-                inner div below just keeps the content itself centered and
-                padded like every other page. */}
-            <div className="p-0 md:p-0">
+            {/* Back to the site's own light-blue theme (#F3F7FE page
+                background, white cards) instead of the dark navy panel,
+                so the dashboard matches every other page on the site. */}
+            <div>
 
               <div className="flex items-center gap-4 mb-6">
                 <img
                   src={currentUser?.photoURL || personImgFallback(currentUser?.name || "Worker", "1B6B5E")}
                   alt={currentUser?.name || "Worker"}
-                  className="w-16 h-16 rounded-full object-cover ring-2 ring-white/10"
+                  className="w-16 h-16 rounded-full object-cover"
                   onError={(e) => handleImgError(e, personImgFallback(currentUser?.name || "Worker", "1B6B5E"))}
                 />
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-semibold text-white" style={{ fontFamily: "'Fraunces', serif" }}>{currentUser?.name}</h2>
-                  <p className="text-sm text-[#9FB3D1]">{currentUser?.email}</p>
+                  <h2 className="text-2xl md:text-3xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{currentUser?.name}</h2>
+                  <p className="text-sm text-[#64748B]">{currentUser?.email}</p>
                 </div>
               </div>
 
@@ -4011,18 +4011,19 @@ export default function App() {
                   Jobs tab only), matching the reference dashboard where the
                   summary numbers stay put no matter which tab is open. */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-                <div className="bg-[#16294F] border border-white/10 rounded-xl p-4">
-                  <div className="text-2xl font-semibold text-white" style={{ fontFamily: "'Fraunces', serif" }}>{acceptedJobs.length}</div>
-                  <div className="text-xs text-[#9FB3D1]">{t("jobsCompleted")}</div>
+                <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
+                  <div className="text-2xl font-semibold text-[#1D4ED8]" style={{ fontFamily: "'Fraunces', serif" }}>{acceptedJobs.length}</div>
+                  <div className="text-xs text-[#64748B]">{t("jobsCompleted")}</div>
                 </div>
-                <div className="bg-[#16294F] border border-white/10 rounded-xl p-4">
-                  <div className="text-2xl font-semibold text-white" style={{ fontFamily: "'Fraunces', serif" }}>₹{totalEarnings}</div>
-                  <div className="text-xs text-[#9FB3D1]">{t("totalEarnings")}</div>
+                <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
+                  <div className="text-2xl font-semibold text-[#1D4ED8]" style={{ fontFamily: "'Fraunces', serif" }}>₹{totalEarnings}</div>
+                  <div className="text-xs text-[#64748B]">{t("totalEarnings")}</div>
                 </div>
-                <div className="bg-[#16294F] border border-white/10 rounded-xl p-4">
-                  <div className="text-2xl font-semibold text-[#38BDF8]" style={{ fontFamily: "'Fraunces', serif" }}>{pendingRequestsCount}</div>
-                  <div className="text-xs text-[#9FB3D1]">Pending requests</div>
+                <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
+                  <div className="text-2xl font-semibold text-[#0EA5E9]" style={{ fontFamily: "'Fraunces', serif" }}>{pendingRequestsCount}</div>
+                  <div className="text-xs text-[#64748B]">Pending requests</div>
                 </div>
+
               </div>
 
               {/* Rectangular pill-style tab row, matching the reference
@@ -4031,28 +4032,28 @@ export default function App() {
               <div className="mb-8 flex flex-wrap gap-2.5">
                 <button
                   onClick={() => setWorkerTab("jobs")}
-                  className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${workerTab === "jobs" ? "bg-[#1D4ED8] text-white" : "bg-[#16294F] text-[#9FB3D1] hover:bg-[#1E3A8A]/40"}`}
+                  className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${workerTab === "jobs" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
                 >
                   <span className="text-base leading-none">💼</span>
                   Jobs
                 </button>
                 <button
                   onClick={() => setWorkerTab("bookings")}
-                  className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${workerTab === "bookings" ? "bg-[#1D4ED8] text-white" : "bg-[#16294F] text-[#9FB3D1] hover:bg-[#1E3A8A]/40"}`}
+                  className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${workerTab === "bookings" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
                 >
                   <span className="text-base leading-none">📋</span>
                   My Bookings
                 </button>
                 <button
                   onClick={() => setWorkerTab("earnings")}
-                  className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${workerTab === "earnings" ? "bg-[#1D4ED8] text-white" : "bg-[#16294F] text-[#9FB3D1] hover:bg-[#1E3A8A]/40"}`}
+                  className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${workerTab === "earnings" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
                 >
                   <span className="text-base leading-none">💳</span>
                   Earnings
                 </button>
                 <button
                   onClick={() => setWorkerTab("profile")}
-                  className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${workerTab === "profile" ? "bg-[#1D4ED8] text-white" : "bg-[#16294F] text-[#9FB3D1] hover:bg-[#1E3A8A]/40"}`}
+                  className={`flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${workerTab === "profile" ? "bg-[#1D4ED8] text-white" : "bg-[#F1F5F9] text-[#475569] hover:bg-[#E6EEFB]"}`}
                 >
                   <span className="text-base leading-none">👤</span>
                   Profile
@@ -4063,7 +4064,7 @@ export default function App() {
             {workerTab === "jobs" && (
               <>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-xl text-white" style={{ fontFamily: "'Fraunces', serif" }}>{t("incomingRequests")}</h3>
+                  <h3 className="font-semibold text-xl text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>{t("incomingRequests")}</h3>
                   {visibleIncomingRequests.some((r) => r.status !== "pending" && r.status !== "accepted") && (
                     <button
                       onClick={() => setClearedRequestIds((prev) => {
@@ -4161,13 +4162,13 @@ export default function App() {
                   </div>
                 )}
 
-                <h3 className="font-semibold text-sm uppercase tracking-widest text-[#9FB3D1] mt-10 mb-3">Forecast for your ward</h3>
+                <h3 className="font-semibold text-sm uppercase tracking-widest text-[#64748B] mt-10 mb-3">Forecast for your ward</h3>
                 <div className="bg-[#E4EEFC] border border-[#1D4ED8]/20 rounded-xl p-4 flex items-start gap-3 mb-10">
                   <span className="text-lg">📈</span>
                   <p className="text-sm text-[#0F1E3D]">{demoForecastText}</p>
                 </div>
 
-                <h3 className="font-semibold text-sm uppercase tracking-widest text-[#9FB3D1] mb-3">Recent completed</h3>
+                <h3 className="font-semibold text-sm uppercase tracking-widest text-[#64748B] mb-3">Recent completed</h3>
                 <div className="bg-white border border-[#CBD9EE] rounded-xl divide-y divide-[#E6EEFB]">
                   {demoRecentCompletedJobs.map((job, i) => (
                     <div key={i} className="flex items-center justify-between px-5 py-3 text-sm">
@@ -4251,7 +4252,7 @@ export default function App() {
               const maxPayout = Math.max(...demoPayoutHistory.map((p) => p.amount));
               return (
                 <div className="flex flex-col gap-6">
-                  <h3 className="font-semibold text-2xl text-white" style={{ fontFamily: "'Fraunces', serif" }}>Earnings & Welfare</h3>
+                  <h3 className="font-semibold text-2xl text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>Earnings & Welfare</h3>
 
                   <div className="bg-white border border-[#CBD9EE] rounded-2xl p-6">
                     <div className="text-xs text-[#64748B] mb-1">This month</div>
@@ -4260,7 +4261,7 @@ export default function App() {
                   </div>
 
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-widest text-[#9FB3D1] mb-2">Welfare status</div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-2">Welfare status</div>
                     <div className="bg-white border border-[#CBD9EE] rounded-2xl divide-y divide-[#E6EEFB]">
                       <div className="flex justify-between items-center px-5 py-4">
                         <span className="text-sm text-[#0F1E3D]">Health insurance (PMJAY-linked)</span>
@@ -4278,7 +4279,7 @@ export default function App() {
                   </div>
 
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-widest text-[#9FB3D1] mb-2">Monthly income trend</div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-2">Monthly income trend</div>
                     <div className="bg-white border border-[#CBD9EE] rounded-2xl p-5">
                       <div className="relative h-28" onMouseLeave={() => setHoveredIncomeIdx(null)}>
                         <svg viewBox="0 0 300 100" className="w-full h-full" preserveAspectRatio="none">
@@ -4340,7 +4341,7 @@ export default function App() {
                   </div>
 
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-widest text-[#9FB3D1] mb-2">Payout history</div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-2">Payout history</div>
                     <div className="bg-white border border-[#CBD9EE] rounded-2xl p-5">
                       <div className="flex items-end justify-between gap-3 h-32" onMouseLeave={() => setHoveredPayoutIdx(null)}>
                         {demoPayoutHistory.map((p, i) => {
@@ -4433,7 +4434,7 @@ export default function App() {
                 </div>
 
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-widest text-[#9FB3D1] mb-2">Skills</div>
+                  <div className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-2">Skills</div>
                   <div className="flex flex-wrap gap-2">
                     {(myWorkerProfile ? [myWorkerProfile.role] : demoWorkerSkills).map((skill) => (
                       <span key={skill} className="bg-[#F3F7FE] border border-[#CBD9EE] text-sm px-3 py-1.5 rounded-full">{skill}</span>
@@ -4442,7 +4443,7 @@ export default function App() {
                 </div>
 
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-widest text-[#9FB3D1] mb-2">Certifications</div>
+                  <div className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-2">Certifications</div>
                   <div className="bg-white border border-[#CBD9EE] rounded-2xl divide-y divide-[#E6EEFB]">
                     {(myWorkerProfile
                       ? [
