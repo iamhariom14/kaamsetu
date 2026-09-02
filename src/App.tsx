@@ -71,14 +71,14 @@ const workers = [
   // Cleaning
   {
     id: 1, name: "Meena Sharma", role: "House Cleaner", category: "cleaning",
-    rating: 4.9, reviews: 127, experience: 11, hourlyRate: 280, location: "Rajouri Garden, Delhi",
+    rating: 4.9, reviews: 127, experience: 11, hourlyRate: 280, location: "Rajouri Garden, Delhi", pincode: "110027",
     tags: ["Deep Clean", "Move-in/out", "Weekly"],
     image: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: true,
   },
   {
     id: 11, name: "Kavita Rawat", role: "Professional Cleaner", category: "cleaning",
-    rating: 4.8, reviews: 95, experience: 9, hourlyRate: 260, location: "Janakpuri, Delhi",
+    rating: 4.8, reviews: 95, experience: 9, hourlyRate: 260, location: "Janakpuri, Delhi", pincode: "110058",
     tags: ["Bathroom Deep Clean", "Kitchen", "Office"],
     image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: true,
@@ -86,14 +86,14 @@ const workers = [
   // Plumbing
   {
     id: 2, name: "Rajan Verma", role: "Master Plumber", category: "plumbing",
-    rating: 4.8, reviews: 89, experience: 9, hourlyRate: 420, location: "Lajpat Nagar, Delhi",
+    rating: 4.8, reviews: 89, experience: 9, hourlyRate: 420, location: "Lajpat Nagar, Delhi", pincode: "110024",
     tags: ["Leak Repair", "Pipe Fitting", "Emergency"],
     image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: false,
   },
   {
     id: 12, name: "Santosh Yadav", role: "Plumbing Specialist", category: "plumbing",
-    rating: 4.7, reviews: 61, experience: 11, hourlyRate: 390, location: "Patel Nagar, Delhi",
+    rating: 4.7, reviews: 61, experience: 11, hourlyRate: 390, location: "Patel Nagar, Delhi", pincode: "110008",
     tags: ["Bathroom Fitting", "Water Heater", "Tank Repair"],
     image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: true,
@@ -101,14 +101,14 @@ const workers = [
   // Carpentry
   {
     id: 3, name: "Ramesh Mistri", role: "Master Carpenter", category: "carpentry",
-    rating: 4.85, reviews: 74, experience: 8, hourlyRate: 480, location: "Kirti Nagar, Delhi",
+    rating: 4.85, reviews: 74, experience: 8, hourlyRate: 480, location: "Kirti Nagar, Delhi", pincode: "110015",
     tags: ["Furniture Repair", "Custom Cabinets", "Doors & Windows"],
     image: "https://images.unsplash.com/photo-1504257432389-52343af06ae3?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: true,
   },
   {
     id: 13, name: "Dinesh Carpenter", role: "Furniture Craftsman", category: "carpentry",
-    rating: 4.9, reviews: 52, experience: 5, hourlyRate: 520, location: "Sadar Bazaar, Delhi",
+    rating: 4.9, reviews: 52, experience: 5, hourlyRate: 520, location: "Sadar Bazaar, Delhi", pincode: "110006",
     tags: ["Modular Kitchen", "Wardrobe", "Wood Polish"],
     image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=300&h=300&fit=crop&auto=format",
     available: false, cooperative: true,
@@ -116,14 +116,14 @@ const workers = [
   // Painting
   {
     id: 4, name: "Suresh Painter", role: "Wall Painter", category: "painting",
-    rating: 4.75, reviews: 88, experience: 3, hourlyRate: 350, location: "Uttam Nagar, Delhi",
+    rating: 4.75, reviews: 88, experience: 3, hourlyRate: 350, location: "Uttam Nagar, Delhi", pincode: "110059",
     tags: ["Interior", "Exterior", "Texture Painting"],
     image: "https://images.unsplash.com/photo-1566753323558-f4e0952af115?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: false,
   },
   {
     id: 14, name: "Anwar Khan", role: "Decorative Painter", category: "painting",
-    rating: 4.8, reviews: 63, experience: 8, hourlyRate: 400, location: "Okhla, Delhi",
+    rating: 4.8, reviews: 63, experience: 8, hourlyRate: 400, location: "Okhla, Delhi", pincode: "110020",
     tags: ["Wall Art", "POP Work", "Waterproofing"],
     image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: true,
@@ -131,14 +131,14 @@ const workers = [
   // Domestic Help
   {
     id: 5, name: "Geeta Devi", role: "Domestic Helper", category: "domestic",
-    rating: 4.9, reviews: 183, experience: 2, hourlyRate: 240, location: "Saket, Delhi",
+    rating: 4.9, reviews: 183, experience: 2, hourlyRate: 240, location: "Saket, Delhi", pincode: "110017",
     tags: ["Daily Chores", "Utensil Washing", "Cooking Help"],
     image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: true,
   },
   {
     id: 15, name: "Radha Kumari", role: "Full-time Maid", category: "domestic",
-    rating: 4.85, reviews: 141, experience: 12, hourlyRate: 220, location: "Dwarka, Delhi",
+    rating: 4.85, reviews: 141, experience: 12, hourlyRate: 220, location: "Dwarka, Delhi", pincode: "110075",
     tags: ["Mopping", "Laundry", "Grocery Help"],
     image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: true,
@@ -146,14 +146,14 @@ const workers = [
   // Caregiver
   {
     id: 6, name: "Priya Nair", role: "Child Caregiver", category: "caregiver",
-    rating: 4.95, reviews: 156, experience: 11, hourlyRate: 380, location: "Malviya Nagar, Delhi",
+    rating: 4.95, reviews: 156, experience: 11, hourlyRate: 380, location: "Malviya Nagar, Delhi", pincode: "110017",
     tags: ["Infants", "After School", "Homework Help"],
     image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: false,
   },
   {
     id: 16, name: "Shakuntala Singh", role: "Elder Care Specialist", category: "caregiver",
-    rating: 4.9, reviews: 102, experience: 9, hourlyRate: 420, location: "Vasant Kunj, Delhi",
+    rating: 4.9, reviews: 102, experience: 9, hourlyRate: 420, location: "Vasant Kunj, Delhi", pincode: "110070",
     tags: ["Senior Care", "Medication Help", "Physiotherapy Aid"],
     image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&h=300&fit=crop&auto=format",
     available: false, cooperative: true,
@@ -161,14 +161,14 @@ const workers = [
   // Driver
   {
     id: 7, name: "Mohd. Salim", role: "Personal Driver", category: "driver",
-    rating: 4.8, reviews: 134, experience: 3, hourlyRate: 300, location: "Mayur Vihar, Delhi",
+    rating: 4.8, reviews: 134, experience: 3, hourlyRate: 300, location: "Mayur Vihar, Delhi", pincode: "110091",
     tags: ["Daily Commute", "Airport Drop", "Outstation"],
     image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: true,
   },
   {
     id: 17, name: "Deepak Chauffeur", role: "Verified Driver", category: "driver",
-    rating: 4.75, reviews: 89, experience: 10, hourlyRate: 280, location: "Noida Sector 62",
+    rating: 4.75, reviews: 89, experience: 10, hourlyRate: 280, location: "Noida Sector 62", pincode: "201309",
     tags: ["Night Duty", "School Pickup", "Corporate"],
     image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: false,
@@ -176,14 +176,14 @@ const workers = [
   // Gardening
   {
     id: 8, name: "Hari Mohan", role: "Gardener & Landscaper", category: "gardening",
-    rating: 4.7, reviews: 64, experience: 2, hourlyRate: 320, location: "Dwarka, Delhi",
+    rating: 4.7, reviews: 64, experience: 2, hourlyRate: 320, location: "Dwarka, Delhi", pincode: "110075",
     tags: ["Kitchen Garden", "Lawn Care", "Terrace"],
     image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: true,
   },
   {
     id: 18, name: "Shyam Maalii", role: "Plant Care Expert", category: "gardening",
-    rating: 4.85, reviews: 47, experience: 4, hourlyRate: 290, location: "Rohini, Delhi",
+    rating: 4.85, reviews: 47, experience: 4, hourlyRate: 290, location: "Rohini, Delhi", pincode: "110085",
     tags: ["Indoor Plants", "Pruning", "Pest Control"],
     image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: true,
@@ -191,14 +191,14 @@ const workers = [
   // Electrician
   {
     id: 9, name: "Ajay Kumar", role: "Electrician", category: "electrician",
-    rating: 4.85, reviews: 112, experience: 9, hourlyRate: 450, location: "Rohini, Delhi",
+    rating: 4.85, reviews: 112, experience: 9, hourlyRate: 450, location: "Rohini, Delhi", pincode: "110085",
     tags: ["Wiring", "Appliance Repair", "Solar Setup"],
     image: "https://images.unsplash.com/photo-1504257432389-52343af06ae3?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: true,
   },
   {
     id: 19, name: "Vijay Electricals", role: "Master Electrician", category: "electrician",
-    rating: 4.9, reviews: 87, experience: 3, hourlyRate: 480, location: "Pitampura, Delhi",
+    rating: 4.9, reviews: 87, experience: 3, hourlyRate: 480, location: "Pitampura, Delhi", pincode: "110034",
     tags: ["MCB Panel", "AC Installation", "CCTV Wiring"],
     image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=300&h=300&fit=crop&auto=format",
     available: false, cooperative: true,
@@ -206,16 +206,89 @@ const workers = [
   // Technician
   {
     id: 10, name: "Rakesh Technician", role: "Home Appliance Tech", category: "technician",
-    rating: 4.8, reviews: 98, experience: 9, hourlyRate: 400, location: "Laxmi Nagar, Delhi",
+    rating: 4.8, reviews: 98, experience: 9, hourlyRate: 400, location: "Laxmi Nagar, Delhi", pincode: "110092",
     tags: ["AC Repair", "Washing Machine", "Refrigerator"],
     image: "https://images.unsplash.com/photo-1566753323558-f4e0952af115?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: false,
   },
   {
     id: 20, name: "Pankaj IT Tech", role: "Computer & TV Technician", category: "technician",
-    rating: 4.7, reviews: 73, experience: 3, hourlyRate: 380, location: "Nehru Place, Delhi",
+    rating: 4.7, reviews: 73, experience: 3, hourlyRate: 380, location: "Nehru Place, Delhi", pincode: "110019",
     tags: ["Laptop Repair", "Smart TV Setup", "WiFi Setup"],
     image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=300&fit=crop&auto=format",
+    available: true, cooperative: true,
+  },
+  // Gorakhpur demo workers (pincodes 273001 / 273002 / 273016), spread
+  // across multiple services so a search for any of these pincodes
+  // returns results in more than one category.
+  {
+    id: 21, name: "Sunita Yadav", role: "House Cleaner", category: "cleaning",
+    rating: 4.8, reviews: 41, experience: 6, hourlyRate: 250, location: "Civil Lines, Gorakhpur", pincode: "273001",
+    tags: ["Deep Clean", "Weekly", "Sofa Cleaning"],
+    image: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=300&h=300&fit=crop&auto=format",
+    available: true, cooperative: true,
+  },
+  {
+    id: 22, name: "Ram Bahadur", role: "Plumber", category: "plumbing",
+    rating: 4.7, reviews: 38, experience: 7, hourlyRate: 350, location: "Ghantaghar, Gorakhpur", pincode: "273002",
+    tags: ["Leak Repair", "Pipe Fitting", "Tank Cleaning"],
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&auto=format",
+    available: true, cooperative: true,
+  },
+  {
+    id: 23, name: "Vikash Mistri", role: "Carpenter", category: "carpentry",
+    rating: 4.75, reviews: 29, experience: 5, hourlyRate: 400, location: "Mohaddipur, Gorakhpur", pincode: "273016",
+    tags: ["Furniture Repair", "Doors & Windows"],
+    image: "https://images.unsplash.com/photo-1504257432389-52343af06ae3?w=300&h=300&fit=crop&auto=format",
+    available: true, cooperative: true,
+  },
+  {
+    id: 24, name: "Manoj Painter", role: "Wall Painter", category: "painting",
+    rating: 4.6, reviews: 22, experience: 4, hourlyRate: 300, location: "Civil Lines, Gorakhpur", pincode: "273001",
+    tags: ["Interior", "Texture Painting"],
+    image: "https://images.unsplash.com/photo-1566753323558-f4e0952af115?w=300&h=300&fit=crop&auto=format",
+    available: true, cooperative: true,
+  },
+  {
+    id: 25, name: "Kavita Devi", role: "Domestic Helper", category: "domestic",
+    rating: 4.85, reviews: 55, experience: 8, hourlyRate: 200, location: "Ghantaghar, Gorakhpur", pincode: "273002",
+    tags: ["Daily Chores", "Cooking Help"],
+    image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&h=300&fit=crop&auto=format",
+    available: true, cooperative: true,
+  },
+  {
+    id: 26, name: "Sarita Kushwaha", role: "Child Caregiver", category: "caregiver",
+    rating: 4.9, reviews: 34, experience: 6, hourlyRate: 320, location: "Mohaddipur, Gorakhpur", pincode: "273016",
+    tags: ["Infants", "After School"],
+    image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&h=300&fit=crop&auto=format",
+    available: true, cooperative: true,
+  },
+  {
+    id: 27, name: "Irfan Ansari", role: "Personal Driver", category: "driver",
+    rating: 4.7, reviews: 27, experience: 5, hourlyRate: 260, location: "Civil Lines, Gorakhpur", pincode: "273001",
+    tags: ["Daily Commute", "Outstation"],
+    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=300&fit=crop&auto=format",
+    available: true, cooperative: true,
+  },
+  {
+    id: 28, name: "Raju Maali", role: "Gardener & Landscaper", category: "gardening",
+    rating: 4.65, reviews: 19, experience: 3, hourlyRate: 280, location: "Ghantaghar, Gorakhpur", pincode: "273002",
+    tags: ["Kitchen Garden", "Lawn Care"],
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&auto=format",
+    available: true, cooperative: true,
+  },
+  {
+    id: 29, name: "Anil Kumar", role: "Electrician", category: "electrician",
+    rating: 4.8, reviews: 46, experience: 7, hourlyRate: 400, location: "Mohaddipur, Gorakhpur", pincode: "273016",
+    tags: ["Wiring", "Appliance Repair"],
+    image: "https://images.unsplash.com/photo-1504257432389-52343af06ae3?w=300&h=300&fit=crop&auto=format",
+    available: true, cooperative: true,
+  },
+  {
+    id: 30, name: "Deepak Technician", role: "Home Appliance Tech", category: "technician",
+    rating: 4.75, reviews: 31, experience: 5, hourlyRate: 350, location: "Civil Lines, Gorakhpur", pincode: "273001",
+    tags: ["AC Repair", "Washing Machine"],
+    image: "https://images.unsplash.com/photo-1566753323558-f4e0952af115?w=300&h=300&fit=crop&auto=format",
     available: true, cooperative: true,
   },
 ];
@@ -1705,6 +1778,8 @@ export default function App() {
         w.name.toLowerCase().includes(q) ||
         w.role.toLowerCase().includes(q) ||
         w.category.toLowerCase().includes(q) ||
+        (w.location || "").toLowerCase().includes(q) ||
+        (w.pincode || "").includes(q) ||
         w.tags.some((t) => t.toLowerCase().includes(q));
       const matchesPrice = w.hourlyRate <= maxPrice;
       return matchesCategory && matchesSearch && matchesPrice;
@@ -3588,7 +3663,7 @@ export default function App() {
 
           {filtered.length === 0 ? (
             <div className="text-center py-20 text-[#64748B]">
-              No workers match your search yet. Try a different keyword or increase the max rate.
+              No workers found for "{searchQuery}". We're currently live in Delhi NCR — try searching by area name (e.g. "Delhi", "Rajouri Garden") or a skill instead of a pincode.
               <div className="mt-4">
                 <button
                   onClick={() => { setSearchQuery(""); setActiveFilter("all"); setMaxPrice(550); }}
