@@ -2542,6 +2542,11 @@ export default function App() {
   async function submitFeedback() {
     if (!feedbackTarget) return;
     const { bookingId, role } = feedbackTarget;
+    // Grab the booking BEFORE it's mutated below, so we still know whether
+    // this is a brand-new rating or an edit of a previous one (that matters
+    // for correctly recomputing the worker's average, not just for the
+    // notification text).
+    const req = allRequests.find((r) => r.id === bookingId);
     const patch = role === "customer"
       ? { customerRating: feedbackStars, customerFeedback: feedbackText.trim() }
       : { workerRating: feedbackStars, workerFeedback: feedbackText.trim() };
@@ -2554,7 +2559,39 @@ export default function App() {
     } else {
       setWorkerRequests((prev) => prev.map((r) => (r.id === bookingId ? { ...r, ...patch } : r)));
     }
-    const req = allRequests.find((r) => r.id === bookingId);
+    // A customer rating a worker should actually move the worker's own
+    // rating/review count — not just sit invisibly on the booking record.
+    // Recompute their running average and write it onto their Federation
+    // "workers" profile doc, so it updates live (via the onSnapshot on that
+    // collection) everywhere their rating is shown: their own dashboard,
+    // search results, service-detail cards. Only real, signed-up workers
+    // have a "workers" doc to update — the static demo roster has no
+    // account behind it, so there's nothing to persist a rating onto there.
+    if (role === "customer" && req?.workerEmail) {
+      const worker = communityWorkers.find((w) => w.email && w.email === req.workerEmail);
+      if (worker) {
+        const previousStars = req.customerRating;
+        const oldReviews = worker.reviews || 0;
+        const oldRating = worker.rating || 0;
+        let newReviews = oldReviews;
+        let newRating = feedbackStars;
+        if (previousStars == null) {
+          // First time this booking has been rated — one more review.
+          newReviews = oldReviews + 1;
+          newRating = (oldRating * oldReviews + feedbackStars) / newReviews;
+        } else if (oldReviews > 0) {
+          // Editing a rating already counted once — swap the old star value
+          // for the new one without changing the review count.
+          newRating = (oldRating * oldReviews - previousStars + feedbackStars) / oldReviews;
+        }
+        newRating = Math.round(newRating * 100) / 100;
+        try {
+          await updateDoc(doc(db, "workers", String(worker.id)), { rating: newRating, reviews: newReviews });
+        } catch (err) {
+          console.error("Failed to update worker's rating:", err);
+        }
+      }
+    }
     if (role === "customer") {
       pushNotification("worker", `${req?.customerName ?? "A customer"} left you a ${feedbackStars}★ review.`, req?.workerEmail);
     } else {
@@ -4661,7 +4698,9 @@ export default function App() {
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
                     <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{myWorkerProfile && myWorkerProfile.rating > 0 ? myWorkerProfile.rating : "New"}</div>
-                    <div className="text-xs text-[#64748B] mt-0.5">Rating</div>
+                    <div className="text-xs text-[#64748B] mt-0.5">
+                      Rating{myWorkerProfile && myWorkerProfile.reviews > 0 ? ` · ${myWorkerProfile.reviews} review${myWorkerProfile.reviews === 1 ? "" : "s"}` : ""}
+                    </div>
                   </div>
                   <div className="bg-white border border-[#CBD9EE] rounded-xl p-4">
                     <div className="text-xl font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>{myWorkerProfile ? myCompletedJobsCount : demoWorkerJobsDone}</div>
