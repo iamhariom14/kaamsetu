@@ -1028,6 +1028,16 @@ export default function App() {
     }
   }
 
+  // Hero "Find Workers Near Me" search — was previously a dead input with
+  // no state and a button with no onClick. Now it feeds the same
+  // searchQuery the Workers section already filters by (name/role/
+  // category/tags), then scrolls the person straight to their results.
+  const [heroSearchQuery, setHeroSearchQuery] = useState("");
+  function handleHeroFindWorkers() {
+    setSearchQuery(heroSearchQuery);
+    goToSection("workers");
+  }
+
   function goHome() {
     setPage("home");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -3863,10 +3873,13 @@ export default function App() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <input
               type="text"
+              value={heroSearchQuery}
+              onChange={(e) => setHeroSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleHeroFindWorkers(); }}
               placeholder="Enter your pincode or area..."
               className="flex-1 max-w-xs px-5 py-3.5 rounded-xl border border-[#CBD9EE] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/30"
             />
-            <button className="bg-[#0EA5E9] text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-[#0284C7] transition-colors whitespace-nowrap">
+            <button onClick={handleHeroFindWorkers} className="bg-[#0EA5E9] text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-[#0284C7] transition-colors whitespace-nowrap">
               Find Workers Near Me
             </button>
           </div>
