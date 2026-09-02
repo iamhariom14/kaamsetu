@@ -809,6 +809,12 @@ const translations: Record<Lang, Record<string, string>> = {
     colService: "Service",
     colAmount: "Amount",
     colStatus: "Status",
+    totalSpent: "Total spent",
+    spentOnCompleted: "Spent on completed jobs",
+    refundedAmount: "Refunded (rejected bookings)",
+    paid: "Paid",
+    refunded: "Refunded",
+    invoice: "Invoice",
 
     // Hero
     heroTag: "Worker-Owned Cooperative",
@@ -962,6 +968,12 @@ const translations: Record<Lang, Record<string, string>> = {
     colService: "सेवा",
     colAmount: "राशि",
     colStatus: "स्थिति",
+    totalSpent: "कुल खर्च",
+    spentOnCompleted: "पूर्ण हुए कार्यों पर खर्च",
+    refundedAmount: "रिफंड (अस्वीकृत बुकिंग)",
+    paid: "भुगतान हो गया",
+    refunded: "रिफंड हुआ",
+    invoice: "इनवॉइस",
 
     // Hero
     heroTag: "कामगार-स्वामित्व वाली सहकारी समिति",
@@ -2021,6 +2033,37 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  // Same invoice, but callable for ANY past booking from "My Bookings" — not
+  // just the one just paid for. Without this, a customer's only chance to
+  // get their invoice was the one-time success screen right after booking;
+  // closing it meant that booking's paperwork was gone for good.
+  function downloadBookingInvoice(b: WorkerRequest) {
+    const paymentStatus = b.status === "rejected" ? "REFUNDED" : "PAID";
+    const lines = [
+      "KAAMSETU — COOPERATIVE SERVICE INVOICE",
+      "======================================",
+      `Booking ID: ${b.id}`,
+      `Worker: ${b.workerName}`,
+      `Service: ${b.service}`,
+      `Date & time: ${b.date} · ${b.time}`,
+      `Address: ${b.address}`,
+      `Payment method: ${(b.paymentMethod || "Not specified").toUpperCase()}`,
+      `Rate: ₹${b.rate}/hr`,
+      `Payment status: ${paymentStatus}`,
+      "--------------------------------------",
+      "No middleman commission — 90% of every",
+      "booking goes directly to the worker.",
+      "Thank you for booking with Kaamsetu.",
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `invoice-${b.id}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function sendChatMessage(text?: string) {
     const message = (text ?? chatInput).trim();
     if (!message) return;
@@ -2979,6 +3022,14 @@ export default function App() {
   const pendingRequestsCount = myIncomingRequests.filter((r) => r.status === "pending").length;
   const myBookings = allRequests.filter((r) => (currentUser?.email && r.customerEmail ? r.customerEmail === currentUser.email : r.customerName === currentUser?.name));
   const visibleMyBookings = myBookings.filter((r) => !clearedRequestIds.has(String(r.id)));
+
+  // Customer-side accounting — total spend across every booking they've
+  // made, and how much of that is refunded, so "My Bookings" isn't just a
+  // status list with no money picture (the worker side already has this
+  // via the Earnings tab; the customer side had nothing equivalent).
+  const myTotalSpend = myBookings.reduce((s, r) => s + (r.status !== "rejected" ? Number(r.rate) || 0 : 0), 0);
+  const myCompletedSpend = myBookings.filter((r) => r.status === "completed").reduce((s, r) => s + (Number(r.rate) || 0), 0);
+  const myRefundedAmount = myBookings.filter((r) => r.status === "rejected").reduce((s, r) => s + (Number(r.rate) || 0), 0);
 
   // AI Workforce Intelligence — forecasts demand per service category from
   // live booking activity and recommends where the cooperative should
@@ -4574,7 +4625,20 @@ export default function App() {
                           📍 Track live location
                         </button>
                       )}
-                      <div className="text-sm font-semibold text-[#1D4ED8]">₹{b.rate}/hr</div>
+                      <div className="flex items-center justify-between gap-3 border-t border-[#E6EEFB] pt-3">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm font-semibold text-[#1D4ED8]">₹{b.rate}/hr</span>
+                          <span className="text-[11px] text-[#64748B]">
+                            {(b.paymentMethod || "—").toUpperCase()} · {b.status === "rejected" ? t("refunded") : t("paid")}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => downloadBookingInvoice(b)}
+                          className="text-xs font-semibold text-[#1D4ED8] hover:underline shrink-0"
+                        >
+                          📄 {t("invoice")}
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -4837,6 +4901,25 @@ export default function App() {
                 <p className="text-sm text-[#64748B]">{currentUser?.email}</p>
               </div>
             </div>
+
+            {/* ── MY PAYMENTS — customer-side accounting summary, the
+                equivalent of the worker's "Earnings" tab. ── */}
+            {myBookings.length > 0 && (
+              <div className="grid sm:grid-cols-3 gap-4 mb-8">
+                <div className="bg-white border border-[#CBD9EE] rounded-2xl p-5">
+                  <div className="text-2xl font-semibold text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>₹{myTotalSpend.toLocaleString("en-IN")}</div>
+                  <div className="text-xs text-[#64748B] mt-1">{t("totalSpent")}</div>
+                </div>
+                <div className="bg-white border border-[#CBD9EE] rounded-2xl p-5">
+                  <div className="text-2xl font-semibold text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>₹{myCompletedSpend.toLocaleString("en-IN")}</div>
+                  <div className="text-xs text-[#64748B] mt-1">{t("spentOnCompleted")}</div>
+                </div>
+                <div className="bg-white border border-[#CBD9EE] rounded-2xl p-5">
+                  <div className="text-2xl font-semibold text-[#0F1E3D]" style={{ fontFamily: "'Fraunces', serif" }}>₹{myRefundedAmount.toLocaleString("en-IN")}</div>
+                  <div className="text-xs text-[#64748B] mt-1">{t("refundedAmount")}</div>
+                </div>
+              </div>
+            )}
             {visibleMyBookings.some((r) => r.status === "completed" || r.status === "rejected") && (
               <div className="flex justify-end mb-2">
                 <button
@@ -4903,6 +4986,20 @@ export default function App() {
                         📍 Track live location
                       </button>
                     )}
+                    <div className="flex items-center justify-between gap-3 border-t border-[#E6EEFB] pt-3">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-[#1D4ED8]">₹{b.rate}/hr</span>
+                        <span className="text-[11px] text-[#64748B]">
+                          {(b.paymentMethod || "—").toUpperCase()} · {b.status === "rejected" ? t("refunded") : t("paid")}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => downloadBookingInvoice(b)}
+                        className="text-xs font-semibold text-[#1D4ED8] hover:underline shrink-0"
+                      >
+                        📄 {t("invoice")}
+                      </button>
+                    </div>
                     {b.status === "completed" && (
                       <div className="border-t border-[#E6EEFB] pt-3 flex flex-col gap-2">
                         <button onClick={() => openFeedback(b.id, "customer")} className="w-full border border-[#CBD9EE] text-[#0F1E3D] font-medium py-2 rounded-lg hover:bg-[#E6EEFB] transition-colors text-sm">
