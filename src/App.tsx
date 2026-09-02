@@ -1799,6 +1799,17 @@ export default function App() {
   }
 
   function openBooking(worker: Worker) {
+    // Require sign-in before a booking can even start — previously this
+    // opened straight to the schedule step for anyone, logged in or not.
+    if (!authChecked) return;
+    if (!auth.currentUser) {
+      setAuthMode("signin");
+      setAuthRole("customer");
+      setAuthError("");
+      setSignInStep(1);
+      setShowSignIn(true);
+      return;
+    }
     setBookingWorker(worker);
     setBookingStep(1);
     setBookingForm({ date: "", time: "", address: "", pincode: "", lat: undefined, lng: undefined, urgent: false, notes: "", useCustomRate: false, proposedRate: String(worker.hourlyRate), paymentMethod: "upi" });
@@ -5245,19 +5256,42 @@ export default function App() {
                       <div>
                         <label className="text-sm font-semibold text-[#0F1E3D] mb-1.5 block">Pick a time slot</label>
                         <div className="grid grid-cols-3 gap-2">
-                          {timeSlots.map((slot) => (
-                            <button
-                              key={slot}
-                              onClick={() => setBookingForm({ ...bookingForm, time: slot })}
-                              className={`text-xs sm:text-sm font-medium px-2 py-2 rounded-lg border transition-colors ${
-                                bookingForm.time === slot
-                                  ? "bg-[#1D4ED8] text-white border-[#1D4ED8]"
-                                  : "bg-white text-[#1E293B] border-[#CBD9EE] hover:border-[#1D4ED8]"
-                              }`}
-                            >
-                              {slot}
-                            </button>
-                          ))}
+                          {timeSlots.map((slot) => {
+                            // If the chosen date is today, disable any slot
+                            // whose start time has already passed — otherwise
+                            // someone could "book" a 9 AM visit at 3 PM today.
+                            const isToday = bookingForm.date === new Date().toISOString().split("T")[0];
+                            let isPast = false;
+                            if (isToday) {
+                              const match = slot.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+                              if (match) {
+                                let hour = parseInt(match[1], 10);
+                                const minute = parseInt(match[2], 10);
+                                const meridiem = match[3].toUpperCase();
+                                if (meridiem === "PM" && hour !== 12) hour += 12;
+                                if (meridiem === "AM" && hour === 12) hour = 0;
+                                const slotDate = new Date();
+                                slotDate.setHours(hour, minute, 0, 0);
+                                isPast = slotDate.getTime() <= Date.now();
+                              }
+                            }
+                            return (
+                              <button
+                                key={slot}
+                                disabled={isPast}
+                                onClick={() => setBookingForm({ ...bookingForm, time: slot })}
+                                className={`text-xs sm:text-sm font-medium px-2 py-2 rounded-lg border transition-colors ${
+                                  isPast
+                                    ? "bg-[#F3F7FE] text-[#94A3B8] border-[#E2E8F0] cursor-not-allowed line-through"
+                                    : bookingForm.time === slot
+                                    ? "bg-[#1D4ED8] text-white border-[#1D4ED8]"
+                                    : "bg-white text-[#1E293B] border-[#CBD9EE] hover:border-[#1D4ED8]"
+                                }`}
+                              >
+                                {slot}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     </>
@@ -5265,7 +5299,19 @@ export default function App() {
                   <button
                     disabled={
                       !bookingForm.urgent &&
-                      (!bookingForm.date || !bookingForm.time || bookingForm.date < new Date().toISOString().split("T")[0])
+                      (!bookingForm.date || !bookingForm.time || bookingForm.date < new Date().toISOString().split("T")[0] ||
+                        (bookingForm.date === new Date().toISOString().split("T")[0] && (() => {
+                          const match = bookingForm.time.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+                          if (!match) return false;
+                          let hour = parseInt(match[1], 10);
+                          const minute = parseInt(match[2], 10);
+                          const meridiem = match[3].toUpperCase();
+                          if (meridiem === "PM" && hour !== 12) hour += 12;
+                          if (meridiem === "AM" && hour === 12) hour = 0;
+                          const slotDate = new Date();
+                          slotDate.setHours(hour, minute, 0, 0);
+                          return slotDate.getTime() <= Date.now();
+                        })()))
                     }
                     onClick={() => setBookingStep(2)}
                     className="mt-2 bg-[#1D4ED8] text-white font-semibold py-3 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1E3A8A] transition-colors"
